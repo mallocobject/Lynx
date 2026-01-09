@@ -4,7 +4,12 @@
 #include "lynx/include/common.h"
 #include <cstdint>
 #include <fcntl.h>
+#include <functional>
 #include <memory>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <utility>
 
 namespace lynx
 {
@@ -20,14 +25,20 @@ class Channel
 	bool tied_;
 	bool in_epoll_;
 
+	std::function<void()> read_callback_;
+	std::function<void()> write_callback_;
+	std::function<void()> close_callback_;
+	std::function<void()> error_callback_;
+
   public:
-	DISABLE_DEFAULT(Channel)
 	DISABLE_COPY_AND_MOVE(Channel)
 
 	Channel(int fd, EventLoop* loop);
 	~Channel();
 
-	void tie(std::shared_ptr<void> obj)
+	void remove();
+
+	void tie(std::weak_ptr<void> obj)
 	{
 		tie_ = obj;
 		tied_ = true;
@@ -84,8 +95,48 @@ class Channel
 		fcntl(fd_, F_SETFL, flags | O_NONBLOCK);
 	}
 
+	void setReuseAddr(bool on)
+	{
+		int optval = on ? 1 : 0;
+		setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	}
+
+	void setKeepAlive(bool on)
+	{
+		int optval = on ? 1 : 0;
+		setsockopt(fd_, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
+	}
+
+	void setNoDelay(bool on)
+	{
+		int optval = on ? 1 : 0;
+		setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval));
+	}
+
 	void disableIN();
 	void disableOUT();
+
+	void disAll();
+
+	void setReadCallback(std::function<void()> cb)
+	{
+		read_callback_ = std::move(cb);
+	}
+
+	void setWriteCallback(std::function<void()> cb)
+	{
+		write_callback_ = std::move(cb);
+	}
+
+	void setCloseCallback(std::function<void()> cb)
+	{
+		close_callback_ = std::move(cb);
+	}
+
+	void setErrorCallback(std::function<void()> cb)
+	{
+		error_callback_ = std::move(cb);
+	}
 
 	void handle();
 	void handleWithGuard();

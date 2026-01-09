@@ -1,5 +1,6 @@
 #include "lynx/include/channel.h"
 #include "lynx/include/event_loop.h"
+#include "lynx/include/logger.hpp"
 #include <cassert>
 #include <strings.h>
 #include <sys/epoll.h>
@@ -21,11 +22,19 @@ Channel::Channel(int fd, EventLoop* loop)
 Channel::~Channel()
 {
 
-	if (loop_)
+	if (loop_ && in_epoll_)
 	{
 		loop_->deleteChannel(this);
 	}
 	close(fd_);
+}
+
+void Channel::remove()
+{
+	if (loop_)
+	{
+		loop_->deleteChannel(this);
+	}
 }
 
 void Channel::useET()
@@ -70,6 +79,13 @@ void Channel::disableOUT()
 	loop_->updateChannel(this);
 }
 
+void Channel::disAll()
+{
+	assert(loop_ != nullptr);
+	events_ = 0;
+	loop_->updateChannel(this);
+}
+
 void Channel::handle()
 {
 	if (tied_)
@@ -86,5 +102,26 @@ void Channel::handle()
 void Channel::handleWithGuard()
 {
 	// todo
+	if (revents_ & (EPOLLIN))
+	{
+		if (read_callback_)
+		{
+			read_callback_();
+		}
+	}
+	if (revents_ & (EPOLLHUP))
+	{
+		if (close_callback_)
+		{
+			close_callback_();
+		}
+	}
+	if (revents_ & (EPOLLERR))
+	{
+		if (error_callback_)
+		{
+			error_callback_();
+		}
+	}
 }
 } // namespace lynx

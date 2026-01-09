@@ -1,6 +1,6 @@
 #include "lynx/include/epoller.h"
 #include "lynx/include/channel.h"
-#include "lynx/include/logger.h"
+#include "lynx/include/logger.hpp"
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
@@ -59,8 +59,8 @@ std::vector<Channel*> Epoller::wait(int timeout)
 			}
 			else
 			{
-				LOG_FATAL() << "epoll_wait error [" << errno
-							<< "]: " << strerror(errno);
+				LOG_FATAL()
+					<< "Epoller::wait [" << errno << "]: " << strerror(errno);
 				exit(1);
 			}
 		}
