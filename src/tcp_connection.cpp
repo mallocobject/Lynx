@@ -1,8 +1,11 @@
 #include "lynx/include/tcp_connection.h"
+#include "lynx/include/buffer.h"
 #include "lynx/include/channel.h"
 #include "lynx/include/event_loop.h"
 #include "lynx/include/logger.hpp"
 #include <cassert>
+#include <cerrno>
+#include <cstddef>
 #include <cstring>
 #include <memory>
 #include <strings.h>
@@ -15,7 +18,9 @@ namespace lynx
 TcpConnection::TcpConnection(int fd, EventLoop* loop, const char* ip,
 							 uint16_t port)
 	: ch_(std::make_unique<Channel>(fd, loop)), fd_(fd), loop_(loop),
-	  peer_port_(port), state_(Disconnected)
+	  peer_port_(port), state_(Disconnected),
+	  input_buffer_(std::make_shared<Buffer>()),
+	  output_buffer_(std::make_shared<Buffer>())
 {
 	strcpy(peer_ip_, ip);
 	ch_->setKeepAlive(true);
@@ -41,17 +46,6 @@ void TcpConnection::setTcpNoDelay(bool on)
 void TcpConnection::establish()
 {
 	assert(loop_->isLocalThread());
-	// try
-	// {
-	// 	auto self = shared_from_this();
-	// 	LOG_DEBUG() << "shared_from_this() successful, use_count: "
-	// 				<< self.use_count();
-	// }
-	// catch (const std::bad_weak_ptr& e)
-	// {
-	// 	LOG_ERROR() << "bad_weak_ptr: " << e.what();
-	// 	LOG_ERROR() << "This TcpConnection is not managed by shared_ptr!";
-	// }
 	ch_->tie(weak_from_this());
 	ch_->enableIN();
 	ch_->useET();
@@ -87,14 +81,13 @@ void TcpConnection::handleClose()
 
 void TcpConnection::handleRead()
 {
-	char buf[1024];
-	bzero(buf, sizeof(buf));
-	ssize_t n = read(fd_, buf, sizeof(buf) - 1);
+	assert(loop_->isLocalThread());
+	int saved_errno = 0;
+	ssize_t n = input_buffer_->readFd(fd_, &saved_errno);
 	if (n > 0)
 	{
-		message_callback_(shared_from_this());
-		buf[n] = 0;
-		LOG_INFO() << buf;
+		message_callback_(shared_from_this(), input_buffer_);
+		// LOG_INFO() << ;
 	}
 	else if (n == 0)
 	{
@@ -103,7 +96,7 @@ void TcpConnection::handleRead()
 	else
 	{
 		LOG_ERROR() << "TcpConnection::handleRead [" << errno
-					<< "]: " << strerror(errno);
+					<< "]: " << strerror(saved_errno);
 		handleError();
 	}
 }
@@ -111,5 +104,50 @@ void TcpConnection::handleRead()
 void TcpConnection::handleWrite()
 {
 	assert(loop_->isLocalThread());
+	if (ch_->IsWriting())
+	{
+		ssize_t n = ::write(fd_, output_buffer_->peek(),
+							output_buffer_->readableBytes());
+		if (n > 0)
+		{
+			output_buffer_->retrieve(n);
+			if (output_buffer_->readableBytes() == 0)
+			{
+				ch_->disableOUT();
+				write_complete_callback_(shared_from_this());
+			}
+		}
+	}
+}
+
+void TcpConnection::send(const std::string& message)
+{
+	size_t remaining = message.size();
+	size_t n_wrote = 0;
+
+	// 先调用write尝试发送，将剩余的数据存放至output buffer
+	if (!ch_->IsWriting() && output_buffer_->readableBytes() == 0)
+	{
+		n_wrote = ::write(ch_->fd(), message.data(), message.size());
+		if (n_wrote >= 0)
+		{
+			remaining -= n_wrote;
+		}
+		else
+		{
+			LOG_ERROR() << "TcpConnection::send [" << errno
+						<< "]: " << strerror(errno);
+			handleError();
+		}
+	}
+
+	if (remaining > 0)
+	{
+		output_buffer_->append(message.data() + n_wrote, remaining);
+		if (!ch_->IsWriting())
+		{
+			ch_->enableOUT();
+		}
+	}
 }
 } // namespace lynx

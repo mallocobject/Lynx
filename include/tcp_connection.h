@@ -13,6 +13,7 @@ namespace lynx
 {
 class Channel;
 class EventLoop;
+class Buffer;
 class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 {
   private:
@@ -28,8 +29,11 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	EventLoop* loop_;
 	char peer_ip_[INET_ADDRSTRLEN]; // include '\0'
 	uint16_t peer_port_;
+	std::shared_ptr<Buffer> input_buffer_;
+	std::shared_ptr<Buffer> output_buffer_;
 
-	std::function<void(const std::shared_ptr<TcpConnection>&)>
+	std::function<void(const std::shared_ptr<TcpConnection>&,
+					   std::shared_ptr<Buffer>)>
 		message_callback_; // defined by user
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		write_complete_callback_; // defined by user
@@ -70,7 +74,9 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	}
 
 	void setMessageCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&,
+						   std::shared_ptr<Buffer>)>
+			cb)
 	{
 		message_callback_ = std::move(cb);
 	}
@@ -98,6 +104,8 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 
 	void setTcpReuseAddr(bool on);
 	void setTcpNoDelay(bool on);
+
+	void send(const std::string& message);
 };
 } // namespace lynx
 

@@ -15,7 +15,7 @@ namespace lynx
 {
 Channel::Channel(int fd, EventLoop* loop)
 	: fd_(fd), loop_(loop), events_(0), revents_(0), tied_(false),
-	  in_epoll_(false)
+	  in_epoll_(false), is_writing_(false)
 {
 }
 
@@ -56,6 +56,7 @@ void Channel::enableOUT()
 	assert(loop_ != nullptr);
 	events_ |= EPOLLOUT;
 	loop_->updateChannel(this);
+	is_writing_ = true;
 }
 
 void Channel::enableRDHUP()
@@ -77,6 +78,7 @@ void Channel::disableOUT()
 	assert(loop_ != nullptr);
 	events_ &= ~EPOLLOUT;
 	loop_->updateChannel(this);
+	is_writing_ = false;
 }
 
 void Channel::disAll()
@@ -101,26 +103,35 @@ void Channel::handle()
 
 void Channel::handleWithGuard()
 {
-	// todo
-	if (revents_ & (EPOLLIN))
-	{
-		if (read_callback_)
-		{
-			read_callback_();
-		}
-	}
-	if (revents_ & (EPOLLHUP))
+	// 如果有 HUP 但没有 IN，说明连接彻底断开且没有残留数据，直接触发关闭
+	if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN))
 	{
 		if (close_callback_)
 		{
 			close_callback_();
 		}
 	}
-	if (revents_ & (EPOLLERR))
+	if (revents_ & EPOLLERR)
 	{
 		if (error_callback_)
 		{
 			error_callback_();
+		}
+	}
+	// EPOLLPRI：紧急数据/带外数据
+	// EPOLLRDHUP：对端关闭连接（半关闭），依然要读，因为可能还有残留数据在缓冲区
+	if (revents_ & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))
+	{
+		if (read_callback_)
+		{
+			read_callback_();
+		}
+	}
+	if (revents_ & EPOLLOUT)
+	{
+		if (write_callback_)
+		{
+			write_callback_();
 		}
 	}
 }

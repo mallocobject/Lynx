@@ -1,147 +1,165 @@
+#include "lynx/include/buffer.h"
 #include <arpa/inet.h>
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <fcntl.h>
 #include <iostream>
 #include <netinet/in.h>
-#include <ostream>
-#include <strings.h>
+#include <signal.h>
+#include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-void writeBytes(int fd, const char* buf, size_t n)
+// 设置文件描述符为非阻塞
+void setNonBlocking(int fd)
 {
-	size_t bytes_left = n;
-	while (bytes_left > 0)
-	{
-		ssize_t bytes_written = ::write(fd, buf + n - bytes_left, bytes_left);
-		if (bytes_written > 0)
-		{
-			bytes_left -= bytes_written;
-		}
-		else if (bytes_written < 0 && errno != EINTR)
-		{
-			std::perror("writeBytes");
-			exit(1);
-		}
-	}
+	int flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-void readBytes(int fd, char* buf, size_t* size)
+// 忽略 SIGPIPE 信号，防止对端关闭后发送数据导致进程退出
+void ignoreSigpipe()
 {
-	ssize_t bytes_read = ::read(fd, buf, *size);
-	*size = bytes_read;
-
-	if (bytes_read == 0)
-	{
-		std::cout << "the other side closed" << std::endl;
-	}
-	else if (bytes_read < 0 && errno != EINTR)
-	{
-		std::perror("readBytes");
-		exit(1);
-	}
+	struct sigaction sa;
+	sa.sa_handler = SIG_IGN;
+	sa.sa_flags = 0;
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGPIPE, &sa, nullptr);
 }
 
 int main(int argc, char* argv[])
 {
 	if (argc != 3)
 	{
-		std::cerr << "[program] [ip] [port]" << std::endl;
-		exit(1);
+		std::cerr << "Usage: " << argv[0] << " <IP> <PORT>" << std::endl;
+		return 1;
 	}
-	int sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
+
+	ignoreSigpipe();
+
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	setNonBlocking(sockfd);
+
 	sockaddr_in addr;
-	::bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = ::htons(::atoi(argv[2]));
-	::inet_pton(AF_INET, argv[1], &addr.sin_addr);
+	addr.sin_port = htons(std::stoi(argv[2]));
+	inet_pton(AF_INET, argv[1], &addr.sin_addr);
 
-	int ret = ::connect(sockfd, (sockaddr*)&addr, sizeof(addr));
-	if (ret == -1)
+	// 非阻塞连接
+	int ret = connect(sockfd, (sockaddr*)&addr, sizeof(addr));
+	if (ret == -1 && errno != EINPROGRESS)
 	{
-		std::perror(nullptr);
-		exit(1);
+		perror("connect");
+		return 1;
 	}
 
-	char buf[1024];
-	::bzero(buf, sizeof(buf));
-	size_t size = sizeof(buf) - 1;
+	int epfd = epoll_create1(0);
+	epoll_event events[10];
 
-	int epfd = ::epoll_create1(0);
-	epoll_event ev{EPOLLIN, {.fd = sockfd}};
-	epoll_event events[2];
-	::epoll_ctl(epfd, EPOLL_CTL_ADD, sockfd, &ev);
-	ev = {EPOLLIN, {.fd = STDIN_FILENO}};
-	::epoll_ctl(epfd, EPOLL_CTL_ADD, STDIN_FILENO, &ev);
+	// 监听：1. Socket 可读  2. 标准输入可读
+	epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = sockfd;
+	epoll_ctl(epfd, EPOLL_CTL_ADD, sockfd, &ev);
 
-	while (true)
+	ev.events = EPOLLIN;
+	ev.data.fd = STDIN_FILENO;
+	epoll_ctl(epfd, EPOLL_CTL_ADD, STDIN_FILENO, &ev);
+
+	lynx::Buffer inputBuffer;  // 接收网络数据
+	lynx::Buffer outputBuffer; // 发送网络数据
+
+	bool running = true;
+	std::cout << "Connected to server. Type something..." << std::endl;
+
+	while (running)
 	{
-		int nfds = ::epoll_wait(epfd, events, 2, -1);
-		if (nfds == -1)
+		int nfds = epoll_wait(epfd, events, 10, -1);
+		for (int i = 0; i < nfds; ++i)
 		{
-			if (errno == EINTR)
+			int fd = events[i].data.fd;
+
+			// 情况 1: Socket 可读 (服务器回显)
+			if (fd == sockfd && (events[i].events & EPOLLIN))
 			{
-				continue;
-			}
-			else
-			{
-				perror("epoll");
-				break;
-			}
-		}
-		for (int i = 0; i < nfds; i++)
-		{
-			if (events[i].data.fd == sockfd)
-			{
-				std::cout << events[i].events << std::endl;
-				if (events[i].events & (EPOLLERR))
+				int savedErrno = 0;
+				ssize_t n = inputBuffer.readFd(sockfd, &savedErrno);
+				if (n > 0)
 				{
-					std::cout << "error occurred on server" << std::endl;
-					goto flag_exit;
+					// 假设服务器回显的是普通字符串，直接打印
+					// 如果服务器回显也带长度头，需要按 retrieveInt32 逻辑解析
+					std::string msg =
+						inputBuffer.retrieveString(inputBuffer.readableBytes());
+					std::cout << "\rServer echo: " << msg << std::endl
+							  << "> " << std::flush;
 				}
-				if (events[i].events & EPOLLIN)
+				else if (n == 0)
 				{
-					::bzero(buf, sizeof(buf));
-					size = sizeof(buf) - 1;
-					readBytes(sockfd, buf, &size);
-					if (size == 0)
-					{
-						goto flag_exit;
-					}
-					buf[size] = 0;
-					::fputs("echo: ", stdout);
-					::fputs(buf, stdout);
-					::fputs("([^ to exit)\n", stdout);
+					std::cout << "\nServer closed connection." << std::endl;
+					running = false;
 				}
 			}
-			else if (events[i].data.fd == STDIN_FILENO)
+
+			// 情况 2: 标准输入可读 (用户输入)
+			else if (fd == STDIN_FILENO)
 			{
-				if (events[i].events & EPOLLIN)
+				std::string line;
+				if (!std::getline(std::cin, line))
+				{ // 处理 Ctrl+D
+					std::cout << "Exiting..." << std::endl;
+					shutdown(sockfd, SHUT_WR);
+					// 移除键盘监听，继续处理剩余的网络接收
+					epoll_ctl(epfd, EPOLL_CTL_DEL, STDIN_FILENO, nullptr);
+					continue;
+				}
+
+				if (line.empty())
+					continue;
+
+				// --- 关键：封包过程 ---
+				// 1. 写入 4 字节大端长度
+				int32_t len = static_cast<int32_t>(line.size());
+				int32_t be32 = htonl(len);
+				outputBuffer.append(reinterpret_cast<const char*>(&be32),
+									sizeof be32);
+				// 2. 写入内容
+				outputBuffer.append(line.data(), line.size());
+
+				// 尝试直接发送
+				ssize_t n = write(sockfd, outputBuffer.peek(),
+								  outputBuffer.readableBytes());
+				if (n > 0)
+					outputBuffer.retrieve(n);
+
+				// 如果没发完，注册可写事件
+				if (outputBuffer.readableBytes() > 0)
 				{
-					::bzero(buf, sizeof(buf));
-					size = sizeof(buf);
-					std::cout << std::flush;
-					if (::fgets(buf, size, stdin) == NULL)
+					ev.events = EPOLLIN | EPOLLOUT;
+					ev.data.fd = sockfd;
+					epoll_ctl(epfd, EPOLL_CTL_MOD, sockfd, &ev);
+				}
+				std::cout << "> " << std::flush;
+			}
+
+			// 情况 3: Socket 可写 (发送之前积压的数据)
+			else if (fd == sockfd && (events[i].events & EPOLLOUT))
+			{
+				ssize_t n = write(sockfd, outputBuffer.peek(),
+								  outputBuffer.readableBytes());
+				if (n > 0)
+				{
+					outputBuffer.retrieve(n);
+					if (outputBuffer.readableBytes() == 0)
 					{
-						std::cout << "\nEOF received, exiting..." << std::endl;
-						// goto flag_exit;
-						::shutdown(sockfd, SHUT_WR);
-						continue;
-					}
-					else
-					{
-						buf[strcspn(buf, "\n")] = 0;
-						writeBytes(sockfd, buf, strlen(buf));
+						// 发完了，关掉可写监听
+						ev.events = EPOLLIN;
+						ev.data.fd = sockfd;
+						epoll_ctl(epfd, EPOLL_CTL_MOD, sockfd, &ev);
 					}
 				}
 			}
 		}
 	}
 
-flag_exit:
-
-	::close(sockfd);
+	close(sockfd);
+	return 0;
 }

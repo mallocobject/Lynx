@@ -1,10 +1,13 @@
 // #define NODEBUG
 
+#include "lynx/include/buffer.h"
 #include "lynx/include/channel.h"
 #include "lynx/include/event_loop.h"
 #include "lynx/include/logger.hpp"
 #include "lynx/include/tcp_connection.h"
 #include <arpa/inet.h>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <netinet/in.h>
 #include <strings.h>
@@ -47,8 +50,23 @@ int main(int argc, char* argv[])
 		ntohs(clnt_addr.sin_port));
 
 	conn->setMessageCallback(
-		[](const std::shared_ptr<lynx::TcpConnection>&) {
-
+		[](const std::shared_ptr<lynx::TcpConnection>& conn,
+		   std::shared_ptr<lynx::Buffer> buf)
+		{
+			while (buf->readableBytes() >= sizeof(int32_t))
+			{
+				int32_t len = buf->peekInt32();
+				if (buf->readableBytes() >= static_cast<size_t>(len + 4))
+				{
+					buf->retrieve(4);
+					std::string message = buf->retrieveString(len);
+					lynx::LOG_INFO() << "Client: " << message;
+				}
+				else
+				{
+					break;
+				}
+			}
 		});
 	conn->setWriteCompleteCallback(
 		[](const std::shared_ptr<lynx::TcpConnection>&) {

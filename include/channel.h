@@ -24,6 +24,7 @@ class Channel
 	std::weak_ptr<void> tie_;
 	bool tied_;
 	bool in_epoll_;
+	bool is_writing_;
 
 	std::function<void()> read_callback_;
 	std::function<void()> write_callback_;
@@ -57,6 +58,11 @@ class Channel
 	bool inEpoll() const
 	{
 		return in_epoll_;
+	}
+
+	bool IsWriting() const
+	{
+		return is_writing_;
 	}
 
 	EventLoop* loop() const
