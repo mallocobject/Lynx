@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-int main()
+int main(int argc, char* argv[])
 {
 	// lynx::LOG_INFO() << "hello world";
 	// lynx::LOG_WARN() << "hello world";

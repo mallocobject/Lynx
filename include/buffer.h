@@ -13,21 +13,13 @@ class Buffer
 {
   private:
 	std::vector<char> data_;
-	int read_index_;
-	int write_index_;
+	size_t read_index_;
+	size_t write_index_;
 
   public:
 	DISABLE_COPY_AND_MOVE(Buffer)
 
 	Buffer();
-
-	std::size_t size() const
-	{
-		return data_.size();
-	}
-
-	void input(const std::string& str);
-	std::string output();
 };
 } // namespace lynx
 
