@@ -24,7 +24,7 @@ class Channel
 	std::weak_ptr<void> tie_;
 	bool tied_;
 	bool in_epoll_;
-	bool is_writing_;
+	int index_; // used by epoller
 
 	std::function<void()> read_callback_;
 	std::function<void()> write_callback_;
@@ -32,7 +32,7 @@ class Channel
 	std::function<void()> error_callback_;
 
   public:
-	DISABLE_COPY_AND_MOVE(Channel)
+	DISABLE_COPY(Channel)
 
 	Channel(int fd, EventLoop* loop);
 	~Channel();
@@ -60,14 +60,19 @@ class Channel
 		return in_epoll_;
 	}
 
-	bool IsWriting() const
-	{
-		return is_writing_;
-	}
-
 	EventLoop* loop() const
 	{
 		return loop_;
+	}
+
+	int index() const
+	{
+		return index_;
+	}
+
+	void setIndex(int idx)
+	{
+		index_ = idx;
 	}
 
 	void setEvents(uint32_t events)
@@ -75,7 +80,7 @@ class Channel
 		events_ = events;
 	}
 
-	uint32_t getEvents() const
+	uint32_t events() const
 	{
 		return events_;
 	}
@@ -121,6 +126,7 @@ class Channel
 
 	void disableIN();
 	void disableOUT();
+	bool IsWriting() const;
 
 	void disAll();
 
@@ -144,8 +150,8 @@ class Channel
 		error_callback_ = std::move(cb);
 	}
 
-	void handle();
-	void handleWithGuard();
+	void handleEvent();
+	void handleEventWithGuard();
 };
 } // namespace lynx
 

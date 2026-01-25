@@ -16,7 +16,7 @@ class Epoller
 	std::vector<epoll_event> events;
 
   public:
-	DISABLE_COPY_AND_MOVE(Epoller)
+	DISABLE_COPY(Epoller)
 
 	Epoller();
 	~Epoller();

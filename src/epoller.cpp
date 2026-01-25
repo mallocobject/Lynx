@@ -24,7 +24,7 @@ Epoller::~Epoller()
 void Epoller::updateChannel(Channel* ch)
 {
 
-	epoll_event ev{ch->getEvents(), {.ptr = ch}};
+	epoll_event ev{ch->events(), {.ptr = ch}};
 	if (ch->inEpoll())
 	{
 		epoll_ctl(epfd_, EPOLL_CTL_MOD, ch->fd(), &ev);
@@ -71,6 +71,7 @@ std::vector<Channel*> Epoller::wait(int timeout)
 		}
 		else if (nevs > 0)
 		{
+			LOG_DEBUG() << nevs << " events happended";
 			std::vector<Channel*> active_chs(nevs);
 			for (int i = 0; i < nevs; i++)
 			{

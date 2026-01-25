@@ -15,7 +15,7 @@ namespace lynx
 {
 Channel::Channel(int fd, EventLoop* loop)
 	: fd_(fd), loop_(loop), events_(0), revents_(0), tied_(false),
-	  in_epoll_(false), is_writing_(false)
+	  in_epoll_(false), index_(-1)
 {
 }
 
@@ -56,7 +56,6 @@ void Channel::enableOUT()
 	assert(loop_ != nullptr);
 	events_ |= EPOLLOUT;
 	loop_->updateChannel(this);
-	is_writing_ = true;
 }
 
 void Channel::enableRDHUP()
@@ -78,7 +77,6 @@ void Channel::disableOUT()
 	assert(loop_ != nullptr);
 	events_ &= ~EPOLLOUT;
 	loop_->updateChannel(this);
-	is_writing_ = false;
 }
 
 void Channel::disAll()
@@ -88,20 +86,25 @@ void Channel::disAll()
 	loop_->updateChannel(this);
 }
 
-void Channel::handle()
+bool Channel::IsWriting() const
+{
+	return events_ & EPOLLOUT;
+}
+
+void Channel::handleEvent()
 {
 	if (tied_)
 	{
 		tie_.lock();
-		handleWithGuard();
+		handleEventWithGuard();
 	}
 	else
 	{
-		handleWithGuard();
+		handleEventWithGuard();
 	}
 }
 
-void Channel::handleWithGuard()
+void Channel::handleEventWithGuard()
 {
 	// 如果有 HUP 但没有 IN，说明连接彻底断开且没有残留数据，直接触发关闭
 	if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN))

@@ -1,38 +1,124 @@
 #include "lynx/include/event_loop.h"
 #include "lynx/include/channel.h"
 #include "lynx/include/epoller.h"
+#include "lynx/include/logger.hpp"
+#include <cassert>
+#include <functional>
 #include <memory>
+#include <mutex>
+#include <sys/eventfd.h>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace lynx
 {
 EventLoop::EventLoop()
-	: epoller_(std::make_unique<Epoller>()), tid_(std::this_thread::get_id())
+	: epoller_(std::make_unique<Epoller>()), tid_(std::this_thread::get_id()),
+	  looping_(false), quit_(true), calling_pending_functors_(false)
 {
+	wakeup_fd_ = ::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+	wakeup_ch_ = std::make_unique<Channel>(wakeup_fd_, this);
+	wakeup_ch_->setReadCallback(std::bind(&EventLoop::handleRead, this));
+	wakeup_ch_->enableIN();
+	LOG_DEBUG() << "EventLoop created " << this << " in thread " << tid_;
 }
 
 EventLoop::~EventLoop() = default;
 
 void EventLoop::updateChannel(Channel* ch)
 {
+	assert(ch->loop() == this);
+	assertInLocalThread();
 	epoller_->updateChannel(ch);
 }
 
 void EventLoop::deleteChannel(Channel* ch)
 {
+	assert(ch->loop() == this);
+	assertInLocalThread();
 	epoller_->deleteChannel(ch);
 }
 
 void EventLoop::run()
 {
-	while (true)
+	assert(!looping_);
+	assertInLocalThread();
+	looping_ = true;
+	quit_ = false;
+	while (!quit_)
 	{
 		std::vector<Channel*> active_chs = epoller_->wait();
 		for (auto ch_ptr : active_chs)
 		{
-			ch_ptr->handle();
+			ch_ptr->handleEvent();
 		}
+		doPendingFunctors();
 	}
+	LOG_DEBUG() << "EventLoop " << this << " stop looping";
+	looping_ = false;
+}
+
+void EventLoop::quit()
+{
+	quit_ = true;
+	if (!isInLocalThread())
+	{
+		wakeup();
+	}
+}
+
+void EventLoop::exeInLocalThread(const std::function<void()> cb)
+{
+	if (isInLocalThread())
+	{
+		cb();
+	}
+	else
+	{
+		queueInLocalThread(cb);
+	}
+}
+
+void EventLoop::queueInLocalThread(const std::function<void()> cb)
+{
+	{
+		std::lock_guard<std::mutex> lock(mtx_);
+		pending_functors_.push_back(cb);
+	}
+
+	// 只用在 IO 线程的事件回调中调用 queueInLocalThread() 才无需 wakeup
+	// 因为 doPendingFunctors() 在事件回调之后
+	if (!isInLocalThread() || calling_pending_functors_)
+	{
+		wakeup();
+	}
+}
+
+void EventLoop::abortNotInLocalThread()
+{
+	if (!isInLocalThread())
+	{
+		LOG_FATAL() << "EventLoop was created in threadId_ = " << tid_
+					<< ", current thread id = " << std::this_thread::get_id();
+	}
+}
+
+void EventLoop::doPendingFunctors()
+{
+	std::vector<std::function<void()>> functors;
+	calling_pending_functors_ = true;
+	// 缩小临界区
+	// 减轻阻塞调用 doPendingFunctors
+	// 避免死锁
+	{
+		std::lock_guard<std::mutex> lock(mtx_);
+		std::swap(functors, pending_functors_);
+	}
+	for (auto& f : functors)
+	{
+		f();
+	}
+	calling_pending_functors_ = false;
 }
 } // namespace lynx

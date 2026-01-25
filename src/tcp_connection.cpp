@@ -45,7 +45,7 @@ void TcpConnection::setTcpNoDelay(bool on)
 
 void TcpConnection::establish()
 {
-	assert(loop_->isLocalThread());
+	assert(loop_->isInLocalThread());
 	ch_->tie(weak_from_this());
 	ch_->enableIN();
 	ch_->useET();
@@ -54,7 +54,7 @@ void TcpConnection::establish()
 
 void TcpConnection::destroy()
 {
-	assert(loop_->isLocalThread());
+	assert(loop_->isInLocalThread());
 	ch_->remove();
 }
 
@@ -69,7 +69,7 @@ void TcpConnection::handleError()
 
 void TcpConnection::handleClose()
 {
-	assert(loop_->isLocalThread());
+	assert(loop_->isInLocalThread());
 	LOG_INFO() << "Connection closed - FD: " << fd_ << ", Peer: " << peer_ip_
 			   << ":" << peer_port_;
 	// assert(state_ == Connected || state_ == Disconnecting);
@@ -81,7 +81,7 @@ void TcpConnection::handleClose()
 
 void TcpConnection::handleRead()
 {
-	assert(loop_->isLocalThread());
+	assert(loop_->isInLocalThread());
 	int saved_errno = 0;
 	ssize_t n = input_buffer_->readFd(fd_, &saved_errno);
 	if (n > 0)
@@ -103,7 +103,7 @@ void TcpConnection::handleRead()
 
 void TcpConnection::handleWrite()
 {
-	assert(loop_->isLocalThread());
+	assert(loop_->isInLocalThread());
 	if (ch_->IsWriting())
 	{
 		ssize_t n = ::write(fd_, output_buffer_->peek(),

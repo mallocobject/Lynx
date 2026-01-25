@@ -60,7 +60,14 @@ int main(int argc, char* argv[])
 				{
 					buf->retrieve(4);
 					std::string message = buf->retrieveString(len);
-					lynx::LOG_INFO() << "Client: " << message;
+					if (message == "[^")
+					{
+						lynx::LOG_INFO() << "server close...";
+					}
+					else
+					{
+						lynx::LOG_INFO() << "-> " << message;
+					}
 				}
 				else
 				{

@@ -48,7 +48,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void handleError();
 
   public:
-	DISABLE_COPY_AND_MOVE(TcpConnection)
+	DISABLE_COPY(TcpConnection)
 
 	TcpConnection(int fd, EventLoop* loop, const char* ip, uint16_t port);
 	~TcpConnection();
