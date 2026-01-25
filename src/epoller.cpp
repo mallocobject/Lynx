@@ -69,13 +69,14 @@ std::vector<Channel*> Epoller::wait(int timeout)
 			LOG_WARN() << "epoll_wait out time";
 			// todo
 		}
-		else if (nevs > 0)
+		else
 		{
-			LOG_DEBUG() << nevs << " events happended";
+			// LOG_DEBUG() << nevs << " events happended";
 			std::vector<Channel*> active_chs(nevs);
 			for (int i = 0; i < nevs; i++)
 			{
 				Channel* ch = reinterpret_cast<Channel*>(events[i].data.ptr);
+				// LOG_DEBUG() << events[i].events;
 				ch->setRevents(events[i].events);
 				active_chs[i] = ch;
 			}

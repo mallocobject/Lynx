@@ -11,7 +11,7 @@ int main()
 {
 	lynx::LOG_INFO() << "main(): pid = " << std::this_thread::get_id();
 	lynx::EventLoop loop;
-	lynx::TcpServer server(&loop, "127.0.0.1", 8234, "Lynx");
+	lynx::TcpServer server(&loop, "127.0.0.1", 8234, "Lynx", 0);
 	server.setMessageCallback(
 		[](const std::shared_ptr<lynx::TcpConnection>& conn)
 		{

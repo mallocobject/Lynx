@@ -6,9 +6,9 @@
 #include <functional>
 #include <memory>
 #include <netinet/in.h>
+#include <string>
 #include <sys/types.h>
 #include <utility>
-
 namespace lynx
 {
 class Channel;
@@ -24,16 +24,22 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		Connected,
 		Disconnecting
 	} state_;
+	// create: Disconnected -> Connecting
+	// ready: Connecting -> Connected
+	// other: Connected -> Disconnected
+
 	int fd_;
 	std::unique_ptr<Channel> ch_;
 	EventLoop* loop_;
+	std::string name_;
 	char peer_ip_[INET_ADDRSTRLEN]; // include '\0'
+	char local_ip_[INET_ADDRSTRLEN];
 	uint16_t peer_port_;
+	uint16_t local_port_;
 	std::shared_ptr<Buffer> input_buffer_;
 	std::shared_ptr<Buffer> output_buffer_;
 
-	std::function<void(const std::shared_ptr<TcpConnection>&,
-					   std::shared_ptr<Buffer>)>
+	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		message_callback_; // defined by user
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		write_complete_callback_; // defined by user
@@ -50,12 +56,19 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
   public:
 	DISABLE_COPY(TcpConnection)
 
-	TcpConnection(int fd, EventLoop* loop, const char* ip, uint16_t port);
+	TcpConnection(int fd, EventLoop* loop, const std::string& name,
+				  const char* local_ip, uint16_t local_port,
+				  const char* peer_ip, uint16_t peer_port);
 	~TcpConnection();
 
 	int fd() const
 	{
 		return fd_;
+	}
+
+	const std::string name() const
+	{
+		return name_;
 	}
 
 	EventLoop* loop() const
@@ -74,9 +87,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	}
 
 	void setMessageCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&,
-						   std::shared_ptr<Buffer>)>
-			cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
 	{
 		message_callback_ = std::move(cb);
 	}
@@ -99,13 +110,26 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		close_callback_ = std::move(cb);
 	}
 
-	void establish();
-	void destroy();
-
 	void setTcpReuseAddr(bool on);
 	void setTcpNoDelay(bool on);
 
 	void send(const std::string& message);
+
+	std::shared_ptr<Buffer> inputBuffer() const
+	{
+		return input_buffer_;
+	}
+
+	std::shared_ptr<Buffer> outputBuffer() const
+	{
+		return output_buffer_;
+	}
+
+	void establish();
+	void destroy();
+
+  private:
+	void sendInLocalLoop(const std::string& message);
 };
 } // namespace lynx
 

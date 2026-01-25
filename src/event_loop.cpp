@@ -15,10 +15,10 @@ namespace lynx
 {
 EventLoop::EventLoop()
 	: epoller_(std::make_unique<Epoller>()), tid_(std::this_thread::get_id()),
-	  looping_(false), quit_(true), calling_pending_functors_(false)
+	  looping_(false), quit_(true), calling_pending_functors_(false),
+	  wakeup_fd_(::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)),
+	  wakeup_ch_(std::make_unique<Channel>(wakeup_fd_, this))
 {
-	wakeup_fd_ = ::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-	wakeup_ch_ = std::make_unique<Channel>(wakeup_fd_, this);
 	wakeup_ch_->setReadCallback(std::bind(&EventLoop::handleRead, this));
 	wakeup_ch_->enableIN();
 	LOG_DEBUG() << "EventLoop created " << this << " in thread " << tid_;
@@ -68,7 +68,7 @@ void EventLoop::quit()
 	}
 }
 
-void EventLoop::exeInLocalThread(const std::function<void()> cb)
+void EventLoop::runInLocalThread(const std::function<void()> cb)
 {
 	if (isInLocalThread())
 	{

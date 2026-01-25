@@ -1,9 +1,13 @@
 #include "lynx/include/channel.h"
 #include "lynx/include/event_loop.h"
 #include "lynx/include/logger.hpp"
+#include <arpa/inet.h>
 #include <cassert>
+#include <cstddef>
+#include <netinet/in.h>
 #include <strings.h>
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -65,6 +69,35 @@ void Channel::enableRDHUP()
 	loop_->updateChannel(this);
 }
 
+void Channel::bind(sockaddr* addr)
+{
+	int ret = ::bind(fd_, addr, sizeof(sockaddr));
+	if (ret < 0)
+	{
+		LOG_FATAL() << "Channel::bind [" << errno << "]: " << strerror(errno);
+		exit(1);
+	}
+}
+
+void Channel::listen()
+{
+	::listen(fd_, SOMAXCONN);
+}
+
+int Channel::accept(sockaddr* peer_addr, int* saved_errno)
+{
+	socklen_t addr_len = sizeof(sockaddr);
+	int conn_fd =
+		::accept4(fd_, peer_addr, &addr_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
+	if (conn_fd < 0)
+	{
+		int saved_errno = errno;
+		LOG_WARN() << "Channel::accept [" << errno << "]: " << strerror(errno);
+	}
+
+	return conn_fd;
+}
+
 void Channel::disableIN()
 {
 	assert(loop_ != nullptr);
@@ -79,14 +112,14 @@ void Channel::disableOUT()
 	loop_->updateChannel(this);
 }
 
-void Channel::disAll()
+void Channel::disableAll()
 {
 	assert(loop_ != nullptr);
 	events_ = 0;
 	loop_->updateChannel(this);
 }
 
-bool Channel::IsWriting() const
+bool Channel::Writing() const
 {
 	return events_ & EPOLLOUT;
 }

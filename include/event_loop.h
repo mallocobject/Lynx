@@ -55,11 +55,10 @@ class EventLoop
 
 	void quit();
 
-	void exeInLocalThread(const std::function<void()> cb);
-
-	void queueInLocalThread(const std::function<void()> cb);
+	void runInLocalThread(const std::function<void()> cb);
 
   private:
+	void queueInLocalThread(const std::function<void()> cb);
 	void abortNotInLocalThread();
 	void wakeup()
 	{

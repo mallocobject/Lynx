@@ -124,11 +124,15 @@ class Channel
 		setsockopt(fd_, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval));
 	}
 
+	void bind(sockaddr* addr);
+	void listen();
+	int accept(sockaddr* peer_addr, int* saved_errno);
+
 	void disableIN();
 	void disableOUT();
-	bool IsWriting() const;
+	bool Writing() const;
 
-	void disAll();
+	void disableAll();
 
 	void setReadCallback(std::function<void()> cb)
 	{
