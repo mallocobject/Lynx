@@ -85,13 +85,25 @@ int main(int argc, char* argv[])
 				ssize_t n = inputBuffer.readFd(sockfd, &savedErrno);
 				if (n > 0)
 				{
-					// 假设服务器回显的是普通字符串，直接打印
-					// 如果服务器回显也带长度头，需要按 retrieveInt32 逻辑解析
-					std::string msg =
-						inputBuffer.retrieveString(inputBuffer.readableBytes());
-					std::cout << "\rServer echo: " << msg << std::endl
-							  << "> " << std::flush;
+					while (inputBuffer.readableBytes() >= sizeof(int32_t))
+					{
+						int32_t len = inputBuffer.peekInt32();
+						if (inputBuffer.readableBytes() >=
+							static_cast<size_t>(len + 4))
+						{
+							inputBuffer.retrieve(sizeof(int32_t)); // 跳过长度头
+							std::string msg =
+								inputBuffer.retrieveString(len); // 读取内容
+							std::cout << "\rServer msg: " << msg << std::endl
+									  << "> " << std::flush;
+						}
+						else
+						{
+							break;
+						}
+					}
 				}
+
 				else if (n == 0)
 				{
 					std::cout << "\nServer closed connection." << std::endl;
@@ -103,7 +115,7 @@ int main(int argc, char* argv[])
 			else if (fd == STDIN_FILENO)
 			{
 				std::string line;
-				if (!std::getline(std::cin, line))
+				if (!std::getline(std::cin, line) || line == "[^")
 				{ // 处理 Ctrl+D
 					std::cout << "Exiting..." << std::endl;
 					shutdown(sockfd, SHUT_WR);
@@ -113,14 +125,14 @@ int main(int argc, char* argv[])
 				}
 
 				if (line.empty())
+				{
 					continue;
+				}
 
 				// --- 关键：封包过程 ---
 				// 1. 写入 4 字节大端长度
 				int32_t len = static_cast<int32_t>(line.size());
-				int32_t be32 = htonl(len);
-				outputBuffer.append(reinterpret_cast<const char*>(&be32),
-									sizeof be32);
+				outputBuffer.appendInt32(len);
 				// 2. 写入内容
 				outputBuffer.append(line.data(), line.size());
 

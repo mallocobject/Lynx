@@ -1,7 +1,9 @@
 #ifndef LYNX_TCP_SERVER_H
 #define LYNX_TCP_SERVER_H
 
+#include "lynx/include/buffer.h"
 #include "lynx/include/common.h"
+#include "lynx/include/time_stamp.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -31,7 +33,8 @@ class TcpServer
 
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		connection_callback_;
-	std::function<void(const std::shared_ptr<TcpConnection>&)>
+	std::function<void(const std::shared_ptr<TcpConnection>&,
+					   std::shared_ptr<Buffer>)>
 		message_callback_;
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		write_complete_callback_;
@@ -52,7 +55,8 @@ class TcpServer
 	}
 
 	void setMessageCallback(
-		const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
+		const std::function<void(const std::shared_ptr<TcpConnection>&,
+								 std::shared_ptr<Buffer>)>& cb)
 	{
 		message_callback_ = cb;
 	}

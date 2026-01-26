@@ -23,9 +23,7 @@ ssize_t Buffer::readFd(int fd, int* saved_errno)
 	vec[1].iov_base = extra_buf;
 	vec[1].iov_len = sizeof(extra_buf);
 
-	// don't need extra buf when buffer size is enough
-	int iovcnt = (writable_bytes < sizeof(extra_buf)) ? 2 : 1;
-	const ssize_t n = ::readv(fd, vec, iovcnt);
+	const ssize_t n = ::readv(fd, vec, 2); // LT 触发
 
 	if (n < 0)
 	{

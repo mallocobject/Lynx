@@ -2,6 +2,7 @@
 #define TCP_CONNECTION_H
 
 #include "lynx/include/common.h"
+#include "lynx/include/time_stamp.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -24,9 +25,10 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		Connected,
 		Disconnecting
 	} state_;
-	// create: Disconnected -> Connecting
-	// ready: Connecting -> Connected
-	// other: Connected -> Disconnected
+	// establish: Connecting -> Connected
+	// shutdown: Connected -> Disconnecting
+	// handleColse: Connected/Disconnecting -> Disconnected
+	// destroy: [Connected/Disconnecting -> Disconnected]
 
 	int fd_;
 	std::unique_ptr<Channel> ch_;
@@ -39,14 +41,16 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	std::shared_ptr<Buffer> input_buffer_;
 	std::shared_ptr<Buffer> output_buffer_;
 
-	std::function<void(const std::shared_ptr<TcpConnection>&)>
+	std::function<void(const std::shared_ptr<TcpConnection>&,
+					   std::shared_ptr<Buffer>)>
 		message_callback_; // defined by user
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		write_complete_callback_; // defined by user
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		close_callback_; // provided by "TcpServer"
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
-		connect_callback_; // for read and close, defined by user
+		connect_callback_; // for read and close, defined by user. Only called
+						   // when established or destroyed
 
 	void handleRead();
 	void handleWrite();
@@ -66,9 +70,29 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		return fd_;
 	}
 
-	const std::string name() const
+	std::string name() const
 	{
 		return name_;
+	}
+
+	bool connected() const
+	{
+		return state_ == Connected;
+	}
+
+	bool connecting() const
+	{
+		return state_ == Connecting;
+	}
+
+	bool disconnecting() const
+	{
+		return state_ == Disconnecting;
+	}
+
+	bool disconnnected() const
+	{
+		return state_ == Disconnected;
 	}
 
 	EventLoop* loop() const
@@ -87,7 +111,9 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	}
 
 	void setMessageCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&,
+						   std::shared_ptr<Buffer>)>
+			cb)
 	{
 		message_callback_ = std::move(cb);
 	}
@@ -114,6 +140,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void setTcpNoDelay(bool on);
 
 	void send(const std::string& message);
+	void shutdown();
 
 	std::shared_ptr<Buffer> inputBuffer() const
 	{
@@ -130,6 +157,7 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 
   private:
 	void sendInLocalLoop(const std::string& message);
+	void shutdownInLocalLoop();
 };
 } // namespace lynx
 

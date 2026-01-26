@@ -128,6 +128,11 @@ class Channel
 	void listen();
 	int accept(sockaddr* peer_addr, int* saved_errno);
 
+	void shutdownWR()
+	{
+		::shutdown(fd_, SHUT_WR);
+	}
+
 	void disableIN();
 	void disableOUT();
 	bool Writing() const;

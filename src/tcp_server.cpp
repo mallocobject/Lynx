@@ -28,6 +28,27 @@ TcpServer::TcpServer(EventLoop* loop, const char* ip, uint16_t port,
 
 TcpServer::~TcpServer()
 {
+	main_reactor_->assertInLocalThread();
+	LOG_INFO() << "TcpServer::~TcpServer [" << name_ << "] is a shutting down";
+
+	for (auto& item : conn_map_)
+	{
+		std::shared_ptr<TcpConnection> conn(item.second);
+
+		item.second.reset();
+
+		// 注销回调函数，因为服务器要关闭了
+		conn->setConnectCallback(nullptr);
+		conn->setMessageCallback(nullptr);
+		conn->setCloseCallback(nullptr);
+		conn->setWriteCompleteCallback(nullptr);
+
+		conn->loop()->runInLocalThread(
+			std::bind(&TcpConnection::destroy, conn));
+	}
+
+	LOG_INFO() << "TcpServer::~TcpServer [" << name_
+			   << "] has dispatched all cleanup tasks";
 }
 
 void TcpServer::handleNewConnection(int conn_fd, const char* peer_ip,
@@ -66,8 +87,8 @@ void TcpServer::handleCloseInLocalLoop(
 	const std::shared_ptr<TcpConnection>& conn)
 {
 	main_reactor_->assertInLocalThread();
-	LOG_DEBUG() << "TcpServer::handleCloseInLocalLoop [" << name_
-				<< "] - connection " << conn->name();
+	// LOG_DEBUG() << "TcpServer::handleCloseInLocalLoop [" << name_
+	// 			<< "] - connection " << conn->name();
 
 	decltype(conn_map_)::iterator iter = conn_map_.find(conn->name());
 	assert(iter != conn_map_.end());

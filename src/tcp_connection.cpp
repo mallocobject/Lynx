@@ -51,14 +51,21 @@ void TcpConnection::handleError()
 {
 	int error = 0;
 	socklen_t len = sizeof(error);
-	int err = getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len);
-	LOG_ERROR() << "TcpConnection::handleError [" << err
-				<< "]: " << strerror(err);
+	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+	{
+		error = errno;
+	}
+	LOG_ERROR() << "TcpConnection::handleError [" << name_
+				<< "] = SO_ERROR = " << error << ": " << strerror(error);
 }
 
 void TcpConnection::handleClose()
 {
 	loop_->assertInLocalThread();
+	if (state_ == Disconnected)
+	{
+		return;
+	}
 	LOG_INFO() << "Connection closed - FD: " << fd_ << ", Peer: " << peer_ip_
 			   << ":" << peer_port_;
 	assert(state_ == Connected || state_ == Disconnecting);
@@ -81,8 +88,7 @@ void TcpConnection::handleRead()
 	ssize_t n = input_buffer_->readFd(fd_, &saved_errno);
 	if (n > 0)
 	{
-		message_callback_(shared_from_this());
-		// LOG_INFO() << ;
+		message_callback_(shared_from_this(), input_buffer_);
 	}
 	else if (n == 0)
 	{
@@ -90,8 +96,7 @@ void TcpConnection::handleRead()
 	}
 	else
 	{
-		LOG_ERROR() << "TcpConnection::handleRead [" << errno
-					<< "]: " << strerror(saved_errno);
+		errno = saved_errno;
 		handleError();
 	}
 }
@@ -109,7 +114,15 @@ void TcpConnection::handleWrite()
 			if (output_buffer_->readableBytes() == 0)
 			{
 				ch_->disableOUT();
-				write_complete_callback_(shared_from_this());
+				if (write_complete_callback_)
+				{
+					write_complete_callback_(shared_from_this());
+				}
+
+				if (state_ == Disconnecting)
+				{
+					shutdownInLocalLoop();
+				}
 			}
 		}
 	}
@@ -119,8 +132,16 @@ void TcpConnection::send(const std::string& message)
 {
 	if (state_ == Connected)
 	{
-		loop_->runInLocalThread(
-			std::bind(&TcpConnection::sendInLocalLoop, this, message));
+		// 手动判断，尽量避免 message 拷贝开销
+		if (loop_->isInLocalThread())
+		{
+			sendInLocalLoop(message);
+		}
+		else
+		{
+			loop_->runInLocalThread(std::bind(&TcpConnection::sendInLocalLoop,
+											  shared_from_this(), message));
+		}
 	}
 }
 
@@ -164,6 +185,27 @@ void TcpConnection::sendInLocalLoop(const std::string& message)
 	}
 }
 
+void TcpConnection::shutdown()
+{
+	if (state_ == Connected)
+	{
+		state_ = Disconnecting;
+		loop_->runInLocalThread(
+			std::bind(&TcpConnection::shutdownInLocalLoop, shared_from_this()));
+	}
+}
+
+void TcpConnection::shutdownInLocalLoop()
+{
+	loop_->assertInLocalThread();
+	assert(state_ == Disconnecting);
+
+	if (!ch_->Writing())
+	{
+		ch_->shutdownWR();
+	}
+}
+
 void TcpConnection::establish()
 {
 	loop_->assertInLocalThread();
@@ -173,19 +215,24 @@ void TcpConnection::establish()
 	ch_->tie(weak_from_this());
 	ch_->enableIN();
 	ch_->useET();
+
 	if (connect_callback_)
 	{
 		connect_callback_(shared_from_this());
 	}
+	LOG_DEBUG() << "TcpConnection::establish - Connection " << name_
+				<< " is fully establish.";
 }
 
 void TcpConnection::destroy()
 {
 	loop_->assertInLocalThread();
-	if (state_ == Connected)
+	if (state_ != Disconnected)
 	{
 		state_ = Disconnected;
+
 		ch_->disableAll();
+
 		if (connect_callback_)
 		{
 			connect_callback_(shared_from_this());
