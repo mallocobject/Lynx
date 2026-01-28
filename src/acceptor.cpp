@@ -3,6 +3,7 @@
 #include "lynx/include/event_loop.h"
 #include "lynx/include/logger.hpp"
 #include <arpa/inet.h>
+#include <cassert>
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -21,8 +22,8 @@ Acceptor::Acceptor(EventLoop* loop, const char* ip, uint16_t port)
 	fd_ = ::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 	if (fd_ < 0)
 	{
-		LOG_FATAL() << "Acceptor::Acceptor [" << errno
-					<< "]: " << strerror(errno);
+		LOG_FATAL << "Acceptor::Acceptor [" << errno
+				  << "]: " << strerror(errno);
 		exit(1);
 	}
 	ch_ = std::make_unique<Channel>(fd_, loop);
@@ -88,11 +89,11 @@ void Acceptor::handleRead()
 			conn_fd = ::accept(fd_, nullptr, nullptr);
 			::close(conn_fd);
 			idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
-			LOG_ERROR() << "EMFILE: Out of file descriptors!";
+			LOG_ERROR << "EMFILE: Out of file descriptors!";
 			break;
 		default:
-			LOG_FATAL() << "Epoller::wait [" << saved_errno
-						<< "]: " << strerror(saved_errno);
+			LOG_FATAL << "Epoller::wait [" << saved_errno
+					  << "]: " << strerror(saved_errno);
 			break;
 		}
 	}

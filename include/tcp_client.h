@@ -1,34 +1,30 @@
-#ifndef LYNX_TCP_SERVER_H
-#define LYNX_TCP_SERVER_H
+#ifndef LYNX_TCP_CLIENT_H
+#define LYNX_TCP_CLIENT_H
 
 #include "lynx/include/common.h"
-#include "lynx/include/time_stamp.h"
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <netinet/in.h>
 #include <string>
-#include <thread>
-#include <unordered_map>
+
 namespace lynx
 {
 class EventLoop;
-class Acceptor;
 class TcpConnection;
-class EventLoopThreadPool;
 class Buffer;
-class TcpServer
+class Connector;
+class TcpClient
 {
   private:
-	EventLoop* main_reactor_;
+	EventLoop* loop_;
 	const std::string name_;
-	std::unique_ptr<Acceptor> acceptor_;
-	std::unique_ptr<EventLoopThreadPool> sub_reactors;
-	std::unordered_map<std::string, std::shared_ptr<TcpConnection>> conn_map_;
-	char ip_[INET_ADDRSTRLEN];
-	uint16_t port_;
-	bool running;
+	std::shared_ptr<TcpConnection> conn_;
+	std::shared_ptr<Connector> connector_;
+
+	char serv_ip_[INET_ADDRSTRLEN];
+	uint16_t serv_port_;
+
 	int next_conn_id_;
 
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
@@ -40,14 +36,26 @@ class TcpServer
 		write_complete_callback_;
 
   public:
-	DISABLE_COPY(TcpServer)
+	DISABLE_COPY(TcpClient)
 
-	TcpServer(EventLoop* loop, const char* ip, uint16_t port,
-			  const std::string& name,
-			  size_t sub_reactor_num = std::thread::hardware_concurrency());
-	~TcpServer();
+	TcpClient(EventLoop* loop, const char* serv_ip, uint16_t serv_port,
+			  const std::string name);
+	~TcpClient();
 
-	void startup();
+	void connect();
+	void disconnect();
+	void stop();
+
+	EventLoop* loop() const
+	{
+		return loop_;
+	}
+
+	const std::string& name() const
+	{
+		return name_;
+	}
+
 	void setConnectionCallback(
 		const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
 	{
@@ -68,12 +76,10 @@ class TcpServer
 	}
 
   private:
-	void handleNewConnection(int conn_fd, const char* peer_ip,
-							 uint16_t peer_port);
-
+	void handleNewConnection(int fd);
 	void handleClose(const std::shared_ptr<TcpConnection>& conn);
-	void handleCloseInLocalLoop(const std::shared_ptr<TcpConnection>& conn);
 };
+
 } // namespace lynx
 
 #endif

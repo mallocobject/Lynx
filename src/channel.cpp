@@ -3,6 +3,7 @@
 #include "lynx/include/logger.hpp"
 #include <arpa/inet.h>
 #include <cassert>
+#include <cerrno>
 #include <cstddef>
 #include <netinet/in.h>
 #include <strings.h>
@@ -74,7 +75,7 @@ void Channel::bind(sockaddr* addr)
 	int ret = ::bind(fd_, addr, sizeof(sockaddr));
 	if (ret < 0)
 	{
-		LOG_FATAL() << "Channel::bind [" << errno << "]: " << strerror(errno);
+		LOG_FATAL << "Channel::bind [" << errno << "]: " << strerror(errno);
 		exit(1);
 	}
 }
@@ -92,10 +93,33 @@ int Channel::accept(sockaddr* peer_addr, int* saved_errno)
 	if (conn_fd < 0)
 	{
 		int saved_errno = errno;
-		LOG_WARN() << "Channel::accept [" << errno << "]: " << strerror(errno);
+		LOG_WARN << "Channel::accept [" << errno << "]: " << strerror(errno);
 	}
 
 	return conn_fd;
+}
+
+void Channel::connect(sockaddr* serv_addr, int* saved_errno)
+{
+	*saved_errno = 0;
+
+	int ret = ::connect(fd_, serv_addr, sizeof(sockaddr));
+	if (ret < 0)
+	{
+		*saved_errno = errno;
+		LOG_WARN << "Channel::connect [" << errno << "]: " << strerror(errno);
+	}
+}
+
+int Channel::getSocketError() const
+{
+	int error = 0;
+	socklen_t len = sizeof(error);
+	if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &error, &len) < 0)
+	{
+		error = errno;
+	}
+	return error;
 }
 
 void Channel::disableIN()
@@ -119,7 +143,7 @@ void Channel::disableAll()
 	loop_->updateChannel(this);
 }
 
-bool Channel::Writing() const
+bool Channel::writing() const
 {
 	return events_ & EPOLLOUT;
 }

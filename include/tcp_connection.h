@@ -3,6 +3,7 @@
 
 #include "lynx/include/common.h"
 #include "lynx/include/time_stamp.h"
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -38,6 +39,8 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	char local_ip_[INET_ADDRSTRLEN];
 	uint16_t peer_port_;
 	uint16_t local_port_;
+	size_t high_water_mark_;
+	bool reading_;
 	std::shared_ptr<Buffer> input_buffer_;
 	std::shared_ptr<Buffer> output_buffer_;
 
@@ -45,12 +48,16 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 					   std::shared_ptr<Buffer>)>
 		message_callback_; // defined by user
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
-		write_complete_callback_; // defined by user
+		write_complete_callback_; // defined by user, executed in
+								  // pendingfunctors
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		close_callback_; // provided by "TcpServer"
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		connect_callback_; // for read and close, defined by user. Only called
 						   // when established or destroyed
+
+	std::function<void(const std::shared_ptr<TcpConnection>&, size_t)>
+		high_water_mark_callback_;
 
 	void handleRead();
 	void handleWrite();
@@ -136,7 +143,16 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		close_callback_ = std::move(cb);
 	}
 
+	void setHighWaterMarkCallback(
+		std::function<void(const std::shared_ptr<TcpConnection>&, size_t)> cb,
+		size_t high_water_mark)
+	{
+		high_water_mark_callback_ = std::move(cb);
+		high_water_mark_ = high_water_mark;
+	}
+
 	void setTcpReuseAddr(bool on);
+	void setTcpKeepAlive(bool on);
 	void setTcpNoDelay(bool on);
 
 	void send(const std::string& message);
@@ -155,9 +171,24 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void establish();
 	void destroy();
 
+	bool reading() const
+	{
+		return reading_;
+	}
+
+	void stopRead();
+	void startRead();
+
+	void forceClose();
+
   private:
 	void sendInLocalLoop(const std::string& message);
 	void shutdownInLocalLoop();
+
+	void stopReadInLocalLoop();
+	void startReadInLocalLoop();
+
+	void forceCloseInLocalLoop();
 };
 } // namespace lynx
 

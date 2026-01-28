@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB SRC_FILES "../src/*.cpp")
 
-add_executable(test tcp_server_test.cpp ${SRC_FILES})
+add_executable(test tcp_client_test.cpp ${SRC_FILES})
 
 # 包含路径
 target_include_directories(test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)

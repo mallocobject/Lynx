@@ -26,9 +26,11 @@ class EventLoopThreadPool
 
 	void startup();
 
+	// round-robin algorithm
 	EventLoop* getNextLoop()
 	{
 		EventLoop* loop = main_loop_;
+
 		if (!vec_loop_.empty())
 		{
 			loop = vec_loop_[next_loop_++];

@@ -54,29 +54,29 @@ std::vector<Channel*> Epoller::wait(int timeout)
 		{
 			if (errno == EINTR)
 			{
-				LOG_WARN() << "epoll_wait interrupted, continue...";
+				LOG_WARN << "epoll_wait interrupted, continue...";
 				continue;
 			}
 			else
 			{
-				LOG_FATAL()
+				LOG_FATAL
 					<< "Epoller::wait [" << errno << "]: " << strerror(errno);
 				exit(1);
 			}
 		}
 		else if (nevs == 0)
 		{
-			LOG_WARN() << "epoll_wait out time";
+			LOG_WARN << "epoll_wait out time";
 			// todo
 		}
 		else
 		{
-			// LOG_DEBUG() << nevs << " events happended";
+			// LOG_DEBUG << nevs << " events happended";
 			std::vector<Channel*> active_chs(nevs);
 			for (int i = 0; i < nevs; i++)
 			{
 				Channel* ch = reinterpret_cast<Channel*>(events[i].data.ptr);
-				// LOG_DEBUG() << events[i].events;
+				// LOG_DEBUG << events[i].events;
 				ch->setRevents(events[i].events);
 				active_chs[i] = ch;
 			}

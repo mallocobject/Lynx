@@ -154,11 +154,11 @@ class Logger
 	}
 };
 
-#define LOG_DEBUG() Logger::debug()
-#define LOG_INFO() Logger::info()
-#define LOG_WARN() Logger::warn()
-#define LOG_ERROR() Logger::error()
-#define LOG_FATAL() Logger::fatal()
+#define LOG_DEBUG Logger::debug()
+#define LOG_INFO Logger::info()
+#define LOG_WARN Logger::warn()
+#define LOG_ERROR Logger::error()
+#define LOG_FATAL Logger::fatal()
 
 } // namespace lynx
 

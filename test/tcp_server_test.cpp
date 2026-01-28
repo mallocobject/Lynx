@@ -10,9 +10,9 @@
 #include <unistd.h>
 int main()
 {
-	lynx::LOG_INFO() << "main(): pid = " << std::this_thread::get_id();
+	lynx::LOG_INFO << "main(): pid = " << std::this_thread::get_id();
 	lynx::EventLoop loop;
-	lynx::TcpServer server(&loop, "127.0.0.1", 8234, "Lynx");
+	lynx::TcpServer server(&loop, "127.0.0.1", 8234, "Lynx-server");
 
 	server.setConnectionCallback(
 		[](const std::shared_ptr<lynx::TcpConnection>& conn)
@@ -32,14 +32,16 @@ int main()
 					conn->send(packet);
 				};
 
+				// ::sleep(5);
+
 				sendPacket(lynx::TimeStamp::now().toString());
-				sendPacket("Hello! Do you have lunch?");
-				conn->shutdown();
+				// sendPacket("Hello! Do you have lunch?");
+				// conn->shutdown();
 			}
 			else
 			{
-				lynx::LOG_INFO() << "TcpServer::ConnectionCallback ["
-								 << conn->name() << "] is down";
+				lynx::LOG_INFO << "TcpServer::ConnectionCallback ["
+							   << conn->name() << "] is down";
 			}
 		});
 
@@ -55,7 +57,7 @@ int main()
 				{
 					buf->retrieve(sizeof(int32_t));
 					std::string message = buf->retrieveString(len);
-					lynx::LOG_INFO() << "-> " << message;
+					lynx::LOG_INFO << "-> " << message;
 				}
 				else
 				{

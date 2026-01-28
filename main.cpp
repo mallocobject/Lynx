@@ -9,7 +9,7 @@
 #include <unistd.h>
 int main()
 {
-	lynx::LOG_INFO() << "main(): pid = " << std::this_thread::get_id();
+	lynx::LOG_INFO << "main(): pid = " << std::this_thread::get_id();
 	lynx::EventLoop loop;
 	lynx::TcpServer server(&loop, "127.0.0.1", 8234, "Lynx");
 	server.setMessageCallback(
@@ -24,7 +24,7 @@ int main()
 				{
 					buf->retrieve(sizeof(int32_t));
 					std::string message = buf->retrieveString(len);
-					lynx::LOG_INFO() << "-> " << message;
+					lynx::LOG_INFO << "-> " << message;
 				}
 				else
 				{

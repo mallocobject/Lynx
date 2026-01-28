@@ -4,10 +4,13 @@
 #include "lynx/include/event_loop_thread_pool.h"
 #include "lynx/include/logger.hpp"
 #include "lynx/include/tcp_connection.h"
+#include <cassert>
+#include <csignal>
 #include <cstdio>
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <strings.h>
 
 namespace lynx
 {
@@ -20,6 +23,18 @@ TcpServer::TcpServer(EventLoop* loop, const char* ip, uint16_t port,
 	  port_(port), running(false), next_conn_id_(1)
 
 {
+	// 幂等
+	static bool ignored = []()
+	{
+		struct sigaction sa;
+		::bzero(&sa, sizeof(sa));
+		sa.sa_handler = SIG_IGN;
+		sa.sa_flags = 0;
+		sigemptyset(&sa.sa_mask);
+		sigaction(SIGPIPE, &sa, nullptr);
+		return true;
+	}();
+
 	strcpy(ip_, ip);
 	acceptor_->setNewConnectionCallback(
 		std::bind(&TcpServer::handleNewConnection, this, std::placeholders::_1,
@@ -29,7 +44,7 @@ TcpServer::TcpServer(EventLoop* loop, const char* ip, uint16_t port,
 TcpServer::~TcpServer()
 {
 	main_reactor_->assertInLocalThread();
-	LOG_INFO() << "TcpServer::~TcpServer [" << name_ << "] is a shutting down";
+	LOG_INFO << "TcpServer::~TcpServer [" << name_ << "] is a shutting down";
 
 	for (auto& item : conn_map_)
 	{
@@ -47,8 +62,8 @@ TcpServer::~TcpServer()
 			std::bind(&TcpConnection::destroy, conn));
 	}
 
-	LOG_INFO() << "TcpServer::~TcpServer [" << name_
-			   << "] has dispatched all cleanup tasks";
+	LOG_DEBUG << "TcpServer::~TcpServer [" << name_
+			  << "] has dispatched all cleanup tasks";
 }
 
 void TcpServer::handleNewConnection(int conn_fd, const char* peer_ip,
@@ -60,9 +75,9 @@ void TcpServer::handleNewConnection(int conn_fd, const char* peer_ip,
 			 next_conn_id_++);
 	std::string conn_name = name_ + buf;
 
-	LOG_INFO() << "TcpServer::handleNewConnection [" << name_
-			   << "] - new connection [" << conn_name << "] from " << peer_ip
-			   << ':' << peer_port;
+	LOG_INFO << "TcpServer::handleNewConnection [" << name_
+			 << "] - new connection [" << conn_name << "] from " << peer_ip
+			 << ':' << peer_port;
 
 	EventLoop* io_loop = sub_reactors->getNextLoop();
 	std::shared_ptr<TcpConnection> conn = std::make_shared<TcpConnection>(
@@ -87,7 +102,7 @@ void TcpServer::handleCloseInLocalLoop(
 	const std::shared_ptr<TcpConnection>& conn)
 {
 	main_reactor_->assertInLocalThread();
-	// LOG_DEBUG() << "TcpServer::handleCloseInLocalLoop [" << name_
+	// LOG_DEBUG << "TcpServer::handleCloseInLocalLoop [" << name_
 	// 			<< "] - connection " << conn->name();
 
 	decltype(conn_map_)::iterator iter = conn_map_.find(conn->name());

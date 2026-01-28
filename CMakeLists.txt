@@ -12,3 +12,6 @@ add_executable(client client.cpp ${SRC_FILES})
 
 target_include_directories(lynx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_include_directories(client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+test/CMakeLists.txt
+

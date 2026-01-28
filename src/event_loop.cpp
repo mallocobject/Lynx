@@ -21,10 +21,12 @@ EventLoop::EventLoop()
 {
 	wakeup_ch_->setReadCallback(std::bind(&EventLoop::handleRead, this));
 	wakeup_ch_->enableIN();
-	LOG_DEBUG() << "EventLoop created " << this << " in thread " << tid_;
+	LOG_DEBUG << "EventLoop created " << this << " in thread " << tid_;
 }
 
-EventLoop::~EventLoop() = default;
+EventLoop::~EventLoop()
+{
+}
 
 void EventLoop::updateChannel(Channel* ch)
 {
@@ -55,7 +57,7 @@ void EventLoop::run()
 		}
 		doPendingFunctors();
 	}
-	LOG_DEBUG() << "EventLoop " << this << " stop looping";
+	LOG_DEBUG << "EventLoop " << this << " stop looping";
 	looping_ = false;
 }
 
@@ -99,8 +101,8 @@ void EventLoop::abortNotInLocalThread()
 {
 	if (!isInLocalThread())
 	{
-		LOG_FATAL() << "EventLoop was created in threadId_ = " << tid_
-					<< ", current thread id = " << std::this_thread::get_id();
+		LOG_FATAL << "EventLoop was created in threadId_ = " << tid_
+				  << ", current thread id = " << std::this_thread::get_id();
 	}
 }
 

@@ -127,6 +127,9 @@ class Channel
 	void bind(sockaddr* addr);
 	void listen();
 	int accept(sockaddr* peer_addr, int* saved_errno);
+	void connect(sockaddr* serv_addr, int* saved_errno);
+
+	int getSocketError() const;
 
 	void shutdownWR()
 	{
@@ -135,7 +138,7 @@ class Channel
 
 	void disableIN();
 	void disableOUT();
-	bool Writing() const;
+	bool writing() const;
 
 	void disableAll();
 
