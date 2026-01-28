@@ -157,10 +157,11 @@ void Connector::handleWrite()
 {
 	if (state_ == Connecting)
 	{
-		ch_->disableAll();
-		ch_->remove();
-
 		int error = ch_->getSocketError();
+		int fd = ch_->fd();
+
+		removeAndResetChannel();
+		
 		if (error)
 		{
 			LOG_WARN << "Connector::handleWrite - SO_ERROR = " << error << " "
@@ -183,7 +184,6 @@ void Connector::handleWrite()
 				}
 			}
 		}
-		ch_.reset();
 	}
 }
 
@@ -203,7 +203,10 @@ void Connector::retry()
 	state_ = Disconnected;
 	if (connect_)
 	{
-		ch_.reset(); // 尚未开启监听可写事件
+		if (ch_)
+		{
+			removeAndResetChannel();
+		}
 		LOG_INFO << "Connector::retry - Retry connecting to " << serv_ip_ << ':'
 				 << serv_port_;
 		loop_->runInLocalThread(
