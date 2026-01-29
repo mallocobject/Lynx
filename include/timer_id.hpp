@@ -1,5 +1,5 @@
-#ifndef LYNX_TIMER_ID_H
-#define LYNX_TIMER_ID_H
+#ifndef LYNX_TIMER_ID_HPP
+#define LYNX_TIMER_ID_HPP
 
 #include <cstdint>
 namespace lynx

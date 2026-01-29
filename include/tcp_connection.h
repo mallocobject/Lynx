@@ -3,6 +3,7 @@
 
 #include "lynx/include/common.h"
 #include "lynx/include/time_stamp.h"
+#include <any>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -43,6 +44,8 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	bool reading_;
 	std::shared_ptr<Buffer> input_buffer_;
 	std::shared_ptr<Buffer> output_buffer_;
+
+	std::any context_;
 
 	std::function<void(const std::shared_ptr<TcpConnection>&,
 					   std::shared_ptr<Buffer>)>
@@ -180,6 +183,21 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void startRead();
 
 	void forceClose();
+
+	void setContext(const std::any& context)
+	{
+		context_ = context;
+	}
+
+	std::any context() const
+	{
+		return context_;
+	}
+
+	std::any* contextPtr()
+	{
+		return &context_;
+	}
 
   private:
 	void sendInLocalLoop(const std::string& message);

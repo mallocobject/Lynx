@@ -1,0 +1,75 @@
+#ifndef LYNX_HTTP_RESPONSE_H
+#define LYNX_HTTP_RESPONSE_H
+
+#include <string>
+#include <string_view>
+#include <unordered_map>
+
+namespace lynx
+{
+class HttpResponse
+{
+  private:
+	int status_code_;
+	std::string status_msg_;
+	std::string version_;
+	std::unordered_map<std::string, std::string> headers_;
+	std::string body_;
+
+  public:
+	HttpResponse() : status_code_(200), status_msg_("OK"), version_("HTTP/1.1")
+	{
+	}
+
+	void setStatusCode(int code)
+	{
+		status_code_ = code;
+		status_msg_ = code2msg(code);
+	}
+
+	void setHeader(const std::string& key, const std::string& value)
+	{
+		headers_[key] = value;
+	}
+
+	void setBody(const std::string& body)
+	{
+		body_ = body;
+		setHeader("Content-Length", std::to_string(body_.size()));
+	}
+
+	void setContentType(const std::string& type)
+	{
+		setHeader("Content-Type", type);
+	}
+
+	void setKeepAlive(bool on)
+	{
+		if (on)
+		{
+			setHeader("Connection", "keep-alive");
+		}
+		else
+		{
+			setHeader("Connection", "close");
+		}
+	}
+
+	std::string toString() const;
+
+  private:
+	static std::string_view code2msg(int code)
+	{
+		static const std::unordered_map<int, std::string_view> status_msgs = {
+			{200, "OK"},		  {301, "Moved Permanently"},
+			{400, "Bad Request"}, {403, "Forbidden"},
+			{404, "Not Found"},	  {500, "Internal Server Error"},
+		};
+
+		auto it = status_msgs.find(code);
+		return (it != status_msgs.end()) ? it->second : "Unknown";
+	}
+};
+} // namespace lynx
+
+#endif

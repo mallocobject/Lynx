@@ -6,6 +6,8 @@
 
 namespace lynx
 {
+static const char CRLF[] = "\r\n";
+
 Buffer::Buffer()
 	: data_(DATA_SIZE, 0), read_index_(PREPEND_SIZE), write_index_(PREPEND_SIZE)
 {
@@ -58,6 +60,20 @@ void Buffer::makeSpace(size_t len)
 		read_index_ = PREPEND_SIZE;
 		write_index_ = read_index_ + readabel_bytes;
 	}
+}
+
+const char* Buffer::findCRLF(const char* start) const
+{
+	const char* begin = data_.data() + read_index_;
+	const char* end = data_.data() + write_index_;
+	if (start != nullptr && (start < begin || start >= end))
+	{
+		return nullptr;
+	}
+
+	const char* crlf =
+		std::search(start == nullptr ? begin : start, end, CRLF, CRLF + 2);
+	return crlf == end ? nullptr : crlf;
 }
 
 } // namespace lynx

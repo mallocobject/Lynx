@@ -32,7 +32,7 @@ class TcpServer
 	int next_conn_id_;
 
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
-		connection_callback_;
+		connect_callback_;
 	std::function<void(const std::shared_ptr<TcpConnection>&,
 					   std::shared_ptr<Buffer>)>
 		message_callback_;
@@ -51,7 +51,7 @@ class TcpServer
 	void setConnectionCallback(
 		const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
 	{
-		connection_callback_ = cb;
+		connect_callback_ = cb;
 	}
 
 	void setMessageCallback(

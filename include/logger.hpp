@@ -1,5 +1,5 @@
-#ifndef LYNX_LOGGER_H
-#define LYNX_LOGGER_H
+#ifndef LYNX_LOGGER_HPP
+#define LYNX_LOGGER_HPP
 
 #include "lynx/include/common.h"
 #include "lynx/include/time_stamp.h"

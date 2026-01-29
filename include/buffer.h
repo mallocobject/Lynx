@@ -138,6 +138,8 @@ class Buffer
 		prepend(&be32, sizeof(be32));
 	}
 
+	const char* findCRLF(const char* start = nullptr) const;
+
   private:
 	void retrieveAll()
 	{

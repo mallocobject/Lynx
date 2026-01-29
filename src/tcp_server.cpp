@@ -83,7 +83,7 @@ void TcpServer::handleNewConnection(int conn_fd, const char* peer_ip,
 	std::shared_ptr<TcpConnection> conn = std::make_shared<TcpConnection>(
 		conn_fd, io_loop, conn_name, ip_, port_, peer_ip, peer_port);
 	conn_map_[conn_name] = conn;
-	conn->setConnectCallback(connection_callback_);
+	conn->setConnectCallback(connect_callback_);
 	conn->setMessageCallback(message_callback_);
 	conn->setWriteCompleteCallback(write_complete_callback_);
 	conn->setCloseCallback(
