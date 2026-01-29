@@ -3,6 +3,7 @@
 
 #include "lynx/include/common.h"
 #include "lynx/include/logger.hpp"
+#include "lynx/include/time_stamp.h"
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -17,6 +18,7 @@ namespace lynx
 {
 class Epoller;
 class Channel;
+class TimerQueue;
 class EventLoop
 {
   private:
@@ -31,6 +33,7 @@ class EventLoop
 	std::vector<std::function<void()>> pending_functors_; // guarded by mutex
 
 	std::vector<Channel*> active_chs_;
+	std::unique_ptr<TimerQueue> timer_queue_;
 
   public:
 	DISABLE_COPY(EventLoop)
@@ -60,6 +63,10 @@ class EventLoop
 
 	void runInLocalThread(const std::function<void()> cb);
 	void queueInLocalThread(const std::function<void()> cb);
+
+	void runAt(TimeStamp time_stamp, const std::function<void()>& cb);
+	void runAfter(double delay, const std::function<void()>& cb);
+	void runEvery(double interval, const std::function<void()>& cb);
 
   private:
 	void abortNotInLocalThread();

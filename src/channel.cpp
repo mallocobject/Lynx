@@ -147,20 +147,20 @@ bool Channel::writing() const
 	return events_ & EPOLLOUT;
 }
 
-void Channel::handleEvent()
+void Channel::handleEvent(TimeStamp time_stamp)
 {
 	if (tied_)
 	{
 		tie_.lock();
-		handleEventWithGuard();
+		handleEventWithGuard(time_stamp);
 	}
 	else
 	{
-		handleEventWithGuard();
+		handleEventWithGuard(time_stamp);
 	}
 }
 
-void Channel::handleEventWithGuard()
+void Channel::handleEventWithGuard(TimeStamp time_stamp)
 {
 	// 如果有 HUP 但没有 IN，说明连接彻底断开且没有残留数据，直接触发关闭
 	if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN))

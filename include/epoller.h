@@ -3,6 +3,7 @@
 
 #include "lynx/include/channel.h"
 #include "lynx/include/common.h"
+#include "lynx/include/time_stamp.h"
 #include <sys/epoll.h>
 #include <vector>
 
@@ -22,7 +23,7 @@ class Epoller
 	~Epoller();
 	void updateChannel(Channel* ch);
 	void deleteChannel(Channel* ch);
-	void wait(std::vector<Channel*>* active_chs, int timeout = -1);
+	TimeStamp wait(std::vector<Channel*>* active_chs, int timeout = -1);
 };
 } // namespace lynx
 

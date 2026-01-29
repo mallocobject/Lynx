@@ -2,6 +2,7 @@
 #include "lynx/include/channel.h"
 #include "lynx/include/event_loop.h"
 #include "lynx/include/logger.hpp"
+#include <algorithm>
 #include <arpa/inet.h>
 #include <cassert>
 #include <cerrno>
@@ -17,8 +18,13 @@
 
 namespace lynx
 {
+
+static const int MaxRetryDelayMs = 30 * 1e3;
+static const int InitRetryDelayMs = 500;
+
 Connector::Connector(EventLoop* loop, const char* serv_ip, uint16_t serv_port)
-	: loop_(loop), serv_port_(serv_port), connect_(false), state_(Disconnected)
+	: loop_(loop), serv_port_(serv_port), connect_(false), state_(Disconnected),
+	  retry_delay_ms_(InitRetryDelayMs)
 {
 	strcpy(serv_ip_, serv_ip);
 
@@ -41,6 +47,7 @@ void Connector::restart()
 {
 	loop_->assertInLocalThread();
 	state_ = Disconnected;
+	retry_delay_ms_ = InitRetryDelayMs;
 	connect_ = true;
 	startInLocalLoop();
 }
@@ -212,12 +219,14 @@ void Connector::retry()
 		}
 		LOG_INFO << "Connector::retry - Retry connecting to " << serv_ip_ << ':'
 				 << serv_port_;
-		loop_->runInLocalThread(
+		loop_->runAfter(
+			retry_delay_ms_ / 1000.0,
 			std::bind(&Connector::startInLocalLoop, shared_from_this()));
+		retry_delay_ms_ = std::min(retry_delay_ms_ * 2, MaxRetryDelayMs);
 	}
 	else
 	{
-		LOG_DEBUG << "do not connect";
+		LOG_DEBUG << "don't connect";
 	}
 }
 

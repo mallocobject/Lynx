@@ -2,6 +2,8 @@
 #include "lynx/include/channel.h"
 #include "lynx/include/epoller.h"
 #include "lynx/include/logger.hpp"
+#include "lynx/include/time_stamp.h"
+#include "lynx/include/timer_queue.h"
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -17,7 +19,8 @@ EventLoop::EventLoop()
 	: epoller_(std::make_unique<Epoller>()), tid_(std::this_thread::get_id()),
 	  looping_(false), quit_(true), calling_pending_functors_(false),
 	  wakeup_fd_(::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)),
-	  wakeup_ch_(std::make_unique<Channel>(wakeup_fd_, this))
+	  wakeup_ch_(std::make_unique<Channel>(wakeup_fd_, this)),
+	  timer_queue_(std::make_unique<TimerQueue>(this))
 {
 	wakeup_ch_->setReadCallback(std::bind(&EventLoop::handleRead, this));
 	wakeup_ch_->enableIN();
@@ -51,10 +54,10 @@ void EventLoop::run()
 	while (!quit_)
 	{
 		active_chs_.clear();
-		epoller_->wait(&active_chs_);
+		TimeStamp time_stamp = epoller_->wait(&active_chs_);
 		for (auto ch_ptr : active_chs_)
 		{
-			ch_ptr->handleEvent();
+			ch_ptr->handleEvent(time_stamp);
 		}
 		doPendingFunctors();
 	}
@@ -123,5 +126,22 @@ void EventLoop::doPendingFunctors()
 		f();
 	}
 	calling_pending_functors_ = false;
+}
+
+void EventLoop::runAt(TimeStamp time_stamp, const std::function<void()>& cb)
+{
+	timer_queue_->addTimer(time_stamp, cb, -1);
+}
+
+void EventLoop::runAfter(double delay, const std::function<void()>& cb)
+{
+	timer_queue_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), delay),
+						   cb, -1);
+}
+
+void EventLoop::runEvery(double interval, const std::function<void()>& cb)
+{
+	timer_queue_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), interval),
+						   cb, interval);
 }
 } // namespace lynx

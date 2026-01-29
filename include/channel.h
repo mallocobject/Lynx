@@ -2,6 +2,7 @@
 #define LYNX_CHANNEL_H
 
 #include "lynx/include/common.h"
+#include "lynx/include/time_stamp.h"
 #include <cstdint>
 #include <fcntl.h>
 #include <functional>
@@ -169,8 +170,8 @@ class Channel
 		error_callback_ = std::move(cb);
 	}
 
-	void handleEvent();
-	void handleEventWithGuard();
+	void handleEvent(TimeStamp time_stamp);
+	void handleEventWithGuard(TimeStamp time_stamp);
 };
 } // namespace lynx
 

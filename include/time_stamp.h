@@ -6,6 +6,7 @@
 
 namespace lynx
 {
+static const int MicroSecond2Second = 1e6 * 1.0;
 class TimeStamp
 {
   private:
@@ -24,9 +25,17 @@ class TimeStamp
 	}
 
 	static TimeStamp now();
+	static TimeStamp addTime(TimeStamp time_stamp, double add_seconds);
 	std::string toString() const;
 
+	int64_t microSeconds() const
+	{
+		return micro_seconds_;
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const TimeStamp& ts);
+
+	auto operator<=>(const TimeStamp& rhs) const = default;
 };
 
 std::ostream& operator<<(std::ostream& os, const TimeStamp& ts);

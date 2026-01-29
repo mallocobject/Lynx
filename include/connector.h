@@ -20,6 +20,7 @@ class Connector : public std::enable_shared_from_this<Connector>
 	uint16_t serv_port_;
 	EventLoop* loop_;
 	bool connect_;
+	int retry_delay_ms_;
 
 	enum State
 	{

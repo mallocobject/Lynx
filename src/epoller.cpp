@@ -2,6 +2,7 @@
 #include "lynx/include/buffer.h"
 #include "lynx/include/channel.h"
 #include "lynx/include/logger.hpp"
+#include "lynx/include/time_stamp.h"
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
@@ -46,9 +47,11 @@ void Epoller::deleteChannel(Channel* ch)
 	ch->setInEpoll(false);
 }
 
-void Epoller::wait(std::vector<Channel*>* active_chs, int timeout)
+TimeStamp Epoller::wait(std::vector<Channel*>* active_chs, int timeout)
 {
 	int nevs = epoll_wait(epfd_, events.data(), events.size(), timeout);
+	TimeStamp time_stamp = TimeStamp::now();
+
 	int saved_errno = errno;
 
 	if (nevs == -1)
@@ -79,5 +82,7 @@ void Epoller::wait(std::vector<Channel*>* active_chs, int timeout)
 			events.resize(events.size() * 2);
 		}
 	}
+
+	return time_stamp;
 }
 } // namespace lynx

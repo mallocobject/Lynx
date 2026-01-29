@@ -12,15 +12,22 @@ TimeStamp TimeStamp::now()
 {
 	timeval time;
 	::gettimeofday(&time, nullptr);
-	int64_t micros = static_cast<int64_t>(time.tv_sec) * 1000000 +
+	int64_t micros = static_cast<int64_t>(time.tv_sec) * MicroSecond2Second +
 					 static_cast<int64_t>(time.tv_usec);
 	return TimeStamp(micros);
 }
 
+TimeStamp TimeStamp::addTime(TimeStamp time_stamp, double add_seconds)
+{
+	int64_t delta = static_cast<int64_t>(add_seconds * MicroSecond2Second);
+
+	return TimeStamp(time_stamp.micro_seconds_ + delta);
+}
+
 std::string TimeStamp::toString() const
 {
-	int64_t seconds = micro_seconds_ / 1000000;
-	int64_t microseconds = micro_seconds_ % 1000000;
+	int64_t seconds = micro_seconds_ / MicroSecond2Second;
+	int64_t microseconds = micro_seconds_ % MicroSecond2Second;
 
 	tm tm_time;
 	localtime_r(&seconds, &tm_time);
