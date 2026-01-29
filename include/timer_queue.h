@@ -9,8 +9,8 @@
 #include <functional>
 #include <memory>
 #include <set>
+#include <unistd.h>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 namespace lynx
@@ -29,7 +29,8 @@ class TimerQueue
 
 	std::set<entry> timers_;
 	std::vector<entry> active_timers_;
-	std::set<Timer*> cancelled_timers_; // 没有合适的 entry 哈希算法
+	std::set<Timer*>
+		cancelled_timers_; // 没有合适的 entry 哈希算法 for unordered_set
 	std::unordered_map<Timer*, entry> timer2entry_;
 
   public:

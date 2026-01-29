@@ -35,7 +35,39 @@ class TimeStamp
 
 	friend std::ostream& operator<<(std::ostream& os, const TimeStamp& ts);
 
+#if __cplusplus >= 202002L
 	auto operator<=>(const TimeStamp& rhs) const = default;
+#else
+	bool operator>(const TimeStamp& rhs) const
+	{
+		return micro_seconds_ > rhs.micro_seconds_;
+	}
+
+	bool operator<(const TimeStamp& rhs) const
+	{
+		return micro_seconds_ < rhs.micro_seconds_;
+	}
+
+	bool operator==(const TimeStamp& rhs) const
+	{
+		return micro_seconds_ == rhs.micro_seconds_;
+	}
+
+	bool operator<=(const TimeStamp& rhs) const
+	{
+		return !(*this > rhs);
+	}
+
+	bool operator>=(const TimeStamp& rhs) const
+	{
+		return !(*this < rhs);
+	}
+
+	bool operator!=(const TimeStamp& rhs) const
+	{
+		return !(*this == rhs);
+	}
+#endif
 };
 
 std::ostream& operator<<(std::ostream& os, const TimeStamp& ts);
