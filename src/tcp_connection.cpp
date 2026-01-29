@@ -120,8 +120,8 @@ void TcpConnection::handleWrite()
 				ch_->disableOUT();
 				if (write_complete_callback_)
 				{
-					loop_->runInLocalThread(std::bind(write_complete_callback_,
-													  shared_from_this()));
+					loop_->queueInLocalThread(std::bind(
+						write_complete_callback_, shared_from_this()));
 				}
 
 				if (state_ == Disconnecting)
@@ -195,16 +195,16 @@ void TcpConnection::sendInLocalLoop(const std::string& message)
 			output_buffer_->readableBytes() - remaining < high_water_mark_ &&
 			high_water_mark_callback_)
 		{
-			loop_->runInLocalThread(std::bind(high_water_mark_callback_,
-											  shared_from_this(),
-											  output_buffer_->readableBytes()));
+			loop_->queueInLocalThread(
+				std::bind(high_water_mark_callback_, shared_from_this(),
+						  output_buffer_->readableBytes()));
 		}
 	}
 	else if (!fault_error && remaining == 0)
 	{
 		if (write_complete_callback_)
 		{
-			loop_->runInLocalThread(
+			loop_->queueInLocalThread(
 				std::bind(write_complete_callback_, shared_from_this()));
 		}
 	}
@@ -313,8 +313,8 @@ void TcpConnection::forceClose()
 	if (state_ == Connected || state_ == Disconnecting)
 	{
 		state_ = Disconnecting;
-		loop_->runInLocalThread(std::bind(&TcpConnection::forceCloseInLocalLoop,
-										  shared_from_this()));
+		loop_->queueInLocalThread(std::bind(
+			&TcpConnection::forceCloseInLocalLoop, shared_from_this()));
 	}
 }
 

@@ -73,7 +73,7 @@ void TcpClient::handleNewConnection(int fd)
 	conn_->setCloseCallback(
 		std::bind(&TcpClient::handleClose, this, std::placeholders::_1));
 
-	conn_->establish();
+	loop_->runInLocalThread(std::bind(&TcpConnection::establish, conn_));
 }
 
 void TcpClient::handleClose(const std::shared_ptr<TcpConnection>& conn)
@@ -81,6 +81,6 @@ void TcpClient::handleClose(const std::shared_ptr<TcpConnection>& conn)
 	loop_->assertInLocalThread();
 	assert(loop_ == conn_->loop());
 	conn_.reset();
-	loop_->runInLocalThread(std::bind(&TcpConnection::destroy, conn));
+	loop_->queueInLocalThread(std::bind(&TcpConnection::destroy, conn));
 }
 } // namespace lynx

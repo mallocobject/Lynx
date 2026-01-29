@@ -110,7 +110,7 @@ void TcpServer::handleCloseInLocalLoop(
 	conn_map_.erase(iter);
 
 	// 销毁动作一定发生在子线程处理完当前连接的所有存量事件之后
-	conn->loop()->runInLocalThread(std::bind(&TcpConnection::destroy, conn));
+	conn->loop()->queueInLocalThread(std::bind(&TcpConnection::destroy, conn));
 }
 
 void TcpServer::startup()

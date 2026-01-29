@@ -22,7 +22,7 @@ class Epoller
 	~Epoller();
 	void updateChannel(Channel* ch);
 	void deleteChannel(Channel* ch);
-	std::vector<Channel*> wait(int timeout = -1);
+	void wait(std::vector<Channel*>* active_chs, int timeout = -1);
 };
 } // namespace lynx
 

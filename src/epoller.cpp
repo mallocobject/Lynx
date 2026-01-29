@@ -1,4 +1,5 @@
 #include "lynx/include/epoller.h"
+#include "lynx/include/buffer.h"
 #include "lynx/include/channel.h"
 #include "lynx/include/logger.hpp"
 #include <cassert>
@@ -12,7 +13,9 @@
 
 namespace lynx
 {
-Epoller::Epoller() : epfd_(epoll_create1(0))
+static const int Init_Event_List_Size = 16;
+
+Epoller::Epoller() : epfd_(epoll_create1(0)), events(Init_Event_List_Size)
 {
 }
 
@@ -34,7 +37,6 @@ void Epoller::updateChannel(Channel* ch)
 		epoll_ctl(epfd_, EPOLL_CTL_ADD, ch->fd(), &ev);
 		ch->setInEpoll(true);
 	}
-	events.push_back(epoll_event());
 }
 
 void Epoller::deleteChannel(Channel* ch)
@@ -42,45 +44,39 @@ void Epoller::deleteChannel(Channel* ch)
 	assert(ch->inEpoll());
 	epoll_ctl(epfd_, EPOLL_CTL_DEL, ch->fd(), nullptr);
 	ch->setInEpoll(false);
-	events.pop_back();
 }
 
-std::vector<Channel*> Epoller::wait(int timeout)
+void Epoller::wait(std::vector<Channel*>* active_chs, int timeout)
 {
-	while (true)
+	int nevs = epoll_wait(epfd_, events.data(), events.size(), timeout);
+	int saved_errno = errno;
+
+	if (nevs == -1)
 	{
-		int nevs = epoll_wait(epfd_, events.data(), events.size(), timeout);
-		if (nevs == -1)
+		if (saved_errno != EINTR)
 		{
-			if (errno == EINTR)
-			{
-				LOG_WARN << "epoll_wait interrupted, continue...";
-				continue;
-			}
-			else
-			{
-				LOG_FATAL
-					<< "Epoller::wait [" << errno << "]: " << strerror(errno);
-				exit(1);
-			}
+			LOG_ERROR << "Epoller::wait [" << errno << "]: " << strerror(errno);
 		}
-		else if (nevs == 0)
+	}
+	else if (nevs == 0)
+	{
+		LOG_WARN << "epoll_wait out time";
+		// todo
+	}
+	else
+	{
+		// LOG_DEBUG << nevs << " events happended";
+		for (int i = 0; i < nevs; i++)
 		{
-			LOG_WARN << "epoll_wait out time";
-			// todo
+			Channel* ch = reinterpret_cast<Channel*>(events[i].data.ptr);
+			// LOG_DEBUG << events[i].events;
+			ch->setRevents(events[i].events);
+			active_chs->push_back(ch);
 		}
-		else
+
+		if (nevs == events.size())
 		{
-			// LOG_DEBUG << nevs << " events happended";
-			std::vector<Channel*> active_chs(nevs);
-			for (int i = 0; i < nevs; i++)
-			{
-				Channel* ch = reinterpret_cast<Channel*>(events[i].data.ptr);
-				// LOG_DEBUG << events[i].events;
-				ch->setRevents(events[i].events);
-				active_chs[i] = ch;
-			}
-			return active_chs;
+			events.resize(events.size() * 2);
 		}
 	}
 }

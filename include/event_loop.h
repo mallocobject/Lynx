@@ -2,6 +2,7 @@
 #define LYNX_EVENT_LOOP_H
 
 #include "lynx/include/common.h"
+#include "lynx/include/logger.hpp"
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -28,6 +29,8 @@ class EventLoop
 	std::unique_ptr<Channel> wakeup_ch_;
 	std::mutex mtx_;
 	std::vector<std::function<void()>> pending_functors_; // guarded by mutex
+
+	std::vector<Channel*> active_chs_;
 
   public:
 	DISABLE_COPY(EventLoop)
@@ -56,21 +59,31 @@ class EventLoop
 	void quit();
 
 	void runInLocalThread(const std::function<void()> cb);
+	void queueInLocalThread(const std::function<void()> cb);
 
   private:
-	void queueInLocalThread(const std::function<void()> cb);
 	void abortNotInLocalThread();
 	void wakeup()
 	{
 		uint64_t signal = 1;
 		ssize_t n = ::write(wakeup_fd_, &signal, sizeof(signal));
-		assert(n == sizeof(signal));
+
+		if (n != sizeof(signal))
+		{
+			LOG_ERROR << "EventLoop::wakeup() writes " << n
+					  << " bytes instead of 8";
+		}
 	}
 	void handleRead() // for wakeup
 	{
 		uint64_t signal = 1;
 		ssize_t n = ::read(wakeup_fd_, &signal, sizeof(signal));
-		assert(n == sizeof(signal));
+
+		if (n != sizeof(signal))
+		{
+			LOG_ERROR << "EventLoop::handleRead() reads " << n
+					  << " bytes instead of 8";
+		}
 	}
 	void doPendingFunctors();
 };

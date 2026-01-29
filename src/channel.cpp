@@ -26,12 +26,11 @@ Channel::Channel(int fd, EventLoop* loop)
 
 Channel::~Channel()
 {
-
-	if (loop_ && in_epoll_)
+	if (fd_ != -1)
 	{
-		loop_->deleteChannel(this);
+		::close(fd_);
+		fd_ = -1;
 	}
-	close(fd_);
 }
 
 void Channel::remove()
@@ -92,7 +91,7 @@ int Channel::accept(sockaddr* peer_addr, int* saved_errno)
 		::accept4(fd_, peer_addr, &addr_len, SOCK_NONBLOCK | SOCK_CLOEXEC);
 	if (conn_fd < 0)
 	{
-		int saved_errno = errno;
+		*saved_errno = errno;
 		LOG_WARN << "Channel::accept [" << errno << "]: " << strerror(errno);
 	}
 

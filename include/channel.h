@@ -50,6 +50,13 @@ class Channel
 		return fd_;
 	}
 
+	int releaseFd()
+	{
+		int tmp = fd_;
+		fd_ = -1;
+		return tmp;
+	}
+
 	void setInEpoll(bool in_epoll)
 	{
 		in_epoll_ = in_epoll;

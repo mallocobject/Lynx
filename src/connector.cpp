@@ -63,7 +63,7 @@ void Connector::startInLocalLoop()
 void Connector::stop()
 {
 	connect_ = false;
-	loop_->runInLocalThread(
+	loop_->queueInLocalThread(
 		std::bind(&Connector::stopInLocalLoop, shared_from_this()));
 }
 
@@ -158,10 +158,7 @@ void Connector::handleWrite()
 	if (state_ == Connecting)
 	{
 		int error = ch_->getSocketError();
-		int fd = ch_->fd();
 
-		removeAndResetChannel();
-		
 		if (error)
 		{
 			LOG_WARN << "Connector::handleWrite - SO_ERROR = " << error << " "
@@ -178,10 +175,16 @@ void Connector::handleWrite()
 			state_ = Connected;
 			if (connect_)
 			{
+				int fd = ch_->releaseFd();
+				removeAndResetChannel();
 				if (new_connection_callback)
 				{
-					new_connection_callback(dup(ch_->fd()));
+					new_connection_callback(fd);
 				}
+			}
+			else
+			{
+				removeAndResetChannel();
 			}
 		}
 	}
@@ -220,6 +223,8 @@ void Connector::retry()
 
 bool Connector::isSelfConnect() const
 {
+	assert(ch_);
+
 	sockaddr_in local_addr;
 	sockaddr_in peer_addr;
 	::bzero(&local_addr, sizeof(sockaddr_in));

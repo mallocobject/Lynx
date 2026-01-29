@@ -50,8 +50,9 @@ void EventLoop::run()
 	quit_ = false;
 	while (!quit_)
 	{
-		std::vector<Channel*> active_chs = epoller_->wait();
-		for (auto ch_ptr : active_chs)
+		active_chs_.clear();
+		epoller_->wait(&active_chs_);
+		for (auto ch_ptr : active_chs_)
 		{
 			ch_ptr->handleEvent();
 		}
