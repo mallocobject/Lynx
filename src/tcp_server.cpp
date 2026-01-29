@@ -117,6 +117,5 @@ void TcpServer::startup()
 {
 	sub_reactors->startup();
 	acceptor_->listen();
-	main_reactor_->run();
 }
 } // namespace lynx

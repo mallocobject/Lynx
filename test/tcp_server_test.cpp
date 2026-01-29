@@ -67,4 +67,5 @@ int main()
 		});
 
 	server.startup();
+	loop.run();
 }
