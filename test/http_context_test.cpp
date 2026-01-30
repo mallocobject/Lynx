@@ -2,10 +2,10 @@
 #include "lynx/http/http_request.hpp"
 #include "lynx/http/http_response.h"
 #include "lynx/http/http_router.h"
-#include "lynx/include/buffer.h"
-#include "lynx/include/event_loop.h"
-#include "lynx/include/tcp_connection.h"
-#include "lynx/include/tcp_server.h"
+#include "lynx/net/buffer.h"
+#include "lynx/net/event_loop.h"
+#include "lynx/net/tcp_connection.h"
+#include "lynx/net/tcp_server.h"
 #include <any>
 #include <format>
 #include <memory>

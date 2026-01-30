@@ -1,9 +1,9 @@
-#include "lynx/include/buffer.h"
-#include "lynx/include/channel.h"
-#include "lynx/include/event_loop.h"
-#include "lynx/include/logger.hpp"
-#include "lynx/include/tcp_client.h"
-#include "lynx/include/tcp_connection.h"
+#include "lynx/base/logger.hpp"
+#include "lynx/net/buffer.h"
+#include "lynx/net/channel.h"
+#include "lynx/net/event_loop.h"
+#include "lynx/net/tcp_client.h"
+#include "lynx/net/tcp_connection.h"
 #include <memory>
 #include <signal.h>
 #include <sys/epoll.h>

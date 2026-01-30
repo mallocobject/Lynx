@@ -1,4 +1,4 @@
-#include "lynx/include/time_stamp.h"
+#include "lynx/base/time_stamp.h"
 #include <cassert>
 int main()
 {

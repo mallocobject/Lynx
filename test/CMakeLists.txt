@@ -1,16 +1,11 @@
-# test/CMakeLists.txt
-# cmake_minimum_required(VERSION 3.25)
-# project(LynxTest)
+cmake_minimum_required(VERSION 3.25)
+project(LynxTest)
 
-# set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB SRC_FILES "../src/*.cpp" "../http/*.cpp")
+add_executable(Lynx http_context_test.cpp)
+target_link_libraries(Lynx PUBLIC lynx_lib)
 
-# add_executable(test_server tcp_server_test.cpp ${SRC_FILES})
-# add_executable(test_client tcp_client_test.cpp ${SRC_FILES})
-add_executable(Lynx http_context_test.cpp ${SRC_FILES})
-
-# 包含路径
-# target_include_directories(test_server PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-# target_include_directories(test_client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-target_include_directories(Lynx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+target_include_directories(Lynx PUBLIC ${CMAKE_SOURCE_DIR/..})

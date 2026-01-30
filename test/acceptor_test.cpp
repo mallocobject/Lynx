@@ -1,6 +1,6 @@
-#include "lynx/include/acceptor.h"
-#include "lynx/include/event_loop.h"
-#include "lynx/include/logger.hpp"
+#include "lynx/base/logger.hpp"
+#include "lynx/net/acceptor.h"
+#include "lynx/net/event_loop.h"
 #include <cstdint>
 #include <thread>
 #include <unistd.h>
@@ -12,9 +12,8 @@ int main()
 	acceptor.setNewConnectionCallback(
 		[](int conn_fd, const char* peer_ip, uint16_t peer_port)
 		{
-			lynx::LOG_INFO
-				<< "newConnection(): accepted a new connection from " << peer_ip
-				<< ':' << peer_port;
+			lynx::LOG_INFO << "newConnection(): accepted a new connection from "
+						   << peer_ip << ':' << peer_port;
 			::write(conn_fd, "How are you?", 13);
 			::close(conn_fd);
 		});

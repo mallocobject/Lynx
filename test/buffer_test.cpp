@@ -1,4 +1,4 @@
-#include "lynx/include/buffer.h"
+#include "lynx/net/buffer.h"
 #include <cassert>
 #include <iostream>
 #include <string>

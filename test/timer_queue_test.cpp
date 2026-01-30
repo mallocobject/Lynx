@@ -1,7 +1,7 @@
-#include "lynx/include/event_loop.h"
-#include "lynx/include/time_stamp.h"
-#include "lynx/include/timer_id.hpp"
-#include "lynx/include/timer_queue.h"
+#include "lynx/base/time_stamp.h"
+#include "lynx/base/timer_id.hpp"
+#include "lynx/base/timer_queue.h"
+#include "lynx/net/event_loop.h"
 int main()
 {
 	lynx::EventLoop loop;

@@ -1,6 +1,6 @@
-#include "lynx/include/connector.h"
-#include "lynx/include/event_loop.h"
-#include "lynx/include/logger.hpp"
+#include "lynx/base/logger.hpp"
+#include "lynx/net/connector.h"
+#include "lynx/net/event_loop.h"
 #include <memory>
 
 int main()
