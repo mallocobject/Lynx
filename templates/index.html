@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lynx</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="calculator">
+        <h1>加法计算器</h1>
+
+        <div class="input-group">
+            <label for="number1">第一个数字:</label>
+            <input type="number" id="number1" placeholder="输入数字" step="any">
+            <div class="error" id="error1">请输入有效的数字</div>
+        </div>
+
+        <div class="input-group">
+            <label for="number2">第二个数字:</label>
+            <input type="number" id="number2" placeholder="输入数字" step="any">
+            <div class="error" id="error2">请输入有效的数字</div>
+        </div>
+
+        <div class="result">
+            <h3>结果:</h3>
+            <div id="sum">0</div>
+        </div>
+
+        <div class="buttons">
+            <button id="calculate">计算</button>
+            <button id="reset">重置</button>
+        </div>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>

@@ -7,44 +7,106 @@
 #include "lynx/include/tcp_connection.h"
 #include "lynx/include/tcp_server.h"
 #include <any>
+#include <format>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <sys/stat.h>
+
 int main()
 {
 	lynx::EventLoop loop;
-	lynx::TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-Http_server");
+	lynx::TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-WebServer");
 
 	lynx::HttpRouter router;
-	router.addRoute("GET", "/",
-					[](const lynx::HttpRequest& req, lynx::HttpResponse* res)
-					{
-						res->setStatusCode(200);
-						res->setContentType("text/html");
-						res->setBody("<h1>Hello from Lynx!</h1><p>Path: /</p>");
-					});
+	router.addRoute(
+		"GET", "/",
+		[](const lynx::HttpRequest& req, lynx::HttpResponse* res,
+		   const std::shared_ptr<lynx::TcpConnection>& conn)
+		{ lynx::HttpRouter::serveFile(conn, res, "../templates/index.html"); });
+
+	// 注册 CSS 路由
+	router.addRoute(
+		"GET", "/static/css/style.css",
+		[](const auto& req, auto* res, const auto& conn)
+		{ lynx::HttpRouter::serveFile(conn, res, "../static/css/style.css"); });
+
+	// 注册 JS 路由
+	router.addRoute(
+		"GET", "/static/js/script.js",
+		[](const auto& req, auto* res, const auto& conn)
+		{ lynx::HttpRouter::serveFile(conn, res, "../static/js/script.js"); });
+
+	router.addRoute(
+		"GET", "/hello",
+		[](const lynx::HttpRequest& req, lynx::HttpResponse* res,
+		   const std::shared_ptr<lynx::TcpConnection>& conn)
+		{ lynx::HttpRouter::serveFile(conn, res, "../templates/hello.html"); });
 
 	router.addRoute("GET", "/json",
-					[](const lynx::HttpRequest& req, lynx::HttpResponse* res)
+					[](const lynx::HttpRequest& req, lynx::HttpResponse* res,
+					   const std::shared_ptr<lynx::TcpConnection>& conn)
 					{
 						res->setStatusCode(200);
 						res->setContentType("application/json");
 						res->setBody(
 							"{\"status\":\"ok\", \"message\":\"hello world\"}");
+
+						conn->send(res->toString());
 					});
+
+	router.addRoute(
+		"POST", "/calculate",
+		[](const lynx::HttpRequest& req, lynx::HttpResponse* res,
+		   const std::shared_ptr<lynx::TcpConnection>& conn)
+		{
+			double a = 0.0;
+			double b = 0.0;
+
+			try
+			{
+				auto a_pos = req.body.find("\"a\"");
+				auto b_pos = req.body.find("\"b\"");
+				if (a_pos != std::string::npos && b_pos != std::string::npos)
+				{
+					a = std::stod(req.body.substr(a_pos + 4));
+					b = std::stod(req.body.substr(b_pos + 4));
+
+					double sum = a + b;
+
+					res->setStatusCode(200);
+					res->setContentType("application/json");
+					res->setBody(std::format("{{\"sum\": {0}}}", sum));
+
+					conn->send(res->toString());
+				}
+				else
+				{
+					throw std::logic_error("invalid data");
+				}
+			}
+			catch (...)
+			{
+				res->setStatusCode(400);
+				res->setContentType("application/json");
+				res->setBody("{\"error\": \"invalid data\"}");
+
+				conn->send(res->toString());
+			}
+		});
 
 	server.setConnectionCallback(
 		[](const std::shared_ptr<lynx::TcpConnection>& conn)
 		{
 			if (conn->connected())
 			{
-				// 每个连接绑定一个 HttpContext 实例
-				// lynx::TcpConnection 应该提供 setContext / getContext (基于
-				// std::any)
+				// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
 				conn->setContext(std::make_shared<lynx::HttpContext>());
-				lynx::LOG_INFO << "New Connection: " << conn->name();
+				lynx::LOG_DEBUG << "New Connection: " << conn->name();
 			}
 			else
 			{
-				lynx::LOG_INFO << "Connection closed: " << conn->name();
+				lynx::LOG_DEBUG << "Connection closed: " << conn->name();
 			}
 		});
 
@@ -67,9 +129,7 @@ int main()
 				const lynx::HttpRequest& req = context->request();
 				lynx::HttpResponse res;
 
-				router.dispatch(req, &res);
-
-				conn->send(res.toString());
+				router.dispatch(req, &res, conn);
 
 				std::string conn_header = req.header("connection");
 				if (conn_header == "close" ||

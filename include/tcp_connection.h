@@ -2,7 +2,6 @@
 #define TCP_CONNECTION_H
 
 #include "lynx/include/common.h"
-#include "lynx/include/time_stamp.h"
 #include <any>
 #include <cstddef>
 #include <cstdint>
@@ -47,6 +46,10 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 
 	std::any context_;
 
+	int file_fd_ = -1;
+	size_t file_bytes_to_send_ = 0;
+	off_t file_offset_ = 0;
+
 	std::function<void(const std::shared_ptr<TcpConnection>&,
 					   std::shared_ptr<Buffer>)>
 		message_callback_; // defined by user
@@ -61,11 +64,6 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 
 	std::function<void(const std::shared_ptr<TcpConnection>&, size_t)>
 		high_water_mark_callback_;
-
-	void handleRead();
-	void handleWrite();
-	void handleClose();
-	void handleError();
 
   public:
 	DISABLE_COPY(TcpConnection)
@@ -199,7 +197,14 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		return &context_;
 	}
 
+	void sendFile(const std::string& file_path);
+
   private:
+	void handleRead();
+	void handleWrite();
+	void handleClose();
+	void handleError();
+
 	void sendInLocalLoop(const std::string& message);
 	void shutdownInLocalLoop();
 
@@ -207,6 +212,10 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void startReadInLocalLoop();
 
 	void forceCloseInLocalLoop();
+
+	void sendFileInLocalLoop(const std::string& file_path);
+
+	void trySendFile();
 };
 } // namespace lynx
 

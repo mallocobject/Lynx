@@ -75,9 +75,9 @@ void TcpServer::handleNewConnection(int conn_fd, const char* peer_ip,
 			 next_conn_id_++);
 	std::string conn_name = name_ + buf;
 
-	LOG_INFO << "TcpServer::handleNewConnection [" << name_
-			 << "] - new connection [" << conn_name << "] from " << peer_ip
-			 << ':' << peer_port;
+	LOG_DEBUG << "TcpServer::handleNewConnection [" << name_
+			  << "] - new connection [" << conn_name << "] from " << peer_ip
+			  << ':' << peer_port;
 
 	EventLoop* io_loop = sub_reactors->getNextLoop();
 	std::shared_ptr<TcpConnection> conn = std::make_shared<TcpConnection>(

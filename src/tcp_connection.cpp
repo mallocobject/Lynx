@@ -7,10 +7,13 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstring>
+#include <fcntl.h>
 #include <functional>
 #include <memory>
 #include <strings.h>
+#include <sys/sendfile.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -30,6 +33,7 @@ TcpConnection::TcpConnection(int fd, EventLoop* loop, const std::string& name,
 	strcpy(peer_ip_, peer_ip);
 
 	ch_->setKeepAlive(true);
+	ch_->setNoDelay(true);
 
 	ch_->setReadCallback(std::bind(&TcpConnection::handleRead, this));
 	ch_->setWriteCallback(std::bind(&TcpConnection::handleWrite, this));
@@ -39,6 +43,10 @@ TcpConnection::TcpConnection(int fd, EventLoop* loop, const std::string& name,
 
 TcpConnection::~TcpConnection()
 {
+	if (file_fd_ != -1)
+	{
+		::close(file_fd_);
+	}
 }
 
 void TcpConnection::setTcpReuseAddr(bool on)
@@ -70,8 +78,8 @@ void TcpConnection::handleClose()
 	{
 		return;
 	}
-	LOG_INFO << "Connection closed - FD: " << fd_ << ", Peer: " << peer_ip_
-			 << ":" << peer_port_;
+	LOG_DEBUG << "Connection closed - FD: " << fd_ << ", Peer: " << peer_ip_
+			  << ":" << peer_port_;
 	assert(state_ == Connected || state_ == Disconnecting);
 	state_ = Disconnected;
 	ch_->disableAll();
@@ -108,26 +116,45 @@ void TcpConnection::handleRead()
 void TcpConnection::handleWrite()
 {
 	loop_->assertInLocalThread();
+
 	if (ch_->writing())
 	{
-		ssize_t n = ::write(fd_, output_buffer_->peek(),
-							output_buffer_->readableBytes());
-		if (n > 0)
+		if (output_buffer_->readableBytes() > 0)
 		{
-			output_buffer_->retrieve(n);
-			if (output_buffer_->readableBytes() == 0)
+			ssize_t n = ::write(fd_, output_buffer_->peek(),
+								output_buffer_->readableBytes());
+			if (n > 0)
 			{
-				ch_->disableOUT();
-				if (write_complete_callback_)
+				output_buffer_->retrieve(n);
+			}
+			else
+			{
+				if (errno != EWOULDBLOCK && errno != EAGAIN)
 				{
-					loop_->queueInLocalThread(std::bind(
-						write_complete_callback_, shared_from_this()));
+					LOG_ERROR << "TcpConnection::handleWrite: error";
+					handleError();
 				}
+			}
+		}
 
-				if (state_ == Disconnecting)
-				{
-					shutdownInLocalLoop();
-				}
+		if (output_buffer_->readableBytes() == 0 && file_fd_ != -1)
+		{
+			trySendFile();
+		}
+
+		if (output_buffer_->readableBytes() == 0 && file_fd_ == -1)
+		{
+
+			ch_->disableOUT();
+			if (write_complete_callback_)
+			{
+				loop_->queueInLocalThread(
+					std::bind(write_complete_callback_, shared_from_this()));
+			}
+
+			if (state_ == Disconnecting)
+			{
+				shutdownInLocalLoop();
 			}
 		}
 	}
@@ -324,6 +351,110 @@ void TcpConnection::forceCloseInLocalLoop()
 	if (state_ == Connected || state_ == Disconnecting)
 	{
 		handleClose();
+	}
+}
+
+void TcpConnection::sendFile(const std::string& file_path)
+{
+	if (state_ == Connected)
+	{
+
+		if (loop_->isInLocalThread())
+		{
+			sendFileInLocalLoop(file_path);
+		}
+		else
+		{
+			loop_->runInLocalThread(
+				std::bind(&TcpConnection::sendFileInLocalLoop,
+						  shared_from_this(), file_path));
+		}
+	}
+}
+
+void TcpConnection::sendFileInLocalLoop(const std::string& file_path)
+{
+	loop_->assertInLocalThread();
+	if (state_ == Disconnected)
+	{
+		return;
+	}
+
+	if (file_fd_ != -1)
+	{
+		LOG_WARN << "TcpConnection::sendFile: a file has been send.";
+		return;
+	}
+	int fd = ::open(file_path.c_str(), O_RDONLY);
+	if (fd == -1)
+	{
+		LOG_WARN << "TcpConnection::sendFile: cannot open file: " << file_path;
+		return;
+	}
+	struct stat st;
+	if (::fstat(fd, &st) < 0)
+	{
+		LOG_ERROR << "TcpConnection::sendFile: cannot get the file's state.";
+		::close(fd);
+		return;
+	}
+
+	file_fd_ = fd;
+	file_bytes_to_send_ = st.st_size;
+	file_offset_ = 0;
+
+	if (!ch_->writing())
+	{
+		ch_->enableOUT();
+	}
+
+	if (output_buffer_->readableBytes() == 0)
+	{
+		trySendFile();
+	}
+}
+
+void TcpConnection::trySendFile()
+{
+	loop_->assertInLocalThread();
+	bool fault_error = false;
+
+	while (file_bytes_to_send_ > 0)
+	{
+		ssize_t n =
+			::sendfile(fd_, file_fd_, &file_offset_, file_bytes_to_send_);
+		if (n >= 0)
+		{
+			file_bytes_to_send_ -= n;
+		}
+		else
+		{
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+			{
+				if (!ch_->writing())
+				{
+					ch_->enableOUT();
+				}
+				break;
+			}
+			else
+			{
+				LOG_ERROR << "TcpConnection::trySendFile [" << errno
+						  << "]: " << strerror(errno);
+
+				::close(file_fd_);
+				file_fd_ = -1;
+				handleError();
+				return;
+			}
+		}
+	}
+
+	if (file_bytes_to_send_ == 0)
+	{
+		::close(file_fd_);
+		file_fd_ = -1;
+		LOG_DEBUG << "TcpConnection::trySendFile : file send successfully.";
 	}
 }
 

@@ -2,6 +2,7 @@
 #include "lynx/http/http_parser.h"
 #include "lynx/http/http_request.hpp"
 #include "lynx/include/buffer.h"
+#include "lynx/include/logger.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

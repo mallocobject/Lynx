@@ -1,4 +1,5 @@
 #include "lynx/http/http_parser.h"
+#include "lynx/include/logger.hpp"
 #include <cctype>
 #include <string>
 
@@ -138,7 +139,7 @@ bool HttpParser::consume(char c)
 		}
 		else
 		{
-			tmp_key_ += c;
+			tmp_key_ += std::tolower(c);
 		}
 		break;
 
@@ -149,10 +150,6 @@ bool HttpParser::consume(char c)
 		}
 		if (c == '\r')
 		{
-			for (auto& ch : tmp_key_)
-			{
-				ch = std::tolower(ch);
-			}
 
 			request_.headers[tmp_key_] = tmp_value_;
 			tmp_key_.clear();
@@ -180,7 +177,7 @@ bool HttpParser::consume(char c)
 		if (c == '\n')
 		{
 			// 检查是否有 Content-Length 决定是否需要解析 Body
-			auto it = request_.headers.find("Content-Length");
+			auto it = request_.headers.find("content-length");
 			if (it != request_.headers.end())
 			{
 				body_remaining_ = std::stol(it->second);

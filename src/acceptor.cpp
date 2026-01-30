@@ -41,7 +41,10 @@ Acceptor::Acceptor(EventLoop* loop, const char* ip, uint16_t port)
 
 Acceptor::~Acceptor()
 {
-	::close(idle_fd_);
+	if (idle_fd_ != -1)
+	{
+		::close(idle_fd_);
+	}
 }
 
 void Acceptor::listen()
