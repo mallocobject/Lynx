@@ -8,33 +8,21 @@
 
 
 ```bash
-wrk -t12 -c400 -d30s http://127.0.0.1:8080/hello
+wrk -t12 -c400 -d30s --latency http://127.0.0.1:8080/
 ```
 
 ```text
-Running 30s test @ http://127.0.0.1:8080/hello
+Running 30s test @ http://127.0.0.1:8080/
   12 threads and 400 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.45ms    2.14ms  63.48ms   89.64%
-    Req/Sec    35.99k     5.26k   53.96k    78.67%
-  12969639 requests in 28.72s, 3.93GB read
-  Socket errors: connect 0, read 0, write 0, timeout 372
-Requests/sec: 451513.59
-Transfer/sec:    139.94MB
-```
-
-```bash
-wrk -t12 -c400 -d30s http://127.0.0.1:8080/json
-```
-
-```text
-Running 30s test @ http://127.0.0.1:8080/json
-  12 threads and 400 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency   810.50us    2.02ms  96.07ms   95.56%
-    Req/Sec    70.52k    10.55k  110.94k    80.36%
-  25317624 requests in 28.67s, 2.62GB read
-  Socket errors: connect 0, read 0, write 0, timeout 305
-Requests/sec: 883091.35
-Transfer/sec:     93.48MB
+    Latency     1.28ms    1.69ms  73.97ms   87.81%
+    Req/Sec    37.05k     4.83k   90.38k    81.65%
+  Latency Distribution
+     50%  721.00us
+     75%    1.63ms
+     90%    3.29ms
+     99%    6.51ms
+  13299068 requests in 30.10s, 15.42GB read
+Requests/sec: 441840.86
+Transfer/sec:    524.61MB
 ```
