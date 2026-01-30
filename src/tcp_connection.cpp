@@ -67,8 +67,16 @@ void TcpConnection::setTcpNoDelay(bool on)
 void TcpConnection::handleError()
 {
 	int error = ch_->getSocketError();
-	LOG_ERROR << "TcpConnection::handleError [" << name_
-			  << "] = SO_ERROR = " << error << ": " << strerror(error);
+	if (error == ECONNRESET)
+	{
+		LOG_INFO << "TcpConnection::handleError [" << name_
+				 << "] = Connection reset by peer (Normal under high load)";
+	}
+	else
+	{
+		LOG_ERROR << "TcpConnection::handleError [" << name_
+				  << "] = SO_ERROR = " << error << ": " << strerror(error);
+	}
 }
 
 void TcpConnection::handleClose()
@@ -78,8 +86,8 @@ void TcpConnection::handleClose()
 	{
 		return;
 	}
-	LOG_DEBUG << "Connection closed - FD: " << fd_ << ", Peer: " << peer_ip_
-			  << ":" << peer_port_;
+	LOG_INFO << "Connection closed - FD: " << fd_ << ", Peer: " << peer_ip_
+			 << ":" << peer_port_;
 	assert(state_ == Connected || state_ == Disconnecting);
 	state_ = Disconnected;
 	ch_->disableAll();
@@ -273,8 +281,8 @@ void TcpConnection::establish()
 	{
 		connect_callback_(shared_from_this());
 	}
-	LOG_DEBUG << "TcpConnection::establish - Connection " << name_
-			  << " is fully establish.";
+	LOG_INFO << "TcpConnection::establish - Connection " << name_
+			 << " is fully establish.";
 }
 
 void TcpConnection::destroy()

@@ -11,6 +11,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+
 namespace lynx
 {
 class EventLoop;
