@@ -1,3 +1,4 @@
+#include "handlers.h"
 #include "http_app.hpp"
 #include "lynx/http/http_router.h"
 #include "lynx/net/event_loop.h"
@@ -5,15 +6,13 @@
 #include "lynx/net/tcp_server.h"
 #include <cstddef>
 #include <cstdint>
-#include <format>
-#include <stdexcept>
 #include <string>
 #include <unistd.h>
 
 struct Config
 {
 	std::string ip = "0.0.0.0";
-	uint16_t port = 0;
+	uint16_t port = 8080;
 	std::string name = "Lynx-WebServer";
 	size_t worker_threads = std::thread::hardware_concurrency();
 	bool valid = false;
@@ -52,17 +51,17 @@ Config parseArgs(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	Config conf = parseArgs(argc, argv);
-	if (!conf.valid)
-	{
-		printf("Usage: %s -p <port> [-i <ip>] [-t <threads>] [-n <name>]\n",
-			   argv[0]);
-		// printf("Options:\n");
-		// printf("  -p : Port number (Mandatory)\n");
-		// printf("  -i : IP address (Default: 0.0.0.0)\n");
-		// printf("  -t : Number of worker threads (Default: CPU cores)\n");
-		// printf("  -n : Server name (Default: Lynx-WebServer)\n");
-		return 1;
-	}
+	// if (!conf.valid)
+	// {
+	// 	printf("Usage: %s -p <port> [-i <ip>] [-t <threads>] [-n <name>]\n",
+	// 		   argv[0]);
+	// 	// printf("Options:\n");
+	// 	// printf("  -p : Port number (Mandatory)\n");
+	// 	// printf("  -i : IP address (Default: 0.0.0.0)\n");
+	// 	// printf("  -t : Number of worker threads (Default: CPU cores)\n");
+	// 	// printf("  -n : Server name (Default: Lynx-WebServer)\n");
+	// 	return 1;
+	// }
 
 	lynx::EventLoop loop;
 	HttpApp http_app(&loop, conf.ip, conf.port, conf.name, conf.worker_threads);
@@ -98,44 +97,7 @@ int main(int argc, char* argv[])
 													  "/static/js/script.js");
 					  });
 
-	http_app.addRoute(
-		"POST", "/calculate",
-		[](const auto& req, auto* res, const auto& conn)
-		{
-			double a = 0.0;
-			double b = 0.0;
-
-			try
-			{
-				auto a_pos = req.body.find("\"a\"");
-				auto b_pos = req.body.find("\"b\"");
-				if (a_pos != std::string::npos && b_pos != std::string::npos)
-				{
-					a = std::stod(req.body.substr(a_pos + 4));
-					b = std::stod(req.body.substr(b_pos + 4));
-
-					double sum = a + b;
-
-					res->setStatusCode(200);
-					res->setContentType("application/json");
-					res->setBody(std::format("{{\"sum\": {0}}}", sum));
-
-					conn->send(res->toString());
-				}
-				else
-				{
-					throw std::logic_error("invalid data");
-				}
-			}
-			catch (...)
-			{
-				res->setStatusCode(400);
-				res->setContentType("application/json");
-				res->setBody("{\"error\": \"invalid data\"}");
-
-				conn->send(res->toString());
-			}
-		});
+	http_app.addRoute("POST", "/calculate", handler::handleCalculate);
 
 	http_app.startup();
 	loop.run();

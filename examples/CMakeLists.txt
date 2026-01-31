@@ -1,5 +1,7 @@
 add_executable(Lynx_WebServer main.cpp)
 
+target_sources(Lynx_WebServer PRIVATE handlers.cpp)
+
 target_link_libraries(Lynx_WebServer PRIVATE lynx_lib)
 
 target_compile_definitions(Lynx_WebServer PRIVATE 
