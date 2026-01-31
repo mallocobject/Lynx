@@ -2,6 +2,7 @@
 #define LYNX_HTTP_ROUTER_H
 
 #include "lynx/base/common.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
@@ -15,6 +16,7 @@ class HttpResponse;
 class TcpConnection;
 class HttpRouter
 {
+  public:
 	using http_handler =
 		std::function<void(const HttpRequest&, HttpResponse*,
 						   const std::shared_ptr<TcpConnection>&)>;
@@ -39,7 +41,8 @@ class HttpRouter
 		http_handler search(const std::string& path);
 
 	  private:
-		std::vector<std::string_view> split_path(std::string_view path);
+		std::vector<std::string_view> splitPath(std::string_view path);
+		std::string subPath(const std::string& path, size_t* start);
 	};
 
 	std::unordered_map<std::string, Trie> tries_;

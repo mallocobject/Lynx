@@ -69,7 +69,7 @@ async function calculateSum() {
 function resetInputs() {
     number1Input.value = '';
     number2Input.value = '';
-    sumElement.textContent = '0';
+    sumElement.textContent = '';
     sumElement.style.color = '#4a90e2';
     error1.style.display = 'none';
     error2.style.display = 'none';

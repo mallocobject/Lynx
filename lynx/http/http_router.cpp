@@ -1,12 +1,15 @@
 #include "lynx/http/http_router.h"
+#include "lynx/base/logger.hpp"
 #include "lynx/http/http_request.hpp"
 #include "lynx/http/http_response.h"
 #include "lynx/net/tcp_connection.h"
 #include <cstddef>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
+#include <utility>
 #include <vector>
 
 namespace lynx
@@ -43,15 +46,16 @@ void HttpRouter::dispatch(const HttpRequest& req, HttpResponse* res,
 }
 
 void HttpRouter::serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
-						   lynx::HttpResponse* res, const std::string& filepath)
+						   lynx::HttpResponse* res,
+						   const std::string& file_path)
 {
-	std::string path = filepath;
+	std::string path = file_path;
 
-	// remove the prefix '/'
-	if (filepath.starts_with('/'))
-	{
-		path = filepath.substr(1);
-	}
+	// // remove the prefix '/'
+	// if (file_path.starts_with('/'))
+	// {
+	// 	path = file_path.substr(1);
+	// }
 
 	struct stat st;
 	if (::stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode))
@@ -65,6 +69,8 @@ void HttpRouter::serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
 	}
 	else
 	{
+		LOG_ERROR << "HttpRouter::serveFile: " << file_path
+				  << " Error: " << strerror(errno);
 		res->setStatusCode(404);
 		res->setContentType("text/html");
 		res->setBody("<h1>404 Not Found</h1>");
@@ -75,63 +81,93 @@ void HttpRouter::serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
 
 void HttpRouter::Trie::insert(const std::string& path, http_handler handler)
 {
-	std::vector<std::string_view> segments = split_path(path);
-
-	if (segments.empty())
+	if (path == "/")
 	{
 		root->f = std::move(handler);
 		return;
 	}
 
+	size_t start = (path[0] == '/') ? 1 : 0;
 	TrieNode* cur = root.get();
-	std::string s;
 
-	for (std::string_view segment : segments)
+	while (start != std::string::npos)
 	{
-		s = segment; // string_view -> string
-		if (!cur->next_node.count(s))
+		std::string s = subPath(path, &start);
+		if (s.empty() && start == std::string::npos)
+		{
+			break; // error
+		}
+
+		if (cur->next_node.find(s) == cur->next_node.end())
 		{
 			cur->next_node[s] = std::make_unique<TrieNode>();
 		}
+
 		cur = cur->next_node[s].get();
 	}
+
 	cur->f = std::move(handler);
 }
 
 HttpRouter::http_handler HttpRouter::Trie::search(const std::string& path)
 {
-	std::vector<std::string_view> segments = split_path(path);
-
-	if (segments.empty())
+	if (path == "/")
 	{
 		return root->f;
 	}
 
+	size_t start = (path[0] == '/') ? 1 : 0;
 	TrieNode* cur = root.get();
-	std::string s;
 
-	for (std::string_view segment : segments)
+	while (start != std::string::npos)
 	{
-		s = segment; // string_view -> string
-		if (!cur->next_node.count(s))
+		std::string s = subPath(path, &start);
+		if (s.empty() && start == std::string::npos)
 		{
-			return nullptr;
+			break; // error
 		}
+
+		if (cur->next_node.find(s) == cur->next_node.end())
+		{
+			return nullptr; // router not exist
+		}
+
 		cur = cur->next_node[s].get();
 	}
 
 	return cur->f;
 }
 
+std::string HttpRouter::Trie::subPath(const std::string& path, size_t* start)
+{
+	// because *start maybe arive 1
+	if (*start == std::string::npos || *start >= path.size())
+	{
+		*start = std::string::npos;
+		return "";
+	}
+
+	size_t begin = *start;
+	size_t end = path.find('/', begin);
+
+	if (end != std::string::npos)
+	{
+		*start = end + 1;
+		return path.substr(begin, end - begin);
+	}
+
+	*start = std::string::npos;
+	return path.substr(begin);
+}
+
 // 是否有前缀 / 均可解析
-std::vector<std::string_view> HttpRouter::Trie::split_path(
-	std::string_view path)
+std::vector<std::string_view> HttpRouter::Trie::splitPath(std::string_view path)
 {
 	std::vector<std::string_view> segments;
 	size_t start = 0;
 	size_t end = path.find('/');
 
-	while (end != std::string::npos)
+	while (end != std::string_view::npos)
 	{
 		std::string_view segment = path.substr(start, end - start);
 		if (!segment.empty())
