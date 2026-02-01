@@ -13,5 +13,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     message(STATUS "Release mode: NODEBUG defined")
 endif()
 
+# add_subdirectory(test)
 add_subdirectory(lynx)
 add_subdirectory(examples)

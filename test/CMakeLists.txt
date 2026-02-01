@@ -1,11 +1,20 @@
-cmake_minimum_required(VERSION 3.25)
-project(LynxTest)
+set(LIB_SUB_DIRS logger)
+set(LIB_SOURCES)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+foreach(dir ${LIB_SUB_DIRS})
+    file(GLOB dir_sources CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/../lynx/${dir}/*.cpp")
+    list(APPEND LIB_SOURCES ${dir_sources})
+endforeach()
 
-add_executable(Lynx http_context_test.cpp)
-target_link_libraries(Lynx PUBLIC lynx_lib)
+add_library(lynx_lib STATIC 
+    ${LIB_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../lynx/base/time_stamp.cpp
+)
 
-target_include_directories(Lynx PUBLIC ${CMAKE_SOURCE_DIR/..})
+target_include_directories(lynx_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+
+add_executable(Lynx_loggger fixed_buffer_test.cpp)
+
+target_link_libraries(Lynx_loggger PRIVATE lynx_lib)
+

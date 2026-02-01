@@ -51,17 +51,17 @@ Config parseArgs(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	Config conf = parseArgs(argc, argv);
-	// if (!conf.valid)
-	// {
-	// 	printf("Usage: %s -p <port> [-i <ip>] [-t <threads>] [-n <name>]\n",
-	// 		   argv[0]);
-	// 	// printf("Options:\n");
-	// 	// printf("  -p : Port number (Mandatory)\n");
-	// 	// printf("  -i : IP address (Default: 0.0.0.0)\n");
-	// 	// printf("  -t : Number of worker threads (Default: CPU cores)\n");
-	// 	// printf("  -n : Server name (Default: Lynx-WebServer)\n");
-	// 	return 1;
-	// }
+	if (!conf.valid)
+	{
+		printf("Usage: %s -p <port> [-i <ip>] [-t <threads>] [-n <name>]\n",
+			   argv[0]);
+		printf("Options:\n");
+		printf("  -p : Port number (Mandatory)\n");
+		printf("  -i : IP address (Default: 0.0.0.0)\n");
+		printf("  -t : Number of worker threads (Default: CPU cores)\n");
+		printf("  -n : Server name (Default: Lynx-WebServer)\n");
+		return 1;
+	}
 
 	lynx::EventLoop loop;
 	HttpApp http_app(&loop, conf.ip, conf.port, conf.name, conf.worker_threads);
@@ -98,6 +98,26 @@ int main(int argc, char* argv[])
 					  });
 
 	http_app.addRoute("POST", "/calculate", handler::handleCalculate);
+
+	http_app.addRoute("GET", "/json",
+					  [](const auto& req, auto* res, const auto& conn)
+					  {
+						  res->setStatusCode(200);
+						  res->setContentType("application/json");
+						  res->setBody("{\"message\":\"ok\"}");
+
+						  conn->send(res->toString());
+					  });
+
+	// 注册大文件下载路由
+	http_app.addRoute(
+		"GET", "/download",
+		[](const auto& req, auto* res, const auto& conn)
+		{
+			lynx::LOG_INFO << "Request large file download...";
+			lynx::HttpRouter::serveFile(
+				conn, res, LYNX_WEB_SRC_DIR "/templates/large_test_file.dat");
+		});
 
 	http_app.startup();
 	loop.run();
