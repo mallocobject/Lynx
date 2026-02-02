@@ -2,6 +2,7 @@
 #define LYNX_EVENT_LOOP_H
 
 #include "lynx/base/common.hpp"
+#include "lynx/base/current_thread.hpp"
 #include "lynx/base/time_stamp.h"
 #include "lynx/logger/logger.h"
 #include <atomic>
@@ -11,20 +12,10 @@
 #include <memory>
 #include <mutex>
 #include <sys/types.h>
-#include <thread>
 #include <unistd.h>
 #include <vector>
 namespace lynx
 {
-namespace CurrentThread
-{
-inline uint64_t tid()
-{
-	static thread_local uint64_t cached_tid =
-		std::hash<std::thread::id>{}(std::this_thread::get_id());
-	return cached_tid;
-}
-} // namespace CurrentThread
 
 class Epoller;
 class Channel;

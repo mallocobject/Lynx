@@ -148,11 +148,10 @@ void AsyncLogging::threadWorker()
 
 		for (auto& buffer : buffer2write)
 		{
-			Formatter formatter;
 			for (size_t i = 0; i < buffer.size(); i++)
 			{
 				const Context& ctx = buffer.context()[i];
-				std::string formatted_log = formatter.format(ctx);
+				std::string formatted_log = formatter_.format(ctx);
 				out_file.append(formatted_log.c_str(),
 								static_cast<int>(formatted_log.length()));
 				out_file.append("\n", 1);

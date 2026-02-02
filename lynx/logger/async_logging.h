@@ -4,6 +4,7 @@
 #include "lynx/base/common.hpp"
 #include "lynx/logger/context.hpp"
 #include "lynx/logger/fixed_buffer.hpp"
+#include "lynx/logger/formatter.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <memory>
@@ -36,6 +37,8 @@ class AsyncLogging
 	std::mutex mtx_for_init_;
 	std::condition_variable cv_for_init_;
 	std::atomic<bool> flag_for_init_;
+
+	Formatter formatter_;
 
 	Buffer cur_buffer_;
 	Buffer next_buffer_;

@@ -39,6 +39,11 @@ class Flags
 		return Flags(static_cast<Value>(value_ & other.value_));
 	}
 
+	constexpr Flags operator&(uint8_t other) const
+	{
+		return Flags(static_cast<Value>(value_ & other));
+	}
+
 	constexpr Flags operator^(Flags other) const
 	{
 		return Flags(static_cast<Value>(value_ ^ other.value_));

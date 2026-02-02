@@ -43,20 +43,24 @@ class Formatter
 		std::string result;
 		auto out = std::back_inserter(result);
 
-		// 日期
-		if (flags_ & Flags::kDate)
+		// 日期 时间
+		if (flags_ & (Flags::kDate | Flags::kTime))
 		{
 			std::format_to(
 				out, "{} ",
-				TimeStamp(ctx.timestamp).toFormattedString(false, true));
+				TimeStamp(ctx.timestamp).toFormattedString(true, true));
 		}
-
-		// 时间
-		if (flags_ & Flags::kTime)
+		else if (flags_ & Flags::kDate)
 		{
 			std::format_to(
 				out, "{} ",
 				TimeStamp(ctx.timestamp).toFormattedString(true, false));
+		}
+		else if (flags_ & Flags::kTime)
+		{
+			std::format_to(
+				out, "{} ",
+				TimeStamp(ctx.timestamp).toFormattedString(false, true));
 		}
 
 		// 线程ID

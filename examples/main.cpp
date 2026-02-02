@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 	lynx::LOG_INFO << "Server [" << conf.name << "] starting...";
 	lynx::LOG_INFO << "Listen on " << conf.ip << ":" << conf.port;
 	lynx::LOG_INFO << "Threads: 1 (Main) + " << conf.worker_threads
-				   << " (Workers)";
+				   << " (Workers)" << " + 1 (Logger)";
 
 	http_app.addRoute("GET", "/",
 					  [](const auto& req, auto* res, const auto& conn)
@@ -113,15 +113,15 @@ int main(int argc, char* argv[])
 						  conn->send(res->toFormattedString());
 					  });
 
-	// 注册大文件下载路由
-	http_app.addRoute(
-		"GET", "/download",
-		[](const auto& req, auto* res, const auto& conn)
-		{
-			lynx::LOG_INFO << "Request large file download...";
-			lynx::HttpRouter::serveFile(
-				conn, res, LYNX_WEB_SRC_DIR "/templates/large_test_file.dat");
-		});
+	// // 注册大文件下载路由
+	// http_app.addRoute(
+	// 	"GET", "/download",
+	// 	[](const auto& req, auto* res, const auto& conn)
+	// 	{
+	// 		lynx::LOG_INFO << "Request large file download...";
+	// 		lynx::HttpRouter::serveFile(
+	// 			conn, res, LYNX_WEB_SRC_DIR "/templates/large_test_file.dat");
+	// 	});
 
 	http_app.startup();
 	lynx::LOG_INFO << "Server started at " << conf.ip << ":" << conf.port;
