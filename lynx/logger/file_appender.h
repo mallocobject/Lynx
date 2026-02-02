@@ -3,41 +3,48 @@
 
 #include "lynx/base/common.hpp"
 #include <cstddef>
-#include <cstdio>
+#include <filesystem>
+#include <memory>
+
 namespace lynx
 {
+
 class FileAppender
 {
-
   private:
-	char buffer_[64 * 1024];
-	FILE* file_;
-	size_t written_bytes_;
+	std::filesystem::path filepath_;
+	std::unique_ptr<char[]> buffer_;
+	FILE* file_{nullptr};
+	size_t written_bytes_{0};
+	static constexpr size_t BUFFER_SIZE = 64 * 1024;
 
   public:
-	DISABLE_COPY(FileAppender)
-
-	explicit FileAppender(const char* filename);
+	explicit FileAppender(const std::filesystem::path& filepath);
 	~FileAppender();
 
-	void append(const char* line, size_t len);
+	DISABLE_COPY(FileAppender)
 
+	void append(const char* data, size_t len);
 	void flush();
 
-	size_t writtenBytes() const
+	[[nodiscard]] size_t writtenBytes() const noexcept
 	{
 		return written_bytes_;
 	}
-
-	void resetWritten()
+	void resetWritten() noexcept
 	{
 		written_bytes_ = 0;
 	}
 
+	[[nodiscard]] const std::filesystem::path& filepath() const noexcept
+	{
+		return filepath_;
+	}
+
   private:
-	size_t write(const char* line, size_t len);
-	void init(const char* filename);
+	void ensure_directory_exists() const;
 };
+
 } // namespace lynx
 
-#endif
+#endif // LYNX_FILE_APPENDER_H

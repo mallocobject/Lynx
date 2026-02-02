@@ -1,114 +1,122 @@
 #include "lynx/logger/file_appender.h"
-#include <cassert>
+#include <cerrno>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <stdexcept>
-#include <string>
-#include <unistd.h>
+#include <system_error>
 
 namespace lynx
 {
-thread_local char t_errnobuf[512];
 
-char* getErrorInfo(int err)
+namespace
 {
-	auto p = ::strerror_r(err, t_errnobuf, sizeof(t_errnobuf));
-	return t_errnobuf;
+void throw_system_error(const char* operation)
+{
+	throw std::system_error(errno, std::system_category(), operation);
 }
 
-FileAppender::FileAppender(const char* filename)
+void throw_runtime_error(std::string_view message)
 {
-	init(filename);
+	throw std::runtime_error(std::string(message));
+}
+} // namespace
+
+FileAppender::FileAppender(const std::filesystem::path& filepath)
+	: filepath_(filepath), buffer_(std::make_unique<char[]>(BUFFER_SIZE))
+{
+	ensure_directory_exists();
+
+	file_ = ::fopen(filepath_.c_str(), "ab");
+	if (!file_)
+	{
+		throw_system_error("Failed to open log file");
+	}
+
+	// 明确生效的缓冲（这是关键）
+	if (::setvbuf(file_, buffer_.get(), _IOFBF, BUFFER_SIZE) != 0)
+	{
+		::fclose(file_);
+		file_ = nullptr;
+		throw_runtime_error("Failed to set file buffer");
+	}
 }
 
 FileAppender::~FileAppender()
 {
-	if (file_ != nullptr)
+	if (file_)
 	{
 		::fflush(file_);
 		::fclose(file_);
+		file_ = nullptr;
 	}
 }
 
-void FileAppender::append(const char* line, size_t len)
+void FileAppender::append(const char* data, size_t len)
 {
-	size_t written = 0;
-
-	while (written != len)
+	if (!data || len == 0 || !file_)
 	{
-		size_t remain = len - written;
-		size_t n = write(line + written, remain);
-		if (n != remain)
-		{
-			int err = ferror(file_);
-			if (err)
-			{
-				fprintf(stderr, "AppendFile::append() failed %s\n",
-						getErrorInfo(err));
-				break;
-			}
-			if (n == 0)
-			{
-				throw std::runtime_error("write 出错，FILE*为空");
-			}
-		}
-		written += n;
+		return;
 	}
 
-	written_bytes_ += written;
+	const size_t written = ::fwrite_unlocked(data, 1, len, file_);
+
+	if (written != len)
+	{
+		if (::ferror(file_))
+		{
+			throw_system_error("Failed to write log file");
+		}
+		throw_runtime_error("Partial write to log file");
+	}
+
+	written_bytes_ += len;
 }
 
 void FileAppender::flush()
 {
-	if (file_)
+	if (!file_)
 	{
-		::fflush(file_);
+		return;
+	}
+
+	if (::fflush(file_) != 0)
+	{
+		throw_system_error("Failed to flush log file");
 	}
 }
 
-size_t FileAppender::write(const char* line, size_t len)
+void FileAppender::ensure_directory_exists() const
 {
-	size_t sz = 0;
-	if (file_)
+	const auto parent_path = filepath_.parent_path();
+
+	if (parent_path.empty())
 	{
-		sz = ::fwrite_unlocked(line, 1, len, file_);
+		// 当前目录，总是存在
+		return;
 	}
-	return sz;
-}
 
-void FileAppender::init(const char* filename)
-{
-	auto filepos = ::strrchr(filename, '/');
-	if (!filepos)
+	std::error_code ec;
+	const bool exists = std::filesystem::exists(parent_path, ec);
+
+	if (ec)
 	{
-		//      LB_TRACE_("无效的文件路径 {}", filename);
-		throw std::runtime_error(std::string("invalid filepath ") +
-								 std::string(filename));
+		throw_system_error("Failed to check directory existence");
 	}
-	const_cast<char*>(filepos)[0] = '\0';
 
-	int ret = ::access(filename, F_OK);
-
-	if (ret == -1)
+	if (!exists)
 	{
-		throw std::runtime_error(std::string("file directory not exist: ") +
-								 filename);
+		// 尝试创建目录
+		if (!std::filesystem::create_directories(parent_path, ec) && ec)
+		{
+			throw_system_error("Failed to create log directory");
+		}
 	}
-	const_cast<char*>(filepos)[0] = '/';
 
-	assert(const_cast<char*>(filepos)[0] != '\0');
-
-	file_ = ::fopen(filename, "ae");
-	if (file_ == nullptr)
+	// 验证目录是否可写
+	if (!std::filesystem::is_directory(parent_path, ec) || ec)
 	{
-		int err = ferror(file_);
-		auto p = ::strerror_r(err, t_errnobuf, sizeof(t_errnobuf));
-		auto* errorInfo = t_errnobuf;
-		fprintf(stderr, "FileAppender error in open file:%s erron:%s \r\n",
-				filename, errorInfo);
-		throw std::runtime_error("panic:FILE* is null");
+		throw_runtime_error("Log path is not a directory");
 	}
-	std::setvbuf(file_, buffer_, _IOFBF, sizeof(buffer_));
 }
 
 } // namespace lynx

@@ -14,7 +14,7 @@ add_library(lynx_lib STATIC
 
 target_include_directories(lynx_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-add_executable(Lynx_loggger fixed_buffer_test.cpp)
+add_executable(Lynx_loggger file_appender_test.cpp)
 
 target_link_libraries(Lynx_loggger PRIVATE lynx_lib)
 
