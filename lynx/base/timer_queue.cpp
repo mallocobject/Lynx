@@ -153,7 +153,7 @@ void TimerQueue::resetTimerFd(Timer* timer)
 	::bzero(&value, sizeof(value));
 
 	int64_t micro_seconds_diff =
-		timer->expiration().microSeconds() - TimeStamp::now().microSeconds();
+		timer->expiration().microseconds() - TimeStamp::now().microseconds();
 	if (micro_seconds_diff < 100)
 	{
 		micro_seconds_diff = 100;

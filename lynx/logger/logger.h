@@ -4,10 +4,18 @@
 #include "lynx/base/common.hpp"
 #include "lynx/base/time_stamp.h"
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <sstream>
+#include <thread>
 
 namespace lynx
 {
+
+// 前向声明
+class AsyncLogging;
+class Formatter;
+class Context;
 
 // 定义等级数值
 #define LYNX_LOG_LEVEL_TRACE 0
@@ -47,6 +55,13 @@ class NullLogger
 
 inline NullLogger null_logger;
 
+/**
+ * 重构后的日志系统
+ * 支持：
+ * 1. 控制台彩色输出（原有功能）
+ * 2. 异步文件写入（新增功能）
+ * 3. 自定义日志格式（新增功能）
+ */
 class Logger
 {
   public:
@@ -59,6 +74,26 @@ class Logger
 		ERROR,
 		FATAL
 	};
+
+	/**
+	 * 初始化异步日志系统
+	 * @param log_file 日志文件路径
+	 * @param roll_size 日志文件滚动大小（字节），默认100MB
+	 * @param flush_interval 缓冲区刷新间隔（秒），默认3秒
+	 */
+	static void initAsyncLogging(const std::string& log_file,
+								 int roll_size = 100 * 1024 * 1024,
+								 int flush_interval = 3);
+
+	/**
+	 * 关闭异步日志并等待所有日志写入完成
+	 */
+	static void shutdownAsyncLogging();
+
+	/**
+	 * 检查异步日志是否已启用
+	 */
+	static bool isAsyncEnabled();
 
   private:
 	class LogStream
@@ -76,31 +111,36 @@ class Logger
 		{
 			if (enabled_)
 			{
-				switch (level_)
+				// 仅在输出到控制台时添加前缀
+				// 如果输出到文件，Formatter 会统一处理格式
+				if (!Logger::isAsyncEnabled())
 				{
-				case TRACE:
-					stream_ << "\033[90m[TRACE]";
-					break;
-				case DEBUG:
-					stream_ << "\033[36m[DEBUG]";
-					break;
-				case INFO:
-					stream_ << "\033[32m[INFO]";
-					break;
-				case WARN:
-					stream_ << "\033[33m[WARN]";
-					break;
-				case ERROR:
-					stream_ << "\033[31m[ERROR]";
-					break;
-				case FATAL:
-					stream_ << "\033[35m[FATAL]";
-					break;
-				default:
-					stream_ << "\033[0m[UNKNOWN]";
-					break;
+					switch (level_)
+					{
+					case TRACE:
+						stream_ << "\033[90m[TRACE]";
+						break;
+					case DEBUG:
+						stream_ << "\033[36m[DEBUG]";
+						break;
+					case INFO:
+						stream_ << "\033[32m[INFO]";
+						break;
+					case WARN:
+						stream_ << "\033[33m[WARN]";
+						break;
+					case ERROR:
+						stream_ << "\033[31m[ERROR]";
+						break;
+					case FATAL:
+						stream_ << "\033[35m[FATAL]";
+						break;
+					default:
+						stream_ << "\033[0m[UNKNOWN]";
+						break;
+					}
+					stream_ << TimeStamp::now() << " : ";
 				}
-				stream_ << TimeStamp::now() << " : ";
 			}
 		}
 
@@ -108,8 +148,19 @@ class Logger
 		{
 			if (enabled_ && !stream_.str().empty())
 			{
-				stream_ << "\033[0m" << std::endl;
-				std::cout << stream_.str();
+				std::string log_msg = stream_.str();
+
+				if (Logger::isAsyncEnabled())
+				{
+					// 输出到文件 - 仅传递原始消息，Formatter 处理格式
+					Logger::pushAsyncLog(level_, log_msg);
+				}
+				else
+				{
+					// 输出到控制台 - 添加结束标记和换行
+					log_msg += "\033[0m\n";
+					std::cout << log_msg;
+				}
 			}
 		}
 
@@ -212,6 +263,15 @@ class Logger
 		return null_logger;
 	}
 #endif
+
+  private:
+	static std::unique_ptr<AsyncLogging> async_logging_;
+	static std::unique_ptr<Formatter> formatter_;
+	static std::mutex mutex_;
+	static bool async_enabled_;
+
+	// 内部方法：发送日志到异步系统
+	static void pushAsyncLog(Level level, const std::string& message);
 };
 
 #define LOG_TRACE Logger::trace()

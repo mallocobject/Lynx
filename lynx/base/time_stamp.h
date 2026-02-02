@@ -28,7 +28,7 @@ class TimeStamp
 	static TimeStamp addTime(TimeStamp time_stamp, double add_seconds);
 	std::string toString() const;
 
-	int64_t microSeconds() const
+	int64_t microseconds() const
 	{
 		return micro_seconds_;
 	}
