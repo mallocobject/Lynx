@@ -1,7 +1,7 @@
 #include "lynx/http/http_context.h"
-#include "lynx/base/logger.hpp"
 #include "lynx/http/http_parser.h"
 #include "lynx/http/http_request.hpp"
+#include "lynx/logger/logger.h"
 #include "lynx/net/buffer.h"
 #include <algorithm>
 #include <cstddef>

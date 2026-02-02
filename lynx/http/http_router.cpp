@@ -1,7 +1,7 @@
 #include "lynx/http/http_router.h"
-#include "lynx/base/logger.hpp"
 #include "lynx/http/http_request.hpp"
 #include "lynx/http/http_response.h"
+#include "lynx/logger/logger.h"
 #include "lynx/net/tcp_connection.h"
 #include <cstddef>
 #include <cstring>
@@ -41,7 +41,7 @@ void HttpRouter::dispatch(const HttpRequest& req, HttpResponse* res,
 		res->setContentType("text/html");
 		res->setBody("<h1>404 Not Found</h1>");
 
-		conn->send(res->toString());
+		conn->send(res->toFormattedString());
 	}
 }
 
@@ -64,7 +64,7 @@ void HttpRouter::serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
 		res->setContentType(getMineType(path));
 		res->setHeader("Content-Length", std::to_string(st.st_size));
 
-		conn->send(res->toString());
+		conn->send(res->toFormattedString());
 		conn->sendFile(path);
 	}
 	else
@@ -75,7 +75,7 @@ void HttpRouter::serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
 		res->setContentType("text/html");
 		res->setBody("<h1>404 Not Found</h1>");
 
-		conn->send(res->toString());
+		conn->send(res->toFormattedString());
 	}
 }
 

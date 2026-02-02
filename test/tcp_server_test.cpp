@@ -1,5 +1,5 @@
-#include "lynx/base/logger.hpp"
 #include "lynx/base/time_stamp.h"
+#include "lynx/logger/logger.h"
 #include "lynx/net/buffer.h"
 #include "lynx/net/event_loop.h"
 #include "lynx/net/tcp_connection.h"
@@ -34,7 +34,7 @@ int main()
 
 				// ::sleep(5);
 
-				sendPacket(lynx::TimeStamp::now().toString());
+				sendPacket(lynx::TimeStamp::now().toFormattedString());
 				// sendPacket("Hello! Do you have lunch?");
 				// conn->shutdown();
 			}

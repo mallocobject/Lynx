@@ -1,6 +1,7 @@
 #include "handlers.h"
-#include "http_app.hpp"
+#include "http_app.h"
 #include "lynx/http/http_router.h"
+#include "lynx/logger/logger.h"
 #include "lynx/net/event_loop.h"
 #include "lynx/net/tcp_connection.h"
 #include "lynx/net/tcp_server.h"
@@ -63,8 +64,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	lynx::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/log/webserver");
+
 	lynx::EventLoop loop;
-	HttpApp http_app(&loop, conf.ip, conf.port, conf.name, conf.worker_threads);
+	lynx::HttpApp http_app(&loop, conf.ip, conf.port, conf.name,
+						   conf.worker_threads);
 
 	lynx::LOG_INFO << "Server [" << conf.name << "] starting...";
 	lynx::LOG_INFO << "Listen on " << conf.ip << ":" << conf.port;
@@ -106,7 +110,7 @@ int main(int argc, char* argv[])
 						  res->setContentType("application/json");
 						  res->setBody("{\"message\":\"ok\"}");
 
-						  conn->send(res->toString());
+						  conn->send(res->toFormattedString());
 					  });
 
 	// 注册大文件下载路由
@@ -120,8 +124,10 @@ int main(int argc, char* argv[])
 		});
 
 	http_app.startup();
-	loop.run();
 	lynx::LOG_INFO << "Server started at " << conf.ip << ":" << conf.port;
+	loop.run();
+
+	lynx::Logger::shutdownAsyncLogging();
 
 	return 0;
 }

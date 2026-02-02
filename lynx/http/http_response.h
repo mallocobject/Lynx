@@ -55,7 +55,7 @@ class HttpResponse
 		}
 	}
 
-	std::string toString() const;
+	std::string toFormattedString() const;
 
   private:
 	static std::string_view code2msg(int code)

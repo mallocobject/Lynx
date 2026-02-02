@@ -32,7 +32,7 @@ void handler::handleCalculate(const lynx::HttpRequest& req,
 		res->setContentType("application/json");
 		res->setBody(std::format("{{\"sum\": {0}}}", sum));
 
-		conn->send(res->toString());
+		conn->send(res->toFormattedString());
 	}
 	catch (const std::exception& e)
 	{
@@ -40,6 +40,6 @@ void handler::handleCalculate(const lynx::HttpRequest& req,
 		res->setContentType("application/json");
 		res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
 
-		conn->send(res->toString());
+		conn->send(res->toFormattedString());
 	}
 }

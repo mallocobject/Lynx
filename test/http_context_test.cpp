@@ -52,7 +52,7 @@ int main()
 						res->setBody(
 							"{\"status\":\"ok\", \"message\":\"hello world\"}");
 
-						conn->send(res->toString());
+						conn->send(res->toFormattedString());
 					});
 
 	router.addRoute(
@@ -78,7 +78,7 @@ int main()
 					res->setContentType("application/json");
 					res->setBody(std::format("{{\"sum\": {0}}}", sum));
 
-					conn->send(res->toString());
+					conn->send(res->toFormattedString());
 				}
 				else
 				{
@@ -91,7 +91,7 @@ int main()
 				res->setContentType("application/json");
 				res->setBody("{\"error\": \"invalid data\"}");
 
-				conn->send(res->toString());
+				conn->send(res->toFormattedString());
 			}
 		});
 

@@ -1,7 +1,7 @@
 #include "lynx/net/event_loop.h"
-#include "lynx/base/logger.hpp"
 #include "lynx/base/time_stamp.h"
 #include "lynx/base/timer_queue.h"
+#include "lynx/logger/logger.h"
 #include "lynx/net/channel.h"
 #include "lynx/net/epoller.h"
 #include <cassert>
@@ -16,7 +16,7 @@
 namespace lynx
 {
 EventLoop::EventLoop()
-	: epoller_(std::make_unique<Epoller>()), tid_(std::this_thread::get_id()),
+	: epoller_(std::make_unique<Epoller>()), tid_(CurrentThread::tid()),
 	  looping_(false), quit_(true), calling_pending_functors_(false),
 	  wakeup_fd_(::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK)),
 	  wakeup_ch_(std::make_unique<Channel>(wakeup_fd_, this)),

@@ -4,23 +4,23 @@
 
 namespace lynx
 {
-std::string HttpResponse::toString() const
+std::string HttpResponse::toFormattedString() const
 {
 	std::string result;
 
-	// result += std::format("{} {} {}\r\n", version_, status_code_, status_msg_);
-	result = std::format_to(result, "{} {} {}\r\n", version_, status_code_,
-						 status_msg_);
+	auto out = std::back_inserter(result);
 
-	for (auto& header : headers_)
+	// 第一行
+	std::format_to(out, "{} {} {}\r\n", version_, status_code_, status_msg_);
+
+	// 头部
+	for (const auto& header : headers_)
 	{
-		// result += std::format("{}: {}\r\n", header.first, header.second);
-		result = std::format_to(result, "{}: {}\r\n", header.first,
-								header.second);
+		std::format_to(out, "{}: {}\r\n", header.first, header.second);
 	}
 
-	// result += std::format("\r\n{}", body_);
-	result = std::format_to(result, "\r\n{}", body_);
+	// 空行和正文
+	std::format_to(out, "\r\n{}", body_);
 
 	return result;
 }

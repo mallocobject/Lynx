@@ -1,4 +1,4 @@
-set(LIB_SUB_DIRS base http net)
+set(LIB_SUB_DIRS base http net logger)
 set(LIB_SOURCES)
 
 foreach(dir ${LIB_SUB_DIRS})

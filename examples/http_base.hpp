@@ -1,11 +1,11 @@
-#ifndef HTTP_APP_H
-#define HTTP_APP_H
+#ifndef HTTP_BASE_HPP
+#define HTTP_BASE_HPP
 
-#include "lynx/base/logger.hpp"
 #include "lynx/http/http_context.h"
 #include "lynx/http/http_request.hpp"
 #include "lynx/http/http_response.h"
 #include "lynx/http/http_router.h"
+#include "lynx/logger/logger.h"
 #include "lynx/net/buffer.h"
 #include "lynx/net/event_loop.h"
 #include "lynx/net/tcp_connection.h"
@@ -14,21 +14,21 @@
 #include <cstdint>
 #include <functional>
 #include <string>
-class HttpApp
+class HttpBase
 {
   private:
 	lynx::TcpServer server_;
 	lynx::HttpRouter router_;
 
   public:
-	HttpApp(lynx::EventLoop* loop, const std::string& ip, uint16_t port,
-			const std::string& name,
-			size_t sub_reactor_num = std::thread::hardware_concurrency())
+	HttpBase(lynx::EventLoop* loop, const std::string& ip, uint16_t port,
+			 const std::string& name,
+			 size_t sub_reactor_num = std::thread::hardware_concurrency())
 		: server_(loop, ip.c_str(), port, name, sub_reactor_num)
 	{
 		server_.setConnectionCallback(
-			std::bind(&HttpApp::onConnection, this, std::placeholders::_1));
-		server_.setMessageCallback(std::bind(&HttpApp::onMessage, this,
+			std::bind(&HttpBase::onConnection, this, std::placeholders::_1));
+		server_.setMessageCallback(std::bind(&HttpBase::onMessage, this,
 											 std::placeholders::_1,
 											 std::placeholders::_2));
 	}
@@ -45,7 +45,7 @@ class HttpApp
 	}
 
   private:
-	void onConnection(const std::shared_ptr<lynx::TcpConnection>& conn)
+	virtual void onConnection(const std::shared_ptr<lynx::TcpConnection>& conn)
 	{
 		if (conn->connected())
 		{
@@ -59,8 +59,8 @@ class HttpApp
 		}
 	}
 
-	void onMessage(const std::shared_ptr<lynx::TcpConnection>& conn,
-				   std::shared_ptr<lynx::Buffer> buf)
+	virtual void onMessage(const std::shared_ptr<lynx::TcpConnection>& conn,
+						   std::shared_ptr<lynx::Buffer> buf)
 	{
 		auto context =
 			std::any_cast<std::shared_ptr<lynx::HttpContext>>(conn->context());

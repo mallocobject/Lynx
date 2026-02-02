@@ -1,5 +1,5 @@
 #include "lynx/net/tcp_client.h"
-#include "lynx/base/logger.hpp"
+#include "lynx/logger/logger.h"
 #include "lynx/net/connector.h"
 #include "lynx/net/event_loop.h"
 #include "lynx/net/tcp_connection.h"

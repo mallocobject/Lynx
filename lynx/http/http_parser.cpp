@@ -1,5 +1,5 @@
 #include "lynx/http/http_parser.h"
-#include "lynx/base/logger.hpp"
+#include "lynx/logger/logger.h"
 #include <cctype>
 #include <string>
 

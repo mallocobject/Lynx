@@ -2,9 +2,9 @@
 #define LYNX_TIMER_QUEUE_H
 
 #include "lynx/base/common.hpp"
-#include "lynx/base/logger.hpp"
 #include "lynx/base/time_stamp.h"
 #include "lynx/base/timer_id.hpp"
+#include "lynx/logger/logger.h"
 #include <cstdint>
 #include <functional>
 #include <memory>

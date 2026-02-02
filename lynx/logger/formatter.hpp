@@ -3,12 +3,10 @@
 
 #include "lynx/base/common.hpp"
 #include "lynx/base/time_stamp.h"
-#include "lynx/logger/config.hpp"
 #include "lynx/logger/context.hpp"
+#include "lynx/logger/flag.hpp"
 #include <cstring>
-#include <sstream>
 #include <string>
-#include <thread>
 
 #if __cplusplus >= 202002L
 #include <format>
@@ -46,21 +44,23 @@ class Formatter
 		auto out = std::back_inserter(result);
 
 		// 日期
-		if (static_cast<uint8_t>(flags_) & static_cast<uint8_t>(Flags::kDate))
+		if (flags_ & Flags::kDate)
 		{
-			std::format_to(out, "{} ",
-						   TimeStamp(ctx.timestamp).toFormattedString(false, true));
+			std::format_to(
+				out, "{} ",
+				TimeStamp(ctx.timestamp).toFormattedString(false, true));
 		}
 
 		// 时间
-		if (static_cast<uint8_t>(flags_) & static_cast<uint8_t>(Flags::kTime))
+		if (flags_ & Flags::kTime)
 		{
-			std::format_to(out, "{} ",
-						   TimeStamp(ctx.timestamp).toFormattedString(true, false));
+			std::format_to(
+				out, "{} ",
+				TimeStamp(ctx.timestamp).toFormattedString(true, false));
 		}
 
 		// 线程ID
-		if (static_cast<uint8_t>(flags_) & static_cast<uint8_t>(Flags::kThreadId))
+		if (flags_ & Flags::kThreadId)
 		{
 			std::format_to(out, "[{}] ", ctx.tid);
 		}
@@ -69,21 +69,21 @@ class Formatter
 		std::format_to(out, "{} ", getLogLevelString(ctx.level));
 
 		// 短文件名
-		if (static_cast<uint8_t>(flags_) & static_cast<uint8_t>(Flags::kShortName))
+		if (flags_ & Flags::kShortName)
 		{
 			std::format_to(out, "{}:{} ", ctx.data.short_filename,
 						   ctx.data.line);
 		}
 
 		// 完整文件名
-		if (static_cast<uint8_t>(flags_) & static_cast<uint8_t>(Flags::kFullName))
+		if (flags_ & Flags::kFullName)
 		{
-			std::format_to(out, "{}:{} ", ctx.data.long_filename,
+			std::format_to(out, "{}:{} ", ctx.data.full_filename,
 						   ctx.data.line);
 		}
 
 		// 函数名
-		if (static_cast<uint8_t>(flags_) & static_cast<uint8_t>(Flags::kFuncName))
+		if (flags_ & Flags::kFuncName)
 		{
 			std::format_to(out, "{}() ", ctx.data.func_name);
 		}
@@ -92,7 +92,6 @@ class Formatter
 		std::format_to(out, "{}", ctx.text);
 
 		return result;
-
 	}
 
 	static const char* getLogLevelString(int level)

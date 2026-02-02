@@ -17,7 +17,7 @@ thread_local char t_time[64];
 thread_local int t_timezone = -1;
 thread_local std::tm t_tm;
 thread_local std::tm t_gmtm;
-thread_local time_t t_lastSecond;
+thread_local time_t t_lastSeconds;
 
 const char* getHostName()
 {

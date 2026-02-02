@@ -138,7 +138,7 @@ void AsyncLogging::threadWorker()
 			char buf[256];
 			snprintf(buf, sizeof buf,
 					 "Dropped log messages at %s, %zd larger buffers\n",
-					 TimeStamp::now().toString().c_str(),
+					 TimeStamp::now().toFormattedString().c_str(),
 					 buffer2write.size() - 2);
 			fputs(buf, stderr);
 
@@ -154,7 +154,7 @@ void AsyncLogging::threadWorker()
 				const Context& ctx = buffer.context()[i];
 				std::string formatted_log = formatter.format(ctx);
 				out_file.append(formatted_log.c_str(),
-							   static_cast<int>(formatted_log.length()));
+								static_cast<int>(formatted_log.length()));
 				out_file.append("\n", 1);
 			}
 		}

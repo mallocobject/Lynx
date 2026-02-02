@@ -1,17 +1,18 @@
 #ifndef LYNX_CONTEXT_HPP
 #define LYNX_CONTEXT_HPP
 
+#include <cstdint>
+#include <functional>
 #include <string>
 #include <strings.h>
 #include <thread>
-#include "lynx/base/time_stamp.h"
 
 namespace lynx
 {
 struct Context
 {
 	int level{2}; // 默认 INFO 级别
-	std::thread::id tid;
+	uint64_t tid;
 	uint64_t timestamp; // 时间戳（微秒）
 
 	struct Data
@@ -19,7 +20,7 @@ struct Context
 		int line{0};
 		int err{0};
 		const char* short_filename{nullptr};
-		const char* long_filename{nullptr};
+		const char* full_filename{nullptr};
 		const char* func_name{nullptr};
 	} data;
 
@@ -27,10 +28,12 @@ struct Context
 
 	// 便利构造函数
 	Context() = default;
-	
-	Context(int log_level, const char* short_file, const char* func, int line_num)
-		: level(log_level), tid(std::this_thread::get_id())
+
+	Context(int log_level, const char* short_file, const char* func,
+			int line_num)
+		: level(log_level)
 	{
+		tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
 		data.short_filename = short_file;
 		data.func_name = func;
 		data.line = line_num;
@@ -51,7 +54,7 @@ struct Context
 
 	Context& withFullName(const char* long_file)
 	{
-		data.long_filename = long_file;
+		data.full_filename = long_file;
 		return *this;
 	}
 

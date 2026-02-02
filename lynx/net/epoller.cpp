@@ -1,6 +1,6 @@
 #include "lynx/net/epoller.h"
-#include "lynx/base/logger.hpp"
 #include "lynx/base/time_stamp.h"
+#include "lynx/logger/logger.h"
 #include "lynx/net/buffer.h"
 #include "lynx/net/channel.h"
 #include <cassert>

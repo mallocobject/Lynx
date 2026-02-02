@@ -1,5 +1,5 @@
 #include "lynx/net/channel.h"
-#include "lynx/base/logger.hpp"
+#include "lynx/logger/logger.h"
 #include "lynx/net/event_loop.h"
 #include <arpa/inet.h>
 #include <cassert>

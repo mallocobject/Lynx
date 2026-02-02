@@ -1,8 +1,8 @@
 #include "lynx/base/timer_queue.h"
-#include "lynx/base/logger.hpp"
 #include "lynx/base/time_stamp.h"
 #include "lynx/base/timer.h"
 #include "lynx/base/timer_id.hpp"
+#include "lynx/logger/logger.h"
 #include "lynx/net/channel.h"
 #include "lynx/net/event_loop.h"
 #include <cassert>

@@ -26,7 +26,7 @@ class TimeStamp
 
 	static TimeStamp now();
 	static TimeStamp addTime(TimeStamp time_stamp, double add_seconds);
-	std::string toString() const;
+	std::string toFormattedString(bool date = true, bool time = true) const;
 
 	int64_t microseconds() const
 	{

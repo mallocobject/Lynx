@@ -7,7 +7,6 @@
 #include <memory>
 #include <mutex>
 #include <sstream>
-#include <thread>
 
 namespace lynx
 {
@@ -103,45 +102,26 @@ class Logger
 		std::ostringstream stream_;
 		bool enabled_;
 
+		const char* file_;
+		const char* func_;
+		int line_;
+
 	  public:
 		DISABLE_COPY(LogStream)
 
-		LogStream(Level level, bool enabled = true)
-			: level_(level), enabled_(enabled)
+		LogStream(Level level, const char* file, const char* func, int line,
+				  bool enabled = true)
+			: level_(level), enabled_(enabled), file_(file), func_(func),
+			  line_(line)
 		{
-			if (enabled_)
-			{
-				// 仅在输出到控制台时添加前缀
-				// 如果输出到文件，Formatter 会统一处理格式
-				if (!Logger::isAsyncEnabled())
-				{
-					switch (level_)
-					{
-					case TRACE:
-						stream_ << "\033[90m[TRACE]";
-						break;
-					case DEBUG:
-						stream_ << "\033[36m[DEBUG]";
-						break;
-					case INFO:
-						stream_ << "\033[32m[INFO]";
-						break;
-					case WARN:
-						stream_ << "\033[33m[WARN]";
-						break;
-					case ERROR:
-						stream_ << "\033[31m[ERROR]";
-						break;
-					case FATAL:
-						stream_ << "\033[35m[FATAL]";
-						break;
-					default:
-						stream_ << "\033[0m[UNKNOWN]";
-						break;
-					}
-					stream_ << TimeStamp::now() << " : ";
-				}
-			}
+		}
+
+		LogStream& setSourceInfo(const char* file, const char* func, int line)
+		{
+			file_ = file;
+			func_ = func;
+			line_ = line;
+			return *this;
 		}
 
 		~LogStream()
@@ -152,14 +132,40 @@ class Logger
 
 				if (Logger::isAsyncEnabled())
 				{
-					// 输出到文件 - 仅传递原始消息，Formatter 处理格式
-					Logger::pushAsyncLog(level_, log_msg);
+					// 输出到文件 - 传递消息和源位置信息给 Formatter
+					Logger::pushAsyncLog(level_, log_msg, file_, func_, line_);
 				}
 				else
 				{
 					// 输出到控制台 - 添加结束标记和换行
-					log_msg += "\033[0m\n";
-					std::cout << log_msg;
+					std::string prefix;
+					switch (level_)
+					{
+					case TRACE:
+						prefix = "\033[90m[TRACE]";
+						break;
+					case DEBUG:
+						prefix = "\033[36m[DEBUG]";
+						break;
+					case INFO:
+						prefix = "\033[32m[INFO]";
+						break;
+					case WARN:
+						prefix = "\033[33m[WARN]";
+						break;
+					case ERROR:
+						prefix = "\033[31m[ERROR]";
+						break;
+					case FATAL:
+						prefix = "\033[35m[FATAL]";
+						break;
+					default:
+						prefix = "\033[0m[UNKNOWN]";
+						break;
+					}
+					prefix += TimeStamp::now().toFormattedString();
+					prefix += " : ";
+					std::cout << prefix << log_msg << "\033[0m\n";
 				}
 			}
 		}
@@ -197,17 +203,27 @@ class Logger
 	{
 		return LogStream(TRACE);
 	}
+
+	static LogStream traceAt(const char* file, const char* func, int line)
+	{
+		return LogStream(TRACE, file, func, line);
+	}
 #else
 	static NullLogger trace()
+	{
+		return null_logger;
+	}
+
+	static NullLogger traceAt(const char*, const char*, int)
 	{
 		return null_logger;
 	}
 #endif
 
 #if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_DEBUG
-	static LogStream debug()
+	static LogStream debug(const char* file, const char* func, int line)
 	{
-		return LogStream(DEBUG);
+		return LogStream(DEBUG, file, func, line);
 	}
 #else
 	static NullLogger debug()
@@ -217,9 +233,9 @@ class Logger
 #endif
 
 #if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_INFO
-	static LogStream info()
+	static LogStream info(const char* file, const char* func, int line)
 	{
-		return LogStream(INFO);
+		return LogStream(INFO, file, func, line);
 	}
 #else
 	static NullLogger info()
@@ -229,9 +245,9 @@ class Logger
 #endif
 
 #if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_WARN
-	static LogStream warn()
+	static LogStream warn(const char* file, const char* func, int line)
 	{
-		return LogStream(WARN);
+		return LogStream(WARN, file, func, line);
 	}
 #else
 	static NullLogger warn()
@@ -241,9 +257,9 @@ class Logger
 #endif
 
 #if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_ERROR
-	static LogStream error()
+	static LogStream error(const char* file, const char* func, int line)
 	{
-		return LogStream(ERROR);
+		return LogStream(ERROR, file, func, line);
 	}
 #else
 	static NullLogger error()
@@ -253,9 +269,9 @@ class Logger
 #endif
 
 #if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_FATAL
-	static LogStream fatal()
+	static LogStream fatal(const char* file, const char* func, int line)
 	{
-		return LogStream(FATAL);
+		return LogStream(FATAL, file, func, line);
 	}
 #else
 	static NullLogger fatal()
@@ -271,15 +287,17 @@ class Logger
 	static bool async_enabled_;
 
 	// 内部方法：发送日志到异步系统
-	static void pushAsyncLog(Level level, const std::string& message);
+	static void pushAsyncLog(Level level, const std::string& message,
+							 const char* file, const char* func, int line);
 };
 
-#define LOG_TRACE Logger::trace()
-#define LOG_DEBUG Logger::debug()
-#define LOG_INFO Logger::info()
-#define LOG_WARN Logger::warn()
-#define LOG_ERROR Logger::error()
-#define LOG_FATAL Logger::fatal()
+// 自动捕获 __FILE__, __FUNCTION__, __LINE__
+#define LOG_TRACE Logger::trace(__FILE__, __FUNCTION__, __LINE__)
+#define LOG_DEBUG Logger::debug(__FILE__, __FUNCTION__, __LINE__)
+#define LOG_INFO Logger::info(__FILE__, __FUNCTION__, __LINE__)
+#define LOG_WARN Logger::warn(__FILE__, __FUNCTION__, __LINE__)
+#define LOG_ERROR Logger::error(__FILE__, __FUNCTION__, __LINE__)
+#define LOG_FATAL Logger::fatal(__FILE__, __FUNCTION__, __LINE__)
 
 } // namespace lynx
 

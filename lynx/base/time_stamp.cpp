@@ -24,8 +24,13 @@ TimeStamp TimeStamp::addTime(TimeStamp time_stamp, double add_seconds)
 	return TimeStamp(time_stamp.micro_seconds_ + delta);
 }
 
-std::string TimeStamp::toString() const
+std::string TimeStamp::toFormattedString(bool date, bool time) const
 {
+	if (!date && !time)
+	{
+		return "";
+	}
+
 	int64_t seconds = micro_seconds_ / MicroSecond2Second;
 	int64_t microseconds = micro_seconds_ % MicroSecond2Second;
 
@@ -33,16 +38,30 @@ std::string TimeStamp::toString() const
 	localtime_r(&seconds, &tm_time);
 
 	char buf[64];
-	snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d.%06ld",
-			 tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
-			 tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, microseconds);
+
+	if (date && time)
+	{
+		snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d.%06ld",
+				 tm_time.tm_year + 1900, tm_time.tm_mon + 1, tm_time.tm_mday,
+				 tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, microseconds);
+	}
+	else if (date && !time)
+	{
+		snprintf(buf, sizeof(buf), "%04d-%02d-%02d", tm_time.tm_year + 1900,
+				 tm_time.tm_mon + 1, tm_time.tm_mday);
+	}
+	else if (!date && time)
+	{
+		snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%06ld", tm_time.tm_hour,
+				 tm_time.tm_min, tm_time.tm_sec, microseconds);
+	}
 
 	return buf;
 }
 
 std::ostream& operator<<(std::ostream& os, const TimeStamp& ts)
 {
-	os << ts.toString();
+	os << ts.toFormattedString();
 	return os;
 }
 
