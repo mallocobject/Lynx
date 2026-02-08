@@ -24,7 +24,8 @@ enum LogLevel
 	INFO,
 	WARN,
 	ERROR,
-	FATAL
+	FATAL,
+	OFF
 };
 
 constexpr std::string_view logLevel2String(LogLevel level)
@@ -202,11 +203,12 @@ class Logger : public noncopyable
 	};
 };
 
-#ifndef LYNX_LEVEL_SETTING
-#define LYNX_LEVEL_SETTING lynx::INFO
+#ifndef LOGGER_LEVEL_SETTING
+#define LOGGER_LEVEL_SETTING lynx::INFO
 #endif
 
-constexpr LogLevel GLOBAL_MIN_LEVEL = static_cast<LogLevel>(LYNX_LEVEL_SETTING);
+constexpr LogLevel GLOBAL_MIN_LEVEL =
+	static_cast<LogLevel>(LOGGER_LEVEL_SETTING);
 
 template <LogLevel level>
 using SelectedLogStream = std::conditional_t<level >= GLOBAL_MIN_LEVEL,

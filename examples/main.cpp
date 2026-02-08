@@ -1,7 +1,6 @@
 #include "handlers.h"
 #include "http_app.h"
 #include "lynx/http/http_router.h"
-
 #include "lynx/logger/logger.h"
 #include "lynx/net/event_loop.h"
 #include "lynx/net/tcp_connection.h"
@@ -65,7 +64,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	lynx::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/log", argv[0]);
+	lynx::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs", argv[0]);
 
 	lynx::EventLoop loop;
 	lynx::HttpApp http_app(&loop, conf.ip, conf.port, conf.name,
