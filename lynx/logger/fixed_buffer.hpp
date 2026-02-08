@@ -1,33 +1,40 @@
 #ifndef LYNX_FIXED_BUFFER_HPP
 #define LYNX_FIXED_BUFFER_HPP
 
-#include "lynx/base/common.hpp"
+#include "lynx/base/noncopyable.hpp"
 #include "lynx/logger/context.hpp"
+#include <cassert>
 #include <cstddef>
-
 namespace lynx
 {
-template <size_t N> class FixedBuffer
+template <size_t N> class FixedBuffer : public noncopyable
 {
+  public:
+	using iterator = Context*;
+
   private:
 	Context* ctxs_;
-	size_t cur_index_;
+	size_t index_;
 
   public:
-	DISABLE_COPY(FixedBuffer)
-
-	FixedBuffer() : ctxs_(new Context[N]), cur_index_(0)
+	FixedBuffer() : ctxs_(new Context[N]), index_(0)
 	{
 	}
 
-	FixedBuffer(FixedBuffer&& rhs) noexcept
-		: ctxs_(rhs.ctxs_), cur_index_(rhs.cur_index_)
+	~FixedBuffer()
+	{
+		delete[] ctxs_;
+		ctxs_ = nullptr;
+		index_ = 0;
+	}
+
+	FixedBuffer(FixedBuffer&& rhs) : ctxs_(rhs.ctxs_), index_(rhs.index_)
 	{
 		rhs.ctxs_ = nullptr;
-		rhs.cur_index_ = 0;
+		rhs.index_ = 0;
 	}
 
-	FixedBuffer& operator=(FixedBuffer&& rhs) noexcept
+	FixedBuffer& operator=(FixedBuffer&& rhs)
 	{
 		if (&rhs == this)
 		{
@@ -35,15 +42,15 @@ template <size_t N> class FixedBuffer
 		}
 
 		ctxs_ = rhs.ctxs_;
-		cur_index_ = rhs.cur_index_;
+		index_ = rhs.index_;
 
 		rhs.ctxs_ = nullptr;
-		rhs.cur_index_ = 0;
+		rhs.index_ = 0;
 
 		return *this;
 	}
 
-	Context* context() const
+	Context* data() const
 	{
 		return ctxs_;
 	}
@@ -60,40 +67,57 @@ template <size_t N> class FixedBuffer
 
 	bool empty() const
 	{
-		return cur_index_ == 0;
+		return index_ == 0;
 	}
 
 	bool full() const
 	{
-		return cur_index_ == N;
+		return index_ == N;
 	}
 
 	size_t size() const
 	{
-		return cur_index_;
+		return index_;
 	}
 
 	void push(const Context& ctx)
 	{
-		ctxs_[cur_index_] = ctx;
-		cur_index_++;
+		assert(ctxs_ != nullptr);
+
+		if (!full())
+		{
+			ctxs_[index_++] = ctx;
+		}
+	}
+
+	void push(Context&& ctx)
+	{
+		if (!full())
+		{
+			ctxs_[index_++] = std::move(ctx);
+		}
 	}
 
 	void reset()
 	{
-		cur_index_ = 0;
+		index_ = 0;
 	}
 
-	auto begin()
+	iterator begin() const
 	{
 		return ctxs_;
 	}
-	auto end()
+
+	iterator end() const
 	{
-		return ctxs_ + cur_index_;
+		return ctxs_ + index_;
+	}
+
+	Context& operator[](size_t index) const
+	{
+		return ctxs_[index];
 	}
 };
-
 } // namespace lynx
 
 #endif

@@ -1,125 +1,107 @@
 #ifndef LYNX_FORMATTER_HPP
 #define LYNX_FORMATTER_HPP
 
-#include "lynx/base/common.hpp"
-#include "lynx/base/time_stamp.h"
 #include "lynx/logger/context.hpp"
-#include "lynx/logger/flag.hpp"
-#include <cstring>
-#include <string>
-
-#if __cplusplus >= 202002L
+#include "lynx/logger/flags.hpp"
 #include <format>
-#endif
-
+#include <iterator>
+#include <string>
 namespace lynx
 {
-
 class Formatter
 {
-  public:
-	DISABLE_COPY(Formatter)
+  private:
+	Flags flags_;
 
+  public:
 	explicit Formatter(Flags flags = Flags::kStdFlags) : flags_(flags)
 	{
 	}
 
-	/**
-	 * 将Context格式化为日志字符串（使用std::format_to直接写入）
-	 * @param ctx 日志上下文
-	 * @return 格式化后的日志字符串
-	 */
 	std::string format(const Context& ctx) const
 	{
 		return formatWithFormatTo(ctx);
 	}
 
   private:
-	Flags flags_;
-
-	// C++20 std::format_to 版本（最优性能）- 直接写入缓冲区
 	std::string formatWithFormatTo(const Context& ctx) const
 	{
-		std::string result;
-		auto out = std::back_inserter(result);
+		std::string formatted_log;
+		auto out = std::back_inserter(formatted_log);
 
-		// 日期 时间
-		if (flags_ & (Flags::kDate | Flags::kTime))
-		{
-			std::format_to(
-				out, "{} ",
-				TimeStamp(ctx.timestamp).toFormattedString(true, true));
-		}
-		else if (flags_ & Flags::kDate)
-		{
-			std::format_to(
-				out, "{} ",
-				TimeStamp(ctx.timestamp).toFormattedString(true, false));
-		}
-		else if (flags_ & Flags::kTime)
-		{
-			std::format_to(
-				out, "{} ",
-				TimeStamp(ctx.timestamp).toFormattedString(false, true));
-		}
+		// if (flags_ & (Flags::kDate | Flags::kTime))
+		// {
+		// 	std::format_to(out, "{}",
+		// 				   ctx.time_stamp.toFormattedString(true, true));
+		// }
+		// else if (flags_ & Flags::kDate)
+		// {
+		// 	std::format_to(out, "{}",
+		// 				   ctx.time_stamp.toFormattedString(true, false));
+		// }
+		// else if (flags_ & (Flags::kDate | Flags::kTime))
+		// {
+		// 	std::format_to(out, "{}",
+		// 				   ctx.time_stamp.toFormattedString(false, true));
+		// }
 
-		// 线程ID
+		std::format_to(out, "{}",
+					   ctx.time_stamp.toFormattedString(
+						   static_cast<bool>(flags_ & Flags::kDate),
+						   static_cast<bool>(flags_ & Flags::kTime)));
+
 		if (flags_ & Flags::kThreadId)
 		{
-			std::format_to(out, "[{}] ", ctx.tid);
+			std::format_to(out, "[{}]", ctx.tid);
 		}
 
-		// 日志级别
-		std::format_to(out, "{} ", getLogLevelString(ctx.level));
+		std::format_to(out, "{} ", logLevel2String(ctx.level));
 
-		// 短文件名
-		if (flags_ & Flags::kShortName)
-		{
-			std::format_to(out, "{}:{} ", ctx.data.short_filename,
-						   ctx.data.line);
-		}
-
-		// 完整文件名
 		if (flags_ & Flags::kFullName)
 		{
-			std::format_to(out, "{}:{} ", ctx.data.full_filename,
-						   ctx.data.line);
+			std::format_to(out, "{}", ctx.data.full_name);
+		}
+		else if (flags_ & Flags::kShortName)
+		{
+			std::format_to(out, "{}", ctx.data.short_name);
 		}
 
-		// 函数名
+		if (flags_ & Flags::kLine)
+		{
+			std::format_to(out, ":{} ", ctx.data.line);
+		}
+
 		if (flags_ & Flags::kFuncName)
 		{
-			std::format_to(out, "{}() ", ctx.data.func_name);
+			std::format_to(out, "{}()", ctx.data.func);
 		}
 
-		// 日志内容
-		std::format_to(out, "{}", ctx.text);
+		std::format_to(out, "-> {}\n", ctx.text);
 
-		return result;
+		return formatted_log;
 	}
 
-	static const char* getLogLevelString(int level)
+	static constexpr std::string_view logLevel2String(int level)
 	{
 		switch (level)
 		{
 		case 0:
-			return "[TRACE]";
+			return "TRACE";
 		case 1:
-			return "[DEBUG]";
+			return "DEBUG";
 		case 2:
-			return "[INFO]";
+			return "INFO";
 		case 3:
-			return "[WARN]";
+			return "WARN";
 		case 4:
-			return "[ERROR]";
+			return "ERROR";
 		case 5:
-			return "[FATAL]";
+			return "FATAL";
 		default:
-			return "[UNKNOWN]";
+			return "UNKNOWN";
 		}
 	}
 };
-
 } // namespace lynx
 
-#endif // LYNX_FORMATTER_HPP
+#endif

@@ -1,6 +1,7 @@
 #include "handlers.h"
 #include "http_app.h"
 #include "lynx/http/http_router.h"
+
 #include "lynx/logger/logger.h"
 #include "lynx/net/event_loop.h"
 #include "lynx/net/tcp_connection.h"
@@ -15,7 +16,7 @@ struct Config
 	std::string ip = "0.0.0.0";
 	uint16_t port = 8080;
 	std::string name = "Lynx-WebServer";
-	size_t worker_threads = std::thread::hardware_concurrency();
+	size_t worker_threads = std::thread::hardware_concurrency() - 2;
 	bool valid = false;
 };
 
@@ -59,21 +60,21 @@ int main(int argc, char* argv[])
 		printf("Options:\n");
 		printf("  -p : Port number (Mandatory)\n");
 		printf("  -i : IP address (Default: 0.0.0.0)\n");
-		printf("  -t : Number of worker threads (Default: CPU cores)\n");
+		printf("  -t : Number of worker threads (Default: CPU cores - 2)\n");
 		printf("  -n : Server name (Default: Lynx-WebServer)\n");
 		return 1;
 	}
 
-	lynx::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/log/webserver");
+	lynx::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/log", argv[0]);
 
 	lynx::EventLoop loop;
 	lynx::HttpApp http_app(&loop, conf.ip, conf.port, conf.name,
 						   conf.worker_threads);
 
-	lynx::LOG_INFO << "Server [" << conf.name << "] starting...";
-	lynx::LOG_INFO << "Listen on " << conf.ip << ":" << conf.port;
-	lynx::LOG_INFO << "Threads: 1 (Main) + " << conf.worker_threads
-				   << " (Workers)" << " + 1 (Logger)";
+	LOG_INFO << "Server [" << conf.name << "] starting...";
+	LOG_INFO << "Listen on " << conf.ip << ":" << conf.port;
+	LOG_INFO << "Threads: 1 (Main) + " << conf.worker_threads << " (Workers)"
+			 << " + 1 (Logger)";
 
 	http_app.addRoute("GET", "/",
 					  [](const auto& req, auto* res, const auto& conn)
@@ -124,7 +125,7 @@ int main(int argc, char* argv[])
 	// 	});
 
 	http_app.startup();
-	lynx::LOG_INFO << "Server started at " << conf.ip << ":" << conf.port;
+	LOG_INFO << "Server started at " << conf.ip << ":" << conf.port;
 	loop.run();
 
 	lynx::Logger::shutdownAsyncLogging();

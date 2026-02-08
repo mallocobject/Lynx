@@ -1,44 +1,43 @@
 #include "lynx/logger/file_appender.h"
-#include <cerrno>
-#include <cstddef>
 #include <cstdio>
-#include <cstring>
+#include <filesystem>
+#include <string>
 #include <system_error>
 
 namespace lynx
 {
+static constexpr size_t BUFFER_SIZE = 64 * 1024;
 
 namespace
 {
-void throw_system_error(const char* operation)
+void throw_system_error(std::string operation)
 {
-	throw std::system_error(errno, std::system_category(), operation);
+	throw std::system_error(errno, std::system_category(), operation.c_str());
 }
 
-void throw_runtime_error(std::string_view message)
+void throw_runtime_error(std::string message)
 {
-	throw std::runtime_error(std::string(message));
+	throw std::runtime_error(message);
 }
 } // namespace
 
 FileAppender::FileAppender(const std::filesystem::path& filepath)
-	: filepath_(filepath), buffer_(std::make_unique<char[]>(BUFFER_SIZE))
+	: filepath_(filepath), buf_(new char[BUFFER_SIZE])
 {
-	ensure_directory_exists();
+	ensureDirectoryExists();
 
-	file_ = ::fopen(filepath_.c_str(), "ab");
+	file_ = ::fopen(filepath.c_str(), "ab");
 	if (!file_)
 	{
 		throw_system_error("Failed to open log file");
 	}
 
-	// 明确生效的缓冲（这是关键）
-	if (::setvbuf(file_, buffer_.get(), _IOFBF, BUFFER_SIZE) != 0)
-	{
-		::fclose(file_);
-		file_ = nullptr;
-		throw_runtime_error("Failed to set file buffer");
-	}
+	// if (::setvbuf(file_, buf_, _IOFBF, BUFFER_SIZE) != 0)
+	// {
+	// 	::fclose(file_);
+	// 	file_ = nullptr;
+	// 	throw_runtime_error("Failed to set file buffer");
+	// }
 }
 
 FileAppender::~FileAppender()
@@ -49,11 +48,16 @@ FileAppender::~FileAppender()
 		::fclose(file_);
 		file_ = nullptr;
 	}
+	if (buf_)
+	{
+		delete[] buf_;
+		buf_ = nullptr;
+	}
 }
 
 void FileAppender::append(const char* data, size_t len)
 {
-	if (!data || len == 0 || !file_)
+	if (!data || !file_ || len == 0)
 	{
 		return;
 	}
@@ -85,38 +89,36 @@ void FileAppender::flush()
 	}
 }
 
-void FileAppender::ensure_directory_exists() const
+void FileAppender::ensureDirectoryExists() const
 {
 	const auto parent_path = filepath_.parent_path();
 
 	if (parent_path.empty())
 	{
-		// 当前目录，总是存在
+		// relative path
 		return;
 	}
 
 	std::error_code ec;
-	const bool exists = std::filesystem::exists(parent_path, ec);
+
+	auto status = std::filesystem::status(parent_path, ec);
 
 	if (ec)
 	{
-		throw_system_error("Failed to check directory existence");
+		throw_system_error("Failed to check directory: " +
+						   std::string(parent_path));
 	}
 
-	if (!exists)
+	if (!std::filesystem::exists(status))
 	{
-		// 尝试创建目录
-		if (!std::filesystem::create_directories(parent_path, ec) && ec)
-		{
-			throw_system_error("Failed to create log directory");
-		}
+		throw_runtime_error("Directory does not exist: " +
+							parent_path.string());
 	}
 
-	// 验证目录是否可写
-	if (!std::filesystem::is_directory(parent_path, ec) || ec)
+	if (!std::filesystem::is_directory(status))
 	{
-		throw_runtime_error("Log path is not a directory");
+		throw_runtime_error("Path exists but is not a directory: " +
+							parent_path.string());
 	}
 }
-
 } // namespace lynx

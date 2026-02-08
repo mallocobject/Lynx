@@ -1,244 +1,236 @@
-#ifndef LYNX_LOGGER_HPP
-#define LYNX_LOGGER_HPP
+#ifndef LYNX_LYNX_H
+#define LYNX_LYNX_H
 
-#include "lynx/base/common.hpp"
+#include "lynx/base/current_thread.hpp"
+#include "lynx/base/noncopyable.hpp"
 #include "lynx/base/time_stamp.h"
 #include <atomic>
+#include <cassert>
+#include <cstring>
+#include <format>
 #include <iostream>
 #include <memory>
-#include <mutex>
+#include <ostream>
 #include <sstream>
-#include <syncstream>
+#include <string_view>
+#include <type_traits>
+namespace lynx
+{
+
+enum LogLevel
+{
+	TRACE = 0,
+	DEBUG,
+	INFO,
+	WARN,
+	ERROR,
+	FATAL
+};
+
+constexpr std::string_view logLevel2String(LogLevel level)
+{
+	switch (level)
+	{
+	case TRACE:
+		return "TRACE";
+	case DEBUG:
+		return "DEBUG";
+	case INFO:
+		return "INFO";
+	case WARN:
+		return "WARN";
+	case ERROR:
+		return "ERROR";
+	case FATAL:
+		return "FATAL";
+	default:
+		return "UNKNOWN";
+	}
+}
+
+constexpr const char* logLevel2Color(LogLevel level)
+{
+	switch (level)
+	{
+	case TRACE:
+		return "\033[90m";
+	case DEBUG:
+		return "\033[36m";
+	case INFO:
+		return "\033[32m";
+	case WARN:
+		return "\033[33m";
+	case ERROR:
+		return "\033[31m";
+	case FATAL:
+		return "\033[35m";
+	default:
+		return "\033[0m";
+	}
+}
+} // namespace lynx
+
+template <>
+struct std::formatter<lynx::LogLevel> : std::formatter<std::string_view>
+{
+	auto format(lynx::LogLevel level, std::format_context& ctx) const
+	{
+		return std::formatter<std::string_view>::format(
+			lynx::logLevel2String(level), ctx);
+	}
+};
 
 namespace lynx
 {
 
-// 前向声明
-class AsyncLogging;
-
-// 定义等级数值
-#define LYNX_LOG_LEVEL_DEBUG 0
-#define LYNX_LOG_LEVEL_INFO 1
-#define LYNX_LOG_LEVEL_WARN 2
-#define LYNX_LOG_LEVEL_ERROR 3
-#define LYNX_LOG_LEVEL_FATAL 4
-#define LYNX_LOG_LEVEL_OFF 5
-
-// --- 用户配置区 ---
-#ifndef LYNX_MIN_LOG_LEVEL
-#if !defined(NODEBUG)
-#define LYNX_MIN_LOG_LEVEL LYNX_LOG_LEVEL_DEBUG
-#else
-#define LYNX_MIN_LOG_LEVEL LYNX_LOG_LEVEL_INFO
-#endif
-#endif
-
-class NullLogger
+class NullLogger : public noncopyable
 {
   public:
+	NullLogger(LogLevel, const char*, const char*, int)
+	{
+	}
+
 	template <typename T> NullLogger& operator<<(const T&)
 	{
 		return *this;
 	}
 
-	// for std::endl and std::flush
-	NullLogger& operator<<(std::ostream& (*manip)(std::ostream&))
+	NullLogger& operator<<(std::ostream& (*)(std::ostream&))
 	{
 		return *this;
 	}
 };
 
-inline NullLogger null_logger;
+// inline NullLogger null_logger;
 
-class Logger
+class AsyncLogging;
+class Logger : public noncopyable
 {
-  public:
-	enum LogLevel
-	{
-		TRACE,
-		DEBUG,
-		INFO,
-		WARN,
-		ERROR,
-		FATAL
-	};
 
+  private:
+	static std::unique_ptr<AsyncLogging> async_logging_;
+	static std::atomic<bool> async_enabled_;
+	// static std::mutex mtx_;
+
+  public:
 	/**
 	 * 初始化异步日志系统
-	 * @param log_file 日志文件路径
+	 * @param log_file_base 日志文件路径以及前缀
 	 * @param roll_size 日志文件滚动大小（字节），默认100MB
 	 * @param flush_interval 缓冲区刷新间隔（秒），默认3秒
 	 */
-	static void initAsyncLogging(const std::string& log_file,
+	static void initAsyncLogging(const std::string& log_file_base,
+								 const std::string& exe_name,
 								 int roll_size = 100 * 1024 * 1024,
 								 int flush_interval = 3);
 
-	/**
-	 * 关闭异步日志并等待所有日志写入完成
-	 */
 	static void shutdownAsyncLogging();
 
-	/**
-	 * 检查异步日志是否已启用
-	 */
 	static bool isAsyncEnabled();
 
+  private:
+	static void appendAsyncLog(LogLevel level, const std::string& message,
+							   const char* file, const char* func, int line);
+
   public:
-	class LogStream
+	class LogStream : noncopyable
 	{
 	  private:
 		LogLevel level_;
 		std::ostringstream stream_;
-		bool enabled_;
 
 		const char* file_;
 		const char* func_;
 		int line_;
 
 	  public:
-		DISABLE_COPY(LogStream)
-
-		LogStream(LogLevel level, const char* file, const char* func, int line,
-				  bool enabled = true)
-			: level_(level), enabled_(enabled), file_(file), func_(func),
-			  line_(line)
+		LogStream(LogLevel level, const char* file, const char* func, int line)
+			: level_(level), file_(file), func_(func), line_(line)
 		{
-		}
-
-		LogStream& setSourceInfo(const char* file, const char* func, int line)
-		{
-			file_ = file;
-			func_ = func;
-			line_ = line;
-			return *this;
 		}
 
 		~LogStream()
 		{
-			if (enabled_ && !stream_.str().empty())
+			if (!stream_.str().empty())
 			{
 				if (Logger::isAsyncEnabled())
 				{
-					// 输出到文件 - 传递消息和源位置信息给 Formatter
-					Logger::pushAsyncLog(level_, stream_.str(), file_, func_,
-										 line_);
+					Logger::appendAsyncLog(level_, stream_.str(), file_, func_,
+										   line_);
 				}
 				else
 				{
-					// 输出到控制台 - 添加结束标记和换行
-					std::string prefix;
-					switch (level_)
-					{
-					case TRACE:
-						prefix = "\033[90m[TRACE]";
-						break;
-					case DEBUG:
-						prefix = "\033[36m[DEBUG]";
-						break;
-					case INFO:
-						prefix = "\033[32m[INFO]";
-						break;
-					case WARN:
-						prefix = "\033[33m[WARN]";
-						break;
-					case ERROR:
-						prefix = "\033[31m[ERROR]";
-						break;
-					case FATAL:
-						prefix = "\033[35m[FATAL]";
-						break;
-					default:
-						prefix = "\033[0m[UNKNOWN]";
-						break;
-					}
-					prefix += TimeStamp::now().toFormattedString();
-					prefix += " : ";
-					std::osyncstream(std::cout)
-						<< prefix << stream_.str() << "\033[0m\n";
+					std::string formatted_log = std::format(
+						"{}{}[{}]{} {}:{} {}()-> {}\033[0m\n",
+						logLevel2Color(level_),
+						TimeStamp::now().toFormattedString(),
+						CurrentThread::tid(), level_, getShortName(file_),
+						line_, func_, stream_.str());
+
+					std::cout << formatted_log;
 				}
 			}
-		}
-
-		// allow move
-		LogStream(LogStream&& other) noexcept
-			: level_(other.level_), enabled_(other.enabled_)
-		{
-			stream_ = std::move(other.stream_);
 		}
 
 		template <typename T> LogStream& operator<<(const T& val)
 		{
-			if (enabled_)
-			{
-				stream_ << val;
-			}
+			stream_ << val;
 			return *this;
 		}
 
-		// for std::endl and std::flush
-		LogStream& operator<<(std::ostream& (*manip)(std::ostream&))
+		LogStream& operator<<(std::ostream& (*manip)(std::ostream))
 		{
-			if (enabled_)
-			{
-				stream_ << manip;
-			}
+			stream_ << manip;
 			return *this;
+		}
+
+		static const char* getShortName(const char* file)
+		{
+			assert(file);
+			const char* short_name = std::strrchr(file, '/');
+			if (short_name)
+			{
+				short_name++;
+			}
+			else
+			{
+				short_name = file;
+			}
+
+			return short_name;
 		}
 	};
-
-  public:
-#if LYNX_LOG_TRACE_ON
-#define LOG_TRACE                                                              \
-	Logger::LogStream(lynx::Logger::TRACE, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define LOG_TRACE null_logger
-#endif
-
-#if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_DEBUG
-#define LOG_DEBUG                                                              \
-	Logger::LogStream(lynx::Logger::DEBUG, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define LOG_DEBUG null_logger
-#endif
-
-#if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_INFO
-#define LOG_INFO                                                               \
-	Logger::LogStream(lynx::Logger::INFO, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define LOG_INFO null_logger
-#endif
-
-#if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_WARN
-#define LOG_WARN                                                               \
-	Logger::LogStream(lynx::Logger::WARN, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define LOG_WARN null_logger
-#endif
-
-#if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_ERROR
-#define LOG_ERROR                                                              \
-	Logger::LogStream(lynx::Logger::ERROR, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define LOG_ERROR null_logger
-#endif
-
-#if LYNX_MIN_LOG_LEVEL <= LYNX_LOG_LEVEL_FATAL
-#define LOG_FATAL                                                              \
-	Logger::LogStream(lynx::Logger::FATAL, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define LOG_FATAL null_logger
-#endif
-
-  private:
-	static std::unique_ptr<AsyncLogging> async_logging_;
-	static std::atomic<bool> async_enabled_;
-	static std::mutex mtx_;
-
-	// 内部方法：发送日志到异步系统
-	static void pushAsyncLog(LogLevel level, const std::string& message,
-							 const char* file, const char* func, int line);
 };
+
+#ifndef LYNX_LEVEL_SETTING
+#define LYNX_LEVEL_SETTING lynx::INFO
+#endif
+
+constexpr LogLevel GLOBAL_MIN_LEVEL = static_cast<LogLevel>(LYNX_LEVEL_SETTING);
+
+template <LogLevel level>
+using SelectedLogStream = std::conditional_t<level >= GLOBAL_MIN_LEVEL,
+											 Logger::LogStream, NullLogger>;
 
 } // namespace lynx
 
-#endif // LYNX_LOGGER_H
+#define LOG_TRACE                                                              \
+	lynx::SelectedLogStream<lynx::TRACE>(lynx::TRACE, __FILE__, __func__,      \
+										 __LINE__)
+#define LOG_DEBUG                                                              \
+	lynx::SelectedLogStream<lynx::DEBUG>(lynx::DEBUG, __FILE__, __func__,      \
+										 __LINE__)
+#define LOG_INFO                                                               \
+	lynx::SelectedLogStream<lynx::INFO>(lynx::INFO, __FILE__, __func__,        \
+										__LINE__)
+#define LOG_WARN                                                               \
+	lynx::SelectedLogStream<lynx::WARN>(lynx::WARN, __FILE__, __func__,        \
+										__LINE__)
+#define LOG_ERROR                                                              \
+	lynx::SelectedLogStream<lynx::ERROR>(lynx::ERROR, __FILE__, __func__,      \
+										 __LINE__)
+#define LOG_FATAL                                                              \
+	lynx::SelectedLogStream<lynx::FATAL>(lynx::FATAL, __FILE__, __func__,      \
+										 __LINE__)
+
+#endif

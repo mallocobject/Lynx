@@ -1,45 +1,41 @@
 #ifndef LYNX_CONTEXT_HPP
 #define LYNX_CONTEXT_HPP
 
+#include "lynx/base/time_stamp.h"
 #include <cstdint>
-#include <functional>
 #include <string>
-#include <strings.h>
-#include <thread>
-
+#include <utility>
 namespace lynx
 {
 struct Context
 {
-	int level{2}; // 默认 INFO 级别
-	uint64_t tid;
-	uint64_t timestamp; // 时间戳（微秒）
+	TimeStamp time_stamp{0};
+	uint64_t tid{0};
+	int level{2};
 
 	struct Data
 	{
 		int line{0};
-		int err{0};
-		const char* short_filename{nullptr};
-		const char* full_filename{nullptr};
-		const char* func_name{nullptr};
+		const char* full_name{nullptr};
+		const char* short_name{nullptr};
+		const char* func{nullptr};
 	} data;
 
 	std::string text;
 
-	// 便利构造函数
 	Context() = default;
 
-	Context(int log_level, const char* short_file, const char* func,
-			int line_num)
-		: level(log_level)
+	explicit Context(int _level, const char* _file, const char* _func,
+					 int _line)
+		: level(_level),
+		  data({.line = _line, .short_name = _file, .func = _func})
 	{
-		tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-		data.short_filename = short_file;
-		data.func_name = func;
-		data.line = line_num;
 	}
 
-	// 便利接口 - 链式调用
+	explicit Context(uint64_t _tid) : tid(_tid)
+	{
+	}
+
 	Context& withText(const std::string& msg)
 	{
 		text = msg;
@@ -52,22 +48,28 @@ struct Context
 		return *this;
 	}
 
-	Context& withFullName(const char* long_file)
+	Context& withTimeStamp(TimeStamp time)
 	{
-		data.full_filename = long_file;
+		time_stamp = time;
 		return *this;
 	}
 
-	Context& withError(int err_code)
+	Context& withTid(uint64_t _tid)
 	{
-		data.err = err_code;
+		tid = _tid;
 		return *this;
 	}
 
-	static unsigned int getLengthWOLTT(const Context& ctx)
+	Context& withLevel(int _level)
 	{
-		static const unsigned int ctx_len = (char*)&ctx.text - (char*)&ctx.data;
-		return ctx_len;
+		level = _level;
+		return *this;
+	}
+
+	Context& WithData(Data&& _data)
+	{
+		data = std::move(_data);
+		return *this;
 	}
 };
 } // namespace lynx

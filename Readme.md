@@ -114,7 +114,6 @@ Lynx
 │   └── templates
 │       ├── hello.html
 │       └── index.html
-├── logs
 ├── lynx
 │   ├── CMakeLists.txt
 │   ├── base/
@@ -135,6 +134,12 @@ Logger::initAsyncLogging(
     100 * 1024 * 1024,           // 滚动大小 (100MB)
     3                            // 刷新间隔 (3秒)
 );
+
+/**
+* something
+*/
+
+lynx::Logger::shutdownAsyncLogging();
 ```
 
 

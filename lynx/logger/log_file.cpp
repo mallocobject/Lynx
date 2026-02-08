@@ -1,79 +1,19 @@
 #include "lynx/logger/log_file.h"
 #include "lynx/logger/file_appender.h"
-#include <cassert>
-#include <cstddef>
-#include <cstdio>
-#include <cstring>
+#include <cstdint>
 #include <ctime>
+#include <format>
 #include <memory>
-#include <mutex>
 
 namespace lynx
 {
-constexpr int kSumLength = 1024;
+static const int kRollPerSeconds = 24 * 60 * 60;
 
-thread_local char t_filename[kSumLength];
-thread_local char t_time[64];
-thread_local int t_timezone = -1;
-thread_local std::tm t_tm;
-thread_local std::tm t_gmtm;
-thread_local time_t t_lastSeconds;
-
-const char* getHostName()
-{
-	static char buf[256];
-	static bool initialized = false;
-	if (!initialized)
-	{
-		if (::gethostname(buf, sizeof(buf)) == 0)
-		{
-			buf[sizeof(buf) - 1] = '\0';
-		}
-		else
-		{
-			::strncpy(buf, "unknown_host", sizeof(buf));
-		}
-		initialized = true;
-	}
-	return buf;
-}
-
-int getPid()
-{
-	static int pid = ::getpid();
-	return pid;
-}
-
-const char* getFilename(const char* basename, const time_t& now)
-{
-	auto basename_len = ::strlen(basename);
-	assert(basename_len < kSumLength - 200);
-	t_filename[basename_len] = '\0';
-	char* filename = t_filename;
-
-	::strncpy(filename, basename, basename_len);
-	assert(filename && filename[basename_len] == '\0');
-
-	size_t remaining_len = kSumLength - basename_len;
-	std::tm tm{};
-
-	::localtime_r(&now, &tm);
-	size_t tsz = std::strftime(filename + basename_len, remaining_len,
-							   ".%Y%m%d-%H%M%S.", &tm);
-
-	size_t nsz =
-		std::snprintf(filename + basename_len + tsz, remaining_len - tsz,
-					  "%s.%d.log", getHostName(), getPid());
-
-	assert(filename[basename_len + tsz + nsz] == '\0');
-
-	return filename;
-}
-
-LogFile::LogFile(const std::string& basename, int roll_size, int flush_interval,
-				 int check_every)
-	: basename_(basename), roll_size_(roll_size),
-	  flush_interval_(flush_interval), check_every_(check_every)
+LogFile::LogFile(const std::string& basename, const std::string& prefix,
+				 int roll_size, int flush_interval, int check_per_count)
+	: basename_(basename), prefix_(prefix), roll_size_(roll_size),
+	  flush_interval_(flush_interval), check_per_count_(check_per_count),
+	  count_(0)
 {
 	rollFile();
 }
@@ -82,69 +22,70 @@ LogFile::~LogFile()
 {
 }
 
-void LogFile::append(const char* line, size_t len)
+void LogFile::append(const char* data, size_t len)
 {
-	std::lock_guard<std::mutex> lock(mtx_);
-	appendWOLock(line, len);
+	appendWOLock(data, len);
 }
 
 void LogFile::flush()
 {
-	std::lock_guard<std::mutex> lock(mtx_);
 	file_->flush();
+}
+
+void LogFile::appendWOLock(const char* data, size_t len)
+{
+	file_->append(data, len);
+	if (file_->writtenBytes() > roll_size_)
+	{
+		rollFile();
+		file_->resetWrittenBytes();
+	}
+	else
+	{
+		count_++;
+		if (count_ >= check_per_count_)
+		{
+			count_ = 0;
+			int64_t now = ::time(nullptr);
+			int64_t cur_day = now / kRollPerSeconds * kRollPerSeconds;
+			if (cur_day != last_day_)
+			{
+				rollFile(&now);
+			}
+			else if (now - last_flush_second_ >= flush_interval_)
+			{
+				last_flush_second_ = now;
+				file_->flush();
+			}
+		}
+	}
 }
 
 void LogFile::rollFile(const time_t* cached_now)
 {
-	time_t now;
-	if (cached_now != nullptr)
-	{
-		now = *cached_now;
-	}
-	else
-	{
-		now = ::time(nullptr);
-	}
+	time_t now = cached_now ? *cached_now : ::time(nullptr);
 
-	const char* filename = getFilename(basename_.c_str(), now);
-	auto start = now / kRollPerSeconds * kRollPerSeconds; // 取整
+	std::string filename = getFilename(now);
+	auto now_day = now / kRollPerSeconds * kRollPerSeconds;
 
-	if (now > last_roll_)
+	if (now > last_roll_second_)
 	{
-		last_roll_ = now;
-		last_flush_ = now;
-		last_period_ = start;
+		last_roll_second_ = now;
+		last_flush_second_ = now;
+		last_day_ = now_day;
 
 		file_ = std::make_unique<FileAppender>(filename);
 	}
 }
 
-void LogFile::appendWOLock(const char* line, size_t len)
+std::string LogFile::getFilename(const time_t& now)
 {
-	file_->append(line, len);
-	if (file_->writtenBytes() > roll_size_)
-	{
-		rollFile();
-		file_->resetWritten();
-	}
-	else
-	{
-		count_++;
-		if (count_ >= check_every_)
-		{
-			count_ = 0;
-			time_t now = ::time(nullptr);
-			time_t cur_period = now / kRollPerSeconds * kRollPerSeconds;
-			if (cur_period != last_period_)
-			{
-				rollFile(&now);
-			}
-			else if (now - last_flush_ >= flush_interval_)
-			{
-				last_flush_ = now;
-				file_->flush();
-			}
-		}
-	}
+	std::tm tm;
+	::localtime_r(&now, &tm);
+
+	return std::format(
+		"{0}/{1}.{2:04d}{3:02d}{4:02d}-{5:02d}{6:02d}{7:02d}.log", basename_,
+		prefix_, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+		tm.tm_min, tm.tm_sec);
 }
 } // namespace lynx

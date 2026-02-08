@@ -51,11 +51,11 @@ class HttpBase
 		{
 			// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
 			conn->setContext(std::make_shared<lynx::HttpContext>());
-			lynx::LOG_DEBUG << "New Connection: " << conn->name();
+			LOG_DEBUG << "New Connection: " << conn->name();
 		}
 		else
 		{
-			lynx::LOG_DEBUG << "Connection closed: " << conn->name();
+			LOG_DEBUG << "Connection closed: " << conn->name();
 		}
 	}
 

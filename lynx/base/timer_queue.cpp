@@ -160,10 +160,10 @@ void TimerQueue::resetTimerFd(Timer* timer)
 	}
 
 	value.it_value.tv_sec =
-		static_cast<time_t>(micro_seconds_diff / MicroSecond2Second);
+		static_cast<time_t>(micro_seconds_diff / kMicroSecond2Second);
 	// 纳秒
 	value.it_value.tv_nsec =
-		static_cast<long>(micro_seconds_diff % MicroSecond2Second) * 1000;
+		static_cast<long>(micro_seconds_diff % kMicroSecond2Second) * 1000;
 
 	int ret = ::timerfd_settime(timer_fd_, 0, &value, nullptr);
 	assert(ret != -1);

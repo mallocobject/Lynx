@@ -1,14 +1,14 @@
 #include "lynx/logger/async_logging.h"
 #include "lynx/base/time_stamp.h"
-#include "lynx/logger/formatter.hpp"
+#include "lynx/logger/context.hpp"
 #include "lynx/logger/log_file.h"
 #include <atomic>
 #include <cassert>
 #include <chrono>
-#include <cstddef>
-#include <cstring>
+#include <format>
 #include <functional>
-#include <memory>
+#include <iostream>
+#include <latch>
 #include <mutex>
 #include <thread>
 #include <utility>
@@ -16,19 +16,14 @@
 
 namespace lynx
 {
-AsyncLogging::AsyncLogging(const std::string& basename, int roll_size,
+AsyncLogging::AsyncLogging(const std::string& basename,
+						   const std::string& prefix, int roll_size,
 						   int flush_interval)
-	: flush_interval_(flush_interval), roll_size_(roll_size),
-	  basename_(basename), done_(false), flag_for_init_(false)
+	: flush_interval_(flush_interval), roll_size_(roll_size), done_(false),
+	  basename_(basename), prefix_(prefix), latch_down_(1)
 {
-	thread_ = std::make_unique<std::thread>(
-		std::bind(&AsyncLogging::threadWorker, this));
-	{
-		std::unique_lock<std::mutex> lock(mtx_for_init_);
-		cv_for_init_.wait(
-			lock,
-			[this] { return flag_for_init_.load(std::memory_order_acquire); });
-	}
+	thread_ = std::thread(std::bind(&AsyncLogging::threadWorker, this));
+	latch_down_.wait();
 }
 
 AsyncLogging::~AsyncLogging()
@@ -42,30 +37,44 @@ AsyncLogging::~AsyncLogging()
 
 void AsyncLogging::pushMessage(const Context& ctx)
 {
-	assert(!done_);
-
-	std::lock_guard<std::mutex> lock(mtx_);
-	if (!cur_buffer_.full())
+	if (done_.load(std::memory_order_acquire))
 	{
-		cur_buffer_.push(ctx);
 		return;
 	}
 
-	buffers_.push_back(std::move(cur_buffer_));
-	if (next_buffer_.check())
+	std::lock_guard<std::mutex> lock(mtx_);
+	if (!cur_buf_.full())
 	{
-		cur_buffer_ = std::move(next_buffer_);
+		cur_buf_.push(ctx);
+		return;
+	}
+
+	bufs_.push_back(std::move(cur_buf_));
+	if (next_buf_.check())
+	{
+		cur_buf_ = std::move(next_buf_);
 	}
 	else
 	{
-		cur_buffer_ = Buffer();
+		cur_buf_ = Buffer();
 	}
 
-	cur_buffer_.push(ctx);
+	cur_buf_.push(ctx);
 	cv_.notify_one();
 }
 
-void AsyncLogging::waitForDone()
+void AsyncLogging::doDone()
+{
+	done_.store(true, std::memory_order_release);
+	cv_.notify_one();
+
+	if (thread_.joinable())
+	{
+		thread_.join();
+	}
+}
+
+void AsyncLogging::wait4Done()
 {
 	if (done_.load(std::memory_order_acquire))
 	{
@@ -74,110 +83,84 @@ void AsyncLogging::waitForDone()
 	doDone();
 }
 
-void AsyncLogging::doDone()
-{
-	done_.store(true, std::memory_order_release);
-	cv_.notify_one();
-
-	if (thread_ && thread_->joinable())
-	{
-		thread_->join();
-	}
-}
-
 void AsyncLogging::threadWorker()
 {
-	LogFile out_file(basename_, roll_size_, false);
-	Buffer new_buffer1;
-	Buffer new_buffer2;
+	LogFile out_file(basename_, prefix_, roll_size_, flush_interval_);
+	Buffer new_buf1;
+	Buffer new_buf2;
 
-	std::vector<Buffer> buffer2write;
-	buffer2write.reserve(16);
+	std::vector<Buffer> buf2write;
+	buf2write.reserve(16); // only change its capacity
 
 	while (!done_.load(std::memory_order_acquire))
 	{
 		{
 			std::unique_lock<std::mutex> lock(mtx_);
-			if (buffers_.empty())
+			if (bufs_.empty())
 			{
-				std::call_once(once_flag_,
-							   [&]()
-							   {
-								   flag_for_init_.store(
-									   true, std::memory_order_release);
-								   cv_for_init_.notify_one();
-							   });
-
-				cv_.wait_for(lock,
-							 std::chrono::seconds(
-								 flush_interval_)); // roll file every
-													// flush_interval_ seconds
+				static std::once_flag flag;
+				std::call_once(flag, [&]() { latch_down_.count_down(); });
+				cv_.wait_for(lock, std::chrono::seconds(flush_interval_));
 			}
 
-			if (!cur_buffer_.empty())
+			if (!cur_buf_.empty())
 			{
-				buffers_.push_back(std::move(cur_buffer_));
-				cur_buffer_ = std::move(new_buffer1);
+				bufs_.push_back(std::move(cur_buf_));
+				cur_buf_ = std::move(new_buf1);
 			}
 
-			buffer2write.swap(buffers_);
+			buf2write.swap(bufs_);
 
-			if (!new_buffer2.check())
+			if (!next_buf_.check())
 			{
-				next_buffer_ = std::move(new_buffer2);
+				next_buf_ = std::move(new_buf2);
 			}
 		}
 
-		if (buffer2write.empty())
+		if (buf2write.empty())
 		{
 			continue;
 		}
 
-		if (buffer2write.size() > 100)
+		if (buf2write.size() > 100)
 		{
-			char buf[256];
-			snprintf(buf, sizeof buf,
-					 "Dropped log messages at %s, %zd larger buffers\n",
-					 TimeStamp::now().toFormattedString().c_str(),
-					 buffer2write.size() - 2);
-			fputs(buf, stderr);
+			// 保留两个
+			std::string err = std::format(
+				"Dropped log messages at {}, {} larger buffers\n",
+				TimeStamp::now().toFormattedString(), buf2write.size() - 2);
+			std::cerr << err;
 
-			out_file.append(buf, static_cast<int>(strlen(buf)));
-			buffer2write.erase(buffer2write.begin() + 2, buffer2write.end());
+			out_file.append(err.c_str(), err.size());
+			buf2write.erase(buf2write.begin() + 2, buf2write.end());
 		}
 
-		for (auto& buffer : buffer2write)
+		for (auto& buffer : buf2write)
 		{
-			for (size_t i = 0; i < buffer.size(); i++)
+			for (auto& ctx : buffer)
 			{
-				const Context& ctx = buffer.context()[i];
 				std::string formatted_log = formatter_.format(ctx);
-				out_file.append(formatted_log.c_str(),
-								static_cast<int>(formatted_log.length()));
-				out_file.append("\n", 1);
+				out_file.append(formatted_log.c_str(), formatted_log.size());
 			}
 		}
 
-		if (buffer2write.size() < 2)
+		if (buf2write.size() < 2)
 		{
-			buffer2write.resize(2);
+			buf2write.resize(2);
 		}
 
-		if (!new_buffer1.check())
+		if (!new_buf1.check())
 		{
-			assert(!buffer2write.empty());
-			new_buffer1 = std::move(buffer2write[0]);
-			new_buffer1.reset();
+			new_buf1 = std::move(buf2write[0]);
+			new_buf1.reset();
 		}
 
-		if (!new_buffer2.check())
+		if (!new_buf2.check())
 		{
-			assert(!buffer2write.empty());
-			new_buffer2 = std::move(buffer2write[1]);
-			new_buffer2.reset();
+			new_buf2 = std::move(buf2write[1]);
+			new_buf2.reset();
 		}
 
-		buffer2write.clear();
+		buf2write.clear();
 		out_file.flush();
 	}
 

@@ -45,7 +45,7 @@ class TcpServer
 
 	TcpServer(EventLoop* loop, const char* ip, uint16_t port,
 			  const std::string& name,
-			  size_t sub_reactor_num = std::thread::hardware_concurrency());
+			  size_t sub_reactor_num = std::thread::hardware_concurrency() - 2);
 	~TcpServer();
 
 	void startup();
