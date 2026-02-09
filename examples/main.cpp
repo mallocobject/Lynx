@@ -113,6 +113,17 @@ int main(int argc, char* argv[])
 						  conn->send(res->toFormattedString());
 					  });
 
+	http_app.addRoute("GET", "/hello",
+					  [](const auto& req, auto* res, const auto& conn)
+					  {
+						  res->setStatusCode(200);
+						  res->setContentType("text/plain");
+						  res->setHeader("Server", "Lynx");
+						  res->setBody("hello, world!\n");
+
+						  conn->send(res->toFormattedString());
+					  });
+
 	// // 注册大文件下载路由
 	// http_app.addRoute(
 	// 	"GET", "/download",

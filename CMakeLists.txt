@@ -15,6 +15,6 @@ endif()
 
 message(STATUS "cmake build mode: ${CMAKE_BUILD_TYPE}")
 
-# add_subdirectory(test)
-add_subdirectory(lynx)
-add_subdirectory(examples)
+add_subdirectory(test)
+add_subdirectory(alpha/lynx)
+# add_subdirectory(examples)

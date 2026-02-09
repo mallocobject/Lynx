@@ -1,6 +1,6 @@
-add_executable(Lynx_loggger event_loop_test.cpp)
+add_executable(test logger_test.cpp)
 
-target_include_directories(Lynx_loggger PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../alpha)
 
-target_link_libraries(Lynx_loggger PRIVATE lynx_lib)
+target_link_libraries(test PRIVATE lynx_lib)
 

@@ -6,7 +6,7 @@
 - 🚀 **高并发架构**: 采用 **Multi-Reactor** 多线程模型与 **Epoll (LT)** 水平触发模式，非阻塞 I/O 实现高并发连接处理
 - ⚡ **极致 I/O 性能**: 支持 **Zero-copy** 静态资源分发, 最大化 I/O 性能
 - 🌐 **HTTP 支持**: 内置 **有限状态机 (FSM)**, 高效解析 HTTP/1.1 协议
-- 📝 **低延迟日志**: 集成 [elogger](https://github.com/mallocobject/elogger) **异步日志系统**, 采用双缓冲技术
+- 📝 **低延迟日志**: 集成 [Elogger](https://github.com/mallocobject/Elogger) **异步日志系统**, 采用双缓冲技术
 
 
 ## 🚀 快速开始
