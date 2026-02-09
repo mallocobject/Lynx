@@ -22,6 +22,25 @@ int Socket::socketErrno(int fd)
 	return error;
 }
 
+int Socket::socket(int* saved_errno)
+{
+	if (saved_errno)
+	{
+		*saved_errno = 0;
+	}
+
+	int fd = ::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+	if (fd == -1)
+	{
+		if (saved_errno)
+		{
+			*saved_errno = errno;
+		}
+		LOG_ERROR << "create socket failed: " << ::strerror(errno);
+	}
+	return fd;
+}
+
 void Socket::setNonBlocking(int fd, bool on)
 {
 	int flags = ::fcntl(fd, F_GETFL, 0);

@@ -17,7 +17,12 @@ class InetAddr
 	struct sockaddr_in addr_;
 
   public:
-	explicit InetAddr(uint16_t port = 0, bool loopback_only = false)
+	InetAddr()
+	{
+		::bzero(&addr_, sizeof(addr_));
+	}
+
+	explicit InetAddr(uint16_t port, bool loopback_only = false)
 	{
 		::bzero(&addr_, sizeof(addr_));
 		addr_.sin_family = AF_INET;
