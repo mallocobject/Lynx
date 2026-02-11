@@ -9,7 +9,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 
-set(LOG_LEVEL "LYNX_TRACE")
+set(LOG_LEVEL "LYNX_INFO")
 message(STATUS "Current logger level: ${LOG_LEVEL}")
 add_definitions(-DLOGGER_LEVEL_SETTING=${LOG_LEVEL})
 

@@ -27,7 +27,7 @@ class EventLoop : public noncopyable
 	std::vector<std::function<void()>> pending_funcs_; // guarded by mutex
 
 	std::vector<Channel*> active_chs_;
-	// std::unique_ptr<TimerQueue> timer_que;
+	std::unique_ptr<TimerQueue> tq_;
 
   public:
 	EventLoop();

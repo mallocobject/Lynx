@@ -15,7 +15,7 @@ using namespace lynx;
 
 TcpServer::TcpServer(EventLoop* loop, const InetAddr& addr,
 					 const std::string& name, size_t sub_reactor_num)
-	: main_reactor_(loop), name_(name), seq_(1)
+	: main_reactor_(loop), name_(name), seq_(0)
 {
 	static bool ignored = []()
 	{

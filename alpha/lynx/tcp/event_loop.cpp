@@ -1,4 +1,5 @@
 #include "lynx/tcp/event_loop.h"
+#include "lynx/base/timer_queue.h"
 #include "lynx/logger/logger.h"
 #include "lynx/tcp/channel.h"
 #include "lynx/tcp/epoller.h"
@@ -59,4 +60,20 @@ void EventLoop::run()
 		doPendingFuncs();
 	}
 	LOG_INFO << "EventLoop " << this << " stop looping";
+}
+
+void EventLoop::runAt(TimeStamp time_stamp, const std::function<void()>& cb)
+{
+	tq_->addTimer(time_stamp, cb, -1);
+}
+
+void EventLoop::runAfter(double delay, const std::function<void()>& cb)
+{
+	tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), delay), cb, -1);
+}
+
+void EventLoop::runEvery(double interval, const std::function<void()>& cb)
+{
+	tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), interval), cb,
+				  interval);
 }
