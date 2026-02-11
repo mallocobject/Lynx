@@ -31,13 +31,15 @@ Epoller::~Epoller()
 
 void Epoller::updataChannel(Channel* ch)
 {
-	epoll_event ev{};
+	epoll_event ev{.events = ch->events(), .data{.ptr = ch}};
 	if (ch->inEpoll())
 	{
+		LOG_TRACE << ch->events();
 		::epoll_ctl(epfd_, EPOLL_CTL_MOD, ch->fd(), &ev);
 	}
 	else
 	{
+		LOG_TRACE << ch->events();
 		::epoll_ctl(epfd_, EPOLL_CTL_ADD, ch->fd(), &ev);
 		ch->setInEpoll(true);
 	}

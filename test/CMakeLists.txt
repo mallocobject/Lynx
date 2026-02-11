@@ -1,4 +1,4 @@
-add_executable(test logger_test.cpp)
+add_executable(test tcp_echo_test.cpp)
 
 target_include_directories(test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../alpha)
 

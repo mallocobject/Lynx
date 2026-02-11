@@ -18,7 +18,7 @@ class EventLoopThread : public noncopyable
 	EventLoopThread();
 	~EventLoopThread();
 
-	EventLoop* start();
+	EventLoop* run();
 
   private:
 	void threadWorker();

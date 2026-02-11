@@ -14,11 +14,11 @@ EventLoopThreadPool::~EventLoopThreadPool()
 {
 }
 
-void EventLoopThreadPool::start()
+void EventLoopThreadPool::run()
 {
 	for (int i = 0; i < thread_num_; i++)
 	{
 		loop_thread_pool_.push_back(std::make_unique<EventLoopThread>());
-		sub_loops_.push_back(loop_thread_pool_.back()->start());
+		sub_loops_.push_back(loop_thread_pool_.back()->run());
 	}
 }

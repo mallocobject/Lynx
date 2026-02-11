@@ -40,7 +40,7 @@ void EventLoop::removeChannel(Channel* ch)
 	epoller_->removeChannel(ch);
 }
 
-void EventLoop::loop()
+void EventLoop::run()
 {
 	LOG_TRACE << "EventLoop " << this << " start looping";
 	assert(quit_.load(std::memory_order_acquire));
@@ -49,7 +49,9 @@ void EventLoop::loop()
 	while (!quit_.load(std::memory_order_acquire))
 	{
 		active_chs_.clear();
+		LOG_TRACE << "wait for tasks";
 		TimeStamp time_stamp = epoller_->poll(&active_chs_);
+		LOG_TRACE << "tasks is coming";
 		for (auto ch_ptr : active_chs_)
 		{
 			ch_ptr->handleEvent(time_stamp);

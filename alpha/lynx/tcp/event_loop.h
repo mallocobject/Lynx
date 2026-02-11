@@ -44,7 +44,7 @@ class EventLoop : public noncopyable
 	void updateChannel(Channel* ch);
 	void removeChannel(Channel* ch);
 
-	void loop();
+	void run();
 
 	void quit()
 	{
@@ -84,16 +84,16 @@ class EventLoop : public noncopyable
 		}
 	}
 
-	void runAt(TimeStamp time_stamp, const std::function<void()>& cb);
-	void runAfter(double delay, const std::function<void()>& cb);
-	void runEvery(double interval, const std::function<void()>& cb);
-
-  private:
 	bool InLoopThread() const
 	{
 		return CurrentThread::tid() == tid_;
 	}
 
+	void runAt(TimeStamp time_stamp, const std::function<void()>& cb);
+	void runAfter(double delay, const std::function<void()>& cb);
+	void runEvery(double interval, const std::function<void()>& cb);
+
+  private:
 	void abortNotInLoopThread()
 	{
 		LOG_FATAL << "EventLoop was created in threadId_ = " << tid_

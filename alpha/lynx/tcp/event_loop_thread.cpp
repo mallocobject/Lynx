@@ -19,7 +19,7 @@ EventLoopThread::~EventLoopThread()
 	}
 }
 
-EventLoop* EventLoopThread::start()
+EventLoop* EventLoopThread::run()
 {
 	LOG_TRACE << "EventLoop starts initializing";
 	thread_ = std::thread(std::bind(&EventLoopThread::threadWorker, this));
@@ -35,7 +35,7 @@ void EventLoopThread::threadWorker()
 	EventLoop loop;
 	loop_ = &loop;
 	latch_down_.count_down();
-	loop_->loop();
+	loop_->run();
 
 	loop_ = nullptr;
 }

@@ -22,7 +22,7 @@ class EventLoopThreadPool : public noncopyable
 	EventLoopThreadPool(EventLoop* main_loop, size_t thread_num);
 	~EventLoopThreadPool();
 
-	void start();
+	void run();
 
 	EventLoop* nextLoop()
 	{

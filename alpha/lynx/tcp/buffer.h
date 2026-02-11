@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstring>
+#include <netinet/in.h>
 #include <string>
 #include <vector>
 namespace lynx
@@ -94,6 +96,35 @@ class Buffer : noncopyable
 		data_.swap(rhs.data_);
 		std::swap(ridx_, rhs.ridx_);
 		std::swap(widx_, rhs.widx_);
+	}
+
+	// auxiliary functions
+
+	void appendInt32(int32_t x)
+	{
+		int32_t be32 = ::htonl(x); // 转为网络字节序
+		append(reinterpret_cast<const char*>(&be32), sizeof(be32));
+	}
+
+	int32_t peekInt32() const
+	{
+		assert(readableBytes() >= sizeof(int32_t));
+		int32_t be32 = 0;
+		::memcpy(&be32, peek(), sizeof(be32));
+		return ntohl(be32); // 从网络字节序转回主机字节序
+	}
+
+	int32_t retrieveInt32()
+	{
+		int32_t result = peekInt32();
+		retrieve(sizeof(int32_t));
+		return result;
+	}
+
+	void prependInt32(int32_t x)
+	{
+		int32_t be32 = ::htonl(x);
+		prepend(&be32, sizeof(be32));
 	}
 
 	const char* findCRLF(const char* start = nullptr) const;

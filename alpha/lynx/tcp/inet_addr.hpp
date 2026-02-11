@@ -46,7 +46,7 @@ class InetAddr
 	{
 	}
 
-	const sockaddr* sockaddr() const
+	const struct sockaddr* sockaddr() const
 	{
 		return reinterpret_cast<const struct sockaddr*>(&addr_);
 	}

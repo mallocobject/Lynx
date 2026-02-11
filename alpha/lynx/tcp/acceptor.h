@@ -10,12 +10,12 @@ namespace lynx
 {
 class EventLoop;
 class Channel;
-class InetAddr;
 class Acceptor : noncopyable
 {
   private:
 	EventLoop* loop_;
 	std::unique_ptr<Channel> ch_;
+	InetAddr addr_;
 	bool listening_;
 	std::function<void(int, const InetAddr&)> new_connection_callback_;
 	int idle_fd_;
@@ -35,6 +35,8 @@ class Acceptor : noncopyable
 	}
 
 	void listen();
+
+	int fd() const;
 
   private:
 	void handleRead();

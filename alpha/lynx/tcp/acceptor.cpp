@@ -14,12 +14,12 @@
 using namespace lynx;
 
 Acceptor::Acceptor(EventLoop* loop, const InetAddr& local_addr)
-	: loop_(loop), listening_(false), idle_fd_(-1)
+	: loop_(loop), addr_(local_addr), listening_(false), idle_fd_(-1)
 {
-	idle_fd_ = ::open("dev/null", O_RDONLY | O_CLOEXEC);
+	idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
 	if (idle_fd_ == -1)
 	{
-		LOG_WARN << "open dev/null failed: " << ::strerror(errno);
+		LOG_WARN << "open /dev/null failed: " << ::strerror(errno);
 	}
 
 	int saved_errno = 0;
@@ -56,6 +56,11 @@ void Acceptor::listen()
 	checkErrno(saved_errno);
 
 	ch_->enableIN();
+}
+
+int Acceptor::fd() const
+{
+	return ch_->fd();
 }
 
 void Acceptor::handleRead()

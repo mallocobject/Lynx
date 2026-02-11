@@ -3,8 +3,10 @@
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/base/time_stamp.h"
+#include "lynx/logger/logger.h"
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <sys/epoll.h>
@@ -168,9 +170,20 @@ class Channel : public noncopyable
 
 	void handleEvent(TimeStamp time_stamp)
 	{
-		assert(tied_);
-		tie_with_conn_.lock();
-		handleEventWithGuard(time_stamp);
+		if (tied_)
+		{
+			auto guard = tie_with_conn_.lock();
+			if (guard == nullptr)
+			{
+				LOG_FATAL << "weak_ptr -> shared_ptr error";
+				exit(EXIT_FAILURE);
+			}
+			handleEventWithGuard(time_stamp);
+		}
+		else
+		{
+			handleEventWithGuard(time_stamp);
+		}
 	}
 
   private:
