@@ -1,45 +1,48 @@
 #ifndef LYNX_TIMER_H
 #define LYNX_TIMER_H
 
-#include "lynx/base/common.hpp"
+#include "lynx/base/noncopyable.hpp"
 #include "lynx/base/time_stamp.h"
 #include <atomic>
 #include <cstdint>
 #include <functional>
-
 namespace lynx
 {
-class Timer
+class Timer : public noncopyable
 {
   private:
 	TimeStamp expiration_;
 	double interval_;
-	bool repeat_;
+	bool repeating_;
 	static std::atomic<int64_t> seq_creator_;
-	int64_t sequence_;
+	int64_t seq_;
+
+	bool on_;
 
 	std::function<void()> callback_;
 
   public:
-	DISABLE_COPY(Timer)
-
-	// repeatly call function if interval > 0
 	Timer(TimeStamp expiration, std::function<void()> cb, double interval);
-	~Timer() = default;
+	~Timer();
 
-	bool repeat() const
+	bool repeating() const
 	{
-		return repeat_;
+		return repeating_;
 	}
 
-	int64_t sequence() const
+	int64_t seq() const
 	{
-		return sequence_;
+		return seq_;
 	}
 
-	static int64_t seq_created()
+	void setOn(bool on = false)
 	{
-		return seq_creator_;
+		on_ = on;
+	}
+
+	bool on() const
+	{
+		return on_;
 	}
 
 	TimeStamp expiration() const
@@ -52,7 +55,7 @@ class Timer
 		callback_();
 	}
 
-	void reset()
+	void repeat()
 	{
 		expiration_ = TimeStamp::addTime(TimeStamp::now(), interval_);
 	}

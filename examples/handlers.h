@@ -3,7 +3,7 @@
 
 #include "lynx/http/http_request.hpp"
 #include "lynx/http/http_response.h"
-#include "lynx/net/tcp_connection.h"
+#include "lynx/tcp/tcp_connection.h"
 #include <memory>
 
 namespace handler

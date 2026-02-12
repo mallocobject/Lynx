@@ -6,10 +6,10 @@
 #include "lynx/http/http_response.h"
 #include "lynx/http/http_router.h"
 #include "lynx/logger/logger.h"
-#include "lynx/net/buffer.h"
-#include "lynx/net/event_loop.h"
-#include "lynx/net/tcp_connection.h"
-#include "lynx/net/tcp_server.h"
+#include "lynx/tcp/buffer.h"
+#include "lynx/tcp/event_loop.h"
+#include "lynx/tcp/tcp_connection.h"
+#include "lynx/tcp/tcp_server.h"
 #include <any>
 #include <cstdint>
 #include <functional>
@@ -24,7 +24,7 @@ class HttpBase
 	HttpBase(lynx::EventLoop* loop, const std::string& ip, uint16_t port,
 			 const std::string& name,
 			 size_t sub_reactor_num = std::thread::hardware_concurrency())
-		: server_(loop, ip.c_str(), port, name, sub_reactor_num)
+		: server_(loop, ip, port, name, sub_reactor_num)
 	{
 		server_.setConnectionCallback(
 			std::bind(&HttpBase::onConnection, this, std::placeholders::_1));
@@ -39,9 +39,14 @@ class HttpBase
 		router_.addRoute(method, path, handler);
 	}
 
-	void startup()
+	void run()
 	{
-		server_.startup();
+		server_.run();
+	}
+
+	size_t connectionNum() const
+	{
+		return server_.connectionNum();
 	}
 
   private:
@@ -51,21 +56,16 @@ class HttpBase
 		{
 			// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
 			conn->setContext(std::make_shared<lynx::HttpContext>());
-			LOG_DEBUG << "New Connection: " << conn->name();
-		}
-		else
-		{
-			LOG_DEBUG << "Connection closed: " << conn->name();
 		}
 	}
 
 	virtual void onMessage(const std::shared_ptr<lynx::TcpConnection>& conn,
-						   std::shared_ptr<lynx::Buffer> buf)
+						   lynx::Buffer* buf)
 	{
 		auto context =
 			std::any_cast<std::shared_ptr<lynx::HttpContext>>(conn->context());
 
-		if (!context->parserBuffer(buf.get()))
+		if (!context->parser(buf))
 		{
 			conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
 			conn->shutdown();
@@ -74,7 +74,7 @@ class HttpBase
 
 		if (context->completed())
 		{
-			const lynx::HttpRequest& req = context->request();
+			const lynx::HttpRequest& req = context->req();
 			lynx::HttpResponse res;
 
 			router_.dispatch(req, &res, conn);
@@ -87,7 +87,7 @@ class HttpBase
 			}
 			else
 			{
-				context->lynx::HttpContext::reset();
+				context->clear();
 			}
 		}
 	}

@@ -3,6 +3,7 @@
 
 #include "lynx/base/current_thread.hpp"
 #include "lynx/base/noncopyable.hpp"
+#include "lynx/base/timer_id.hpp"
 #include "lynx/logger/logger.h"
 #include <atomic>
 #include <cstdint>
@@ -89,9 +90,11 @@ class EventLoop : public noncopyable
 		return CurrentThread::tid() == tid_;
 	}
 
-	void runAt(TimeStamp time_stamp, const std::function<void()>& cb);
-	void runAfter(double delay, const std::function<void()>& cb);
-	void runEvery(double interval, const std::function<void()>& cb);
+	TimerId runAt(TimeStamp time_stamp, const std::function<void()>& cb);
+	TimerId runAfter(double delay, const std::function<void()>& cb);
+	TimerId runEvery(double interval, const std::function<void()>& cb);
+
+	void cancell(TimerId timer_id);
 
   private:
 	void abortNotInLoopThread()

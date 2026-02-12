@@ -1,4 +1,5 @@
 #include "lynx/tcp/event_loop.h"
+#include "lynx/base/timer_id.hpp"
 #include "lynx/base/timer_queue.h"
 #include "lynx/logger/logger.h"
 #include "lynx/tcp/channel.h"
@@ -14,6 +15,8 @@ EventLoop::EventLoop()
 	: epoller_(std::make_unique<Epoller>()), tid_(CurrentThread::tid()),
 	  quit_(true), calling_pending_funcs_(false)
 {
+	tq_ = std::make_unique<TimerQueue>(this);
+
 	wakeup_fd_ = ::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
 	if (wakeup_fd_ == -1)
 	{
@@ -62,18 +65,24 @@ void EventLoop::run()
 	LOG_INFO << "EventLoop " << this << " stop looping";
 }
 
-void EventLoop::runAt(TimeStamp time_stamp, const std::function<void()>& cb)
+TimerId EventLoop::runAt(TimeStamp time_stamp, const std::function<void()>& cb)
 {
-	tq_->addTimer(time_stamp, cb, -1);
+	return tq_->addTimer(time_stamp, cb, -1);
 }
 
-void EventLoop::runAfter(double delay, const std::function<void()>& cb)
+TimerId EventLoop::runAfter(double delay, const std::function<void()>& cb)
 {
-	tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), delay), cb, -1);
+	return tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), delay), cb,
+						 -1);
 }
 
-void EventLoop::runEvery(double interval, const std::function<void()>& cb)
+TimerId EventLoop::runEvery(double interval, const std::function<void()>& cb)
 {
-	tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), interval), cb,
-				  interval);
+	return tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), interval),
+						 cb, interval);
+}
+
+void EventLoop::cancell(TimerId timer_id)
+{
+	tq_->cancell(timer_id);
 }

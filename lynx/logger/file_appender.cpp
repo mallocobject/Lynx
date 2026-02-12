@@ -4,8 +4,8 @@
 #include <string>
 #include <system_error>
 
-namespace lynx
-{
+using namespace lynx;
+
 static constexpr size_t BUFFER_SIZE = 64 * 1024;
 
 namespace
@@ -121,4 +121,3 @@ void FileAppender::ensureDirectoryExists() const
 							parent_path.string());
 	}
 }
-} // namespace lynx

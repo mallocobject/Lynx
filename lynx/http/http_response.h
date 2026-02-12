@@ -1,13 +1,12 @@
 #ifndef LYNX_HTTP_RESPONSE_H
 #define LYNX_HTTP_RESPONSE_H
 
+#include "lynx/base/noncopyable.hpp"
 #include <string>
-#include <string_view>
 #include <unordered_map>
-
 namespace lynx
 {
-class HttpResponse
+class HttpResponse : public noncopyable
 {
   private:
 	int status_code_;
@@ -17,9 +16,8 @@ class HttpResponse
 	std::string body_;
 
   public:
-	HttpResponse() : status_code_(200), status_msg_("OK"), version_("HTTP/1.1")
-	{
-	}
+	HttpResponse();
+	~HttpResponse();
 
 	void setStatusCode(int code)
 	{

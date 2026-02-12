@@ -9,8 +9,8 @@
 #include <mutex>
 #include <pthread.h>
 
-namespace lynx
-{
+using namespace lynx;
+
 std::unique_ptr<AsyncLogging> Logger::async_logging_ = nullptr;
 std::atomic<bool> Logger::async_enabled_(false);
 
@@ -69,7 +69,7 @@ void Logger::appendAsyncLog(LogLevel level, const std::string& message,
 		return;
 	}
 
-	static thread_local Context ctx(CurrentThread::tid());
+	thread_local Context ctx(CurrentThread::tid());
 
 	ctx.withTimeStamp(TimeStamp::now())
 		.withLevel(level)
@@ -81,4 +81,3 @@ void Logger::appendAsyncLog(LogLevel level, const std::string& message,
 
 	async_logging_->pushMessage(ctx);
 }
-} // namespace lynx

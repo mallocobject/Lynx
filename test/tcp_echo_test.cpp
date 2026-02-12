@@ -31,6 +31,12 @@ int main()
 			conn->send(message);
 		});
 
+	loop.runEvery(2,
+				  [&server]() {
+					  LOG_WARN << "the number of connection is "
+							   << server.connectionNum();
+				  });
+
 	server.run();
 	loop.run();
 

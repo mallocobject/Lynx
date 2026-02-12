@@ -2,11 +2,12 @@
 #include "http_app.h"
 #include "lynx/http/http_router.h"
 #include "lynx/logger/logger.h"
-#include "lynx/net/event_loop.h"
-#include "lynx/net/tcp_connection.h"
-#include "lynx/net/tcp_server.h"
+#include "lynx/tcp/event_loop.h"
+#include "lynx/tcp/tcp_connection.h"
+#include "lynx/tcp/tcp_server.h"
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <string>
 #include <unistd.h>
 
@@ -49,6 +50,8 @@ Config parseArgs(int argc, char* argv[])
 	return conf;
 }
 
+using namespace lynx;
+
 int main(int argc, char* argv[])
 {
 	Config conf = parseArgs(argc, argv);
@@ -64,11 +67,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	lynx::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs", argv[0]);
+	Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs", argv[0]);
 
-	lynx::EventLoop loop;
-	lynx::HttpApp http_app(&loop, conf.ip, conf.port, conf.name,
-						   conf.worker_threads);
+	EventLoop loop;
+	HttpApp http_app(&loop, conf.ip, conf.port, conf.name, conf.worker_threads);
 
 	LOG_INFO << "Server [" << conf.name << "] starting...";
 	LOG_INFO << "Listen on " << conf.ip << ":" << conf.port;
@@ -76,29 +78,26 @@ int main(int argc, char* argv[])
 			 << " + 1 (Logger)";
 
 	http_app.addRoute("GET", "/",
-					  [](const auto& req, auto* res, const auto& conn)
-					  {
-						  lynx::HttpRouter::serveFile(conn, res,
-													  LYNX_WEB_SRC_DIR
-													  "/templates/index.html");
+					  [](const auto& req, auto* res, const auto& conn) {
+						  HttpRouter::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/templates/index.html");
 					  });
 
 	// 注册 CSS 路由
 	http_app.addRoute("GET", "/static/css/style.css",
-					  [](const auto& req, auto* res, const auto& conn)
-					  {
-						  lynx::HttpRouter::serveFile(conn, res,
-													  LYNX_WEB_SRC_DIR
-													  "/static/css/style.css");
+					  [](const auto& req, auto* res, const auto& conn) {
+						  HttpRouter::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/static/css/style.css");
 					  });
 
 	// 注册 JS 路由
 	http_app.addRoute("GET", "/static/js/script.js",
-					  [](const auto& req, auto* res, const auto& conn)
-					  {
-						  lynx::HttpRouter::serveFile(conn, res,
-													  LYNX_WEB_SRC_DIR
-													  "/static/js/script.js");
+					  [](const auto& req, auto* res, const auto& conn) {
+						  HttpRouter::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/static/js/script.js");
 					  });
 
 	http_app.addRoute("POST", "/calculate", handler::handleCalculate);
@@ -123,22 +122,25 @@ int main(int argc, char* argv[])
 
 						  conn->send(res->toFormattedString());
 					  });
-
 	// // 注册大文件下载路由
 	// http_app.addRoute(
 	// 	"GET", "/download",
 	// 	[](const auto& req, auto* res, const auto& conn)
 	// 	{
-	// 		lynx::LOG_INFO << "Request large file download...";
-	// 		lynx::HttpRouter::serveFile(
+	// 		LOG_INFO << "Request large file download...";
+	// 		HttpRouter::serveFile(
 	// 			conn, res, LYNX_WEB_SRC_DIR "/templates/large_test_file.dat");
 	// 	});
 
-	http_app.startup();
-	LOG_INFO << "Server started at " << conf.ip << ":" << conf.port;
+	// loop.runEvery(2, [&http_app]()
+	// 			  { std::cout << http_app.connectionNum() << std::endl; });
+
+	http_app.run();
+	std::cout << "Server started at " << conf.ip << ":" << conf.port
+			  << std::endl;
 	loop.run();
 
-	lynx::Logger::shutdownAsyncLogging();
+	Logger::shutdownAsyncLogging();
 
 	return 0;
 }

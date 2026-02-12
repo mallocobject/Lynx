@@ -37,6 +37,12 @@ TcpServer::TcpServer(EventLoop* loop, const InetAddr& addr,
 				  std::placeholders::_2));
 }
 
+TcpServer::TcpServer(EventLoop* loop, const std::string& ip, uint16_t port,
+					 const std::string& name, size_t sub_reactor_num)
+	: TcpServer(loop, InetAddr(ip, port), name, sub_reactor_num)
+{
+}
+
 TcpServer::~TcpServer()
 {
 	main_reactor_->assertInLoopThread();
@@ -53,6 +59,7 @@ TcpServer::~TcpServer()
 		conn->setMessageCallback(nullptr);
 		conn->setCloseCallback(nullptr);
 		conn->setWriteCompleteCallback(nullptr);
+		conn->setHighWaterMarkCallback(nullptr, 0);
 
 		conn->loop()->runInLoop(std::bind(&TcpConnection::connDestroy, conn));
 	}
@@ -81,6 +88,7 @@ void TcpServer::handleNewConnection(int conn_fd, const InetAddr& addr)
 	conn->setConnectCallback(connect_callback_);
 	conn->setMessageCallback(message_callback_);
 	conn->setWriteCompleteCallback(write_complete_callback_);
+	conn->setHighWaterMarkCallback(high_water_mark_callback_, high_water_mark_);
 	conn->setCloseCallback(
 		std::bind(&TcpServer::handleClose, this, std::placeholders::_1));
 

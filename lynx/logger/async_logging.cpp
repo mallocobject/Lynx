@@ -14,8 +14,8 @@
 #include <utility>
 #include <vector>
 
-namespace lynx
-{
+using namespace lynx;
+
 AsyncLogging::AsyncLogging(const std::string& basename,
 						   const std::string& prefix, int roll_size,
 						   int flush_interval)
@@ -166,4 +166,3 @@ void AsyncLogging::threadWorker()
 
 	out_file.flush();
 }
-} // namespace lynx

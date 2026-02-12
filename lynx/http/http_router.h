@@ -1,20 +1,18 @@
 #ifndef LYNX_HTTP_ROUTER_H
 #define LYNX_HTTP_ROUTER_H
 
-#include "lynx/base/common.hpp"
-#include <cstddef>
+#include "lynx/base/noncopyable.hpp"
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <unordered_map>
-#include <vector>
 namespace lynx
 {
 class HttpRequest;
 class HttpResponse;
 class TcpConnection;
-class HttpRouter
+class HttpRouter : public noncopyable
 {
   public:
 	using http_handler =
@@ -22,8 +20,6 @@ class HttpRouter
 						   const std::shared_ptr<TcpConnection>&)>;
 
   private:
-	// std::unordered_map<std::string, http_handler> routes_;
-
 	struct TrieNode
 	{
 		http_handler f;
@@ -33,37 +29,42 @@ class HttpRouter
 	struct Trie
 	{
 		std::unique_ptr<TrieNode> root;
-		Trie() : root(std::make_unique<TrieNode>())
+		Trie()
+		{
+			root = std::make_unique<TrieNode>();
+		}
+
+		~Trie()
 		{
 		}
+
+		Trie(Trie&&) = default;
 
 		void insert(const std::string& path, http_handler handler);
 		http_handler search(const std::string& path);
 
 	  private:
-		std::vector<std::string_view> splitPath(std::string_view path);
 		std::string subPath(const std::string& path, size_t* start);
 	};
 
 	std::unordered_map<std::string, Trie> tries_;
 
   public:
-	DISABLE_COPY(HttpRouter)
-
 	HttpRouter();
 	~HttpRouter();
 
 	void addRoute(const std::string& method, const std::string& path,
 				  const http_handler& handler)
 	{
+		assert(tries_.size() == 2);
 		tries_[method].insert(path, handler);
 	}
 
 	void dispatch(const HttpRequest& req, HttpResponse* res,
 				  const std::shared_ptr<TcpConnection>& conn);
 
-	static void serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
-						  lynx::HttpResponse* res, const std::string& path);
+	static void sendFile(const std::shared_ptr<lynx::TcpConnection>& conn,
+						 lynx::HttpResponse* res, const std::string& file_path);
 
   private:
 	static std::string getMineType(const std::string& path)

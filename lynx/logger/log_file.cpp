@@ -5,8 +5,8 @@
 #include <format>
 #include <memory>
 
-namespace lynx
-{
+using namespace lynx;
+
 static const int kRollPerSeconds = 24 * 60 * 60;
 
 LogFile::LogFile(const std::string& basename, const std::string& prefix,
@@ -88,4 +88,3 @@ std::string LogFile::getFilename(const time_t& now)
 		prefix_, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
 		tm.tm_min, tm.tm_sec);
 }
-} // namespace lynx

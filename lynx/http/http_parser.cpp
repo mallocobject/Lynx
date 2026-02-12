@@ -1,19 +1,24 @@
 #include "lynx/http/http_parser.h"
-#include "lynx/logger/logger.h"
-#include <cctype>
-#include <string>
 
-namespace lynx
+using namespace lynx;
+
+HttpParser::HttpParser() : state_(State::kStart)
 {
+}
+
+HttpParser::~HttpParser()
+{
+}
+
 bool HttpParser::consume(char c)
 {
 	switch (state_)
 	{
-	case State::START:
+	case State::kStart:
 		if (std::isalpha(c))
 		{
-			request_.method_raw += c;
-			state_ = State::METHOD;
+			req_.method += c;
+			state_ = State::kMethod;
 		}
 		else if (c != '\r' && c != '\n')
 		{
@@ -21,49 +26,49 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::METHOD:
+	case State::kMethod:
 		if (c == ' ')
 		{
-			state_ = State::PATH;
+			state_ = State::kPath;
 		}
 		else
 		{
-			request_.method_raw += c;
+			req_.method += c;
 		}
 		break;
 
-	case State::PATH:
-		if (request_.path.size() > 8192)
+	case State::kPath:
+		if (req_.path.size() > 1024)
 		{
 			return false;
 		}
 
 		if (c == '?')
 		{
-			state_ = State::QUERY_KEY;
+			state_ = State::kQueryKey;
 		}
 		else if (c == '#')
 		{
-			state_ = State::FRAGMENT;
+			state_ = State::kFragment;
 		}
 		else if (c == ' ')
 		{
-			state_ = State::VERSION;
+			state_ = State::kVersion;
 		}
 		else
 		{
-			request_.path += c;
+			req_.path += c;
 		}
 		break;
 
-	case State::QUERY_KEY:
+	case State::kQueryKey:
 		if (c == '=')
 		{
-			state_ = State::QUERY_VALUE;
+			state_ = State::kQueryValue;
 		}
 		else if (c == ' ')
 		{
-			state_ = State::VERSION;
+			state_ = State::kVersion;
 		}
 		else
 		{
@@ -71,27 +76,27 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::QUERY_VALUE:
+	case State::kQueryValue:
 		if (c == '&')
 		{
-			request_.query_params[tmp_key_] = tmp_value_;
+			req_.query_params[tmp_key_] = tmp_value_;
 			tmp_key_.clear();
 			tmp_value_.clear();
-			state_ = State::QUERY_KEY;
+			state_ = State::kQueryKey;
 		}
 		else if (c == '#')
 		{
-			request_.query_params[tmp_key_] = tmp_value_;
+			req_.query_params[tmp_key_] = tmp_value_;
 			tmp_key_.clear();
 			tmp_value_.clear();
-			state_ = State::FRAGMENT;
+			state_ = State::kFragment;
 		}
 		else if (c == ' ')
 		{
-			request_.query_params[tmp_key_] = tmp_value_;
+			req_.query_params[tmp_key_] = tmp_value_;
 			tmp_key_.clear();
 			tmp_value_.clear();
-			state_ = State::VERSION;
+			state_ = State::kVersion;
 		}
 		else
 		{
@@ -99,28 +104,28 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::FRAGMENT:
+	case State::kFragment:
 		if (c == ' ')
 		{
-			state_ = State::VERSION;
+			state_ = State::kVersion;
 		}
 		break;
 
-	case State::VERSION:
+	case State::kVersion:
 		if (c == '\r')
 		{
-			state_ = State::EXPECT_LF_AFTER_STATUS;
+			state_ = State::kExpectLfAfterStatusLine;
 		}
 		else
 		{
-			request_.version += c;
+			req_.version += c;
 		}
 		break;
 
-	case State::EXPECT_LF_AFTER_STATUS:
+	case State::kExpectLfAfterStatusLine:
 		if (c == '\n')
 		{
-			state_ = State::HEADER_KEY;
+			state_ = State::kHeaderKey;
 		}
 		else
 		{
@@ -128,14 +133,14 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::HEADER_KEY:
+	case State::kHeaderKey:
 		if (c == ':')
 		{
-			state_ = State::HEADER_VALUE;
+			state_ = State::kHeaderValue;
 		}
 		else if (c == '\r')
 		{
-			state_ = State::EXPECT_DOUBLE_LF;
+			state_ = State::kExpectDoubleLf;
 		}
 		else
 		{
@@ -143,7 +148,7 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::HEADER_VALUE:
+	case State::kHeaderValue:
 		if (c == ' ' && tmp_value_.empty())
 		{
 			break;
@@ -151,10 +156,10 @@ bool HttpParser::consume(char c)
 		if (c == '\r')
 		{
 
-			request_.headers[tmp_key_] = tmp_value_;
+			req_.headers[tmp_key_] = tmp_value_;
 			tmp_key_.clear();
 			tmp_value_.clear();
-			state_ = State::EXPECT_LF_AFTER_HEADER;
+			state_ = State::kExpectLfAfterHeader;
 		}
 		else
 		{
@@ -162,10 +167,10 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::EXPECT_LF_AFTER_HEADER:
+	case State::kExpectLfAfterHeader:
 		if (c == '\n')
 		{
-			state_ = State::HEADER_KEY;
+			state_ = State::kHeaderKey;
 		}
 		else
 		{
@@ -173,20 +178,21 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::EXPECT_DOUBLE_LF:
+	case State::kExpectDoubleLf:
 		if (c == '\n')
 		{
 			// 检查是否有 Content-Length 决定是否需要解析 Body
-			auto it = request_.headers.find("content-length");
-			if (it != request_.headers.end())
+			auto it = req_.headers.find("content-length");
+			if (it != req_.headers.end())
 			{
 				body_remaining_ = std::stol(it->second);
-				request_.body.reserve(body_remaining_);
-				state_ = (body_remaining_ > 0) ? State::BODY : State::COMPLETE;
+				req_.body.reserve(body_remaining_);
+				state_ =
+					(body_remaining_ > 0) ? State::kBody : State::kComplete;
 			}
 			else
 			{
-				state_ = State::COMPLETE;
+				state_ = State::kComplete;
 			}
 		}
 		else
@@ -195,11 +201,11 @@ bool HttpParser::consume(char c)
 		}
 		break;
 
-	case State::BODY:
-		request_.body += c;
+	case State::kBody:
+		req_.body += c;
 		if (--body_remaining_ == 0)
 		{
-			state_ = State::COMPLETE;
+			state_ = State::kComplete;
 		}
 		break;
 
@@ -209,4 +215,3 @@ bool HttpParser::consume(char c)
 
 	return true;
 }
-} // namespace lynx

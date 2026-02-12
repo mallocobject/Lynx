@@ -1,23 +1,15 @@
 #ifndef LYNX_HTTP_REQUEST_HPP
 #define LYNX_HTTP_REQUEST_HPP
 
+#include "lynx/base/noncopyable.hpp"
 #include <cstddef>
 #include <string>
 #include <unordered_map>
-
 namespace lynx
 {
-enum class HttpMethod
+struct HttpRequest : public noncopyable
 {
-	GET,
-	POST,
-	UNKNOWN
-};
-
-struct HttpRequest
-{
-	// HttpMethod method_ = HttpMethod::UNKNOWN;
-	std::string method_raw;
+	std::string method;
 	std::string path;
 	std::string version;
 
@@ -27,7 +19,7 @@ struct HttpRequest
 	std::string body;
 
 	bool keep_alive = false;
-	size_t content_length = 0;
+	size_t ctx_length = 0;
 
 	std::string header(const std::string& key) const
 	{
@@ -37,13 +29,14 @@ struct HttpRequest
 
 	void clear()
 	{
-		method_raw.clear();
+		method.clear();
 		path.clear();
+		version.clear();
 		headers.clear();
 		query_params.clear();
 		body.clear();
 		keep_alive = false;
-		content_length = 0;
+		ctx_length = 0;
 	}
 };
 } // namespace lynx

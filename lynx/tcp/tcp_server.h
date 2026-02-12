@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 namespace lynx
 {
 class EventLoop;
@@ -34,30 +35,47 @@ class TcpServer : public noncopyable
 		message_callback_;
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		write_complete_callback_;
+	std::function<void(const std::shared_ptr<TcpConnection>&, size_t)>
+		high_water_mark_callback_;
+	size_t high_water_mark_;
 
   public:
 	TcpServer(EventLoop* loop, const InetAddr& addr, const std::string& name,
 			  size_t sub_reactor_num);
+	TcpServer(EventLoop* loop, const std::string& ip, uint16_t port,
+			  const std::string& name, size_t sub_reactor_num);
 	~TcpServer();
+
+	size_t connectionNum() const
+	{
+		return conn_map_.size();
+	}
 
 	void run();
 	void setConnectionCallback(
-		const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
 	{
-		connect_callback_ = cb;
+		connect_callback_ = std::move(cb);
 	}
 
 	void setMessageCallback(
-		const std::function<void(const std::shared_ptr<TcpConnection>&,
-								 Buffer*)>& cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&, Buffer*)> cb)
 	{
-		message_callback_ = cb;
+		message_callback_ = std::move(cb);
 	}
 
 	void setWriteCompleteCallback(
-		const std::function<void(const std::shared_ptr<TcpConnection>&)>& cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
 	{
-		write_complete_callback_ = cb;
+		write_complete_callback_ = std::move(cb);
+	}
+
+	void setHighWaterMarkCallback(
+		std::function<void(const std::shared_ptr<TcpConnection>&, size_t)> cb,
+		size_t high_water_mark)
+	{
+		high_water_mark_callback_ = std::move(cb);
+		high_water_mark_ = high_water_mark;
 	}
 
   private:

@@ -3,25 +3,22 @@
 #include "lynx/base/timer.h"
 #include "lynx/base/timer_id.hpp"
 #include "lynx/logger/logger.h"
-#include "lynx/net/channel.h"
-#include "lynx/net/event_loop.h"
-#include <cassert>
+#include "lynx/tcp/channel.h"
+#include "lynx/tcp/event_loop.h"
+#include <cerrno>
 #include <cstdint>
+#include <cstring>
 #include <ctime>
 #include <functional>
 #include <memory>
-#include <strings.h>
-#include <sys/time.h>
 #include <sys/timerfd.h>
-#include <utility>
 
-namespace lynx
+using namespace lynx;
+
+TimerQueue::TimerQueue(EventLoop* loop) : loop_(loop)
 {
-TimerQueue::TimerQueue(EventLoop* loop)
-	: loop_(loop),
-	  timer_fd_(::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)),
-	  ch_(std::make_unique<Channel>(timer_fd_, loop))
-{
+	int fd = ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+	ch_ = std::make_unique<Channel>(fd, loop);
 	ch_->setReadCallback(std::bind(&TimerQueue::handleRead, this));
 	ch_->enableIN();
 }
@@ -30,9 +27,9 @@ TimerQueue::~TimerQueue()
 {
 	ch_->disableAll();
 	ch_->remove();
-	for (auto& p : timers_)
+	for (auto& entry : timers_)
 	{
-		delete p.second;
+		delete entry.second;
 	}
 }
 
@@ -40,104 +37,106 @@ TimerId TimerQueue::addTimer(TimeStamp time_stamp,
 							 const std::function<void()>& cb, double interval)
 {
 	Timer* timer = new Timer(time_stamp, cb, interval);
-	loop_->runInLocalThread(
-		std::bind(&TimerQueue::addTimerInLocalLoop, this, timer));
-	return TimerId(timer, timer->sequence());
+	loop_->runInLoop(std::bind(&TimerQueue::addTimerInLoop, this, timer));
+
+	return TimerId(timer, timer->seq());
 }
 
-void TimerQueue::addTimerInLocalLoop(Timer* timer)
+void TimerQueue::addTimerInLoop(Timer* timer)
 {
-	loop_->assertInLocalThread();
+	loop_->assertInLoopThread();
 
 	if (insert(timer))
 	{
 		resetTimerFd(timer);
 	}
+
+	timer->setOn(true);
 }
 
 void TimerQueue::cancell(TimerId timer_id)
 {
-	loop_->runInLocalThread(
-		std::bind(&TimerQueue::cancellInLocalLoop, this, timer_id));
+	loop_->runInLoop(std::bind(&TimerQueue::cancellInLoop, this, timer_id));
 }
 
-void TimerQueue::cancellInLocalLoop(TimerId timer_id)
+void TimerQueue::cancellInLoop(TimerId timer_id)
 {
-	loop_->assertInLocalThread();
+	loop_->assertInLoopThread();
 
 	Timer* timer = timer_id.timer_;
+
 	if (!timer)
 	{
-		LOG_WARN << "TimerQueue::cancellInLocalLoop - timer is null";
+		LOG_WARN << "timer is null";
 		return;
 	}
 
-	if (timer->sequence() != timer_id.sequence_)
+	if (timer->seq() != timer_id.seq_)
 	{
-		LOG_WARN << "TimerQueue::cancellInLocalLoop - sequence mismatch, timer "
+		LOG_WARN << "sequence mismatch, timer "
 					"might have been reset";
 		return;
 	}
 
-	auto it = timer2entry_.find(timer);
-	if (it == timer2entry_.end())
-	{
-		LOG_DEBUG << "TimerQueue::cancellInLocalLoop - timer not found, might "
-					 "already be "
-					 "triggered or cancelled";
-		return;
-	}
-
-	cancelled_timers_.insert(timer);
-	if (remove(timer))
-	{
-		if (!timers_.empty())
-		{
-			resetTimerFd(timers_.begin()->second);
-		}
-	}
-	LOG_INFO << "TimerQueue::cancellInLocalLoop - timer cancelled successfully";
+	timer->setOn(false);
 }
 
+void TimerQueue::readTimerFd()
+{
+	uint64_t signal = 1;
+	ssize_t n = ::read(ch_->fd(), &signal, sizeof(signal));
+
+	if (n != sizeof(signal))
+	{
+		LOG_ERROR << "Timer fd reads " << n << " bytes instead of 8";
+	}
+}
 void TimerQueue::handleRead()
 {
-	loop_->assertInLocalThread();
+	loop_->assertInLoopThread();
 
 	readTimerFd();
 	active_timers_.clear();
 
 	auto end = timers_.upper_bound(
-		entry(TimeStamp::now(), reinterpret_cast<Timer*>(UINTPTR_MAX)));
+		Entry(TimeStamp::now(), reinterpret_cast<Timer*>(UINTPTR_MAX)));
 	active_timers_.insert(active_timers_.end(), timers_.begin(), end);
 
 	timers_.erase(timers_.begin(), end);
-	for (auto& p : active_timers_)
+	for (auto& entry : active_timers_)
 	{
-		p.second->run();
+		Timer* timer = entry.second;
+
+		if (timer->on())
+		{
+			timer->run();
+		}
 	}
-	resetTimer();
+	resetTimer(); // sync
 }
 
 void TimerQueue::resetTimer()
 {
-	for (auto& p : active_timers_)
+	for (auto& entry : active_timers_)
 	{
-		auto timer = p.second;
-		if (cancelled_timers_.find(timer) != cancelled_timers_.end())
+		Timer* timer = entry.second;
+
+		if (!timer->on())
 		{
-			cancelled_timers_.erase(timer);
 			delete timer;
+			timer = nullptr;
 			continue;
 		}
 
-		if (timer->repeat())
+		if (timer->repeating())
 		{
-			timer->reset();
+			timer->repeat();
 			insert(timer);
 		}
 		else
 		{
 			delete timer;
+			timer = nullptr;
 		}
 	}
 
@@ -165,45 +164,27 @@ void TimerQueue::resetTimerFd(Timer* timer)
 	value.it_value.tv_nsec =
 		static_cast<long>(micro_seconds_diff % kMicroSecond2Second) * 1000;
 
-	int ret = ::timerfd_settime(timer_fd_, 0, &value, nullptr);
+	int ret = ::timerfd_settime(ch_->fd(), 0, &value, nullptr);
 	assert(ret != -1);
+	if (ret == -1)
+	{
+		LOG_ERROR << "time setting faild - fd: " << ch_->fd() << " : "
+				  << strerror(errno);
+	}
 }
 
 bool TimerQueue::insert(Timer* timer)
 {
 	bool reset_instantly = false;
-	if (cancelled_timers_.find(timer) != cancelled_timers_.end())
-	{
-		cancelled_timers_.erase(timer);
-		delete timer;
-		return false;
-	}
+
 	if (timers_.empty() || timer->expiration() < timers_.begin()->first)
 	{
 		reset_instantly = true;
 	}
 
-	entry e(timer->expiration(), timer);
+	Entry e(timer->expiration(), timer);
 
 	timers_.insert(e);
 
-	timer2entry_[timer] = e;
-
 	return reset_instantly;
 }
-
-// 如果成功删除就返回 true，意味着要调整 定时器唤醒时间
-bool TimerQueue::remove(Timer* timer)
-{
-	auto it = timer2entry_.find(timer);
-	if (it == timer2entry_.end())
-	{
-		return false;
-	}
-
-	size_t n = timers_.erase(it->second);
-	timer2entry_.erase(it);
-
-	return n > 0;
-}
-} // namespace lynx

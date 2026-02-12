@@ -11,7 +11,6 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <sstream>
 #include <string_view>
 #include <type_traits>
 namespace lynx
@@ -102,8 +101,6 @@ class NullLogger : public noncopyable
 	}
 };
 
-// inline NullLogger null_logger;
-
 class AsyncLogging;
 class Logger : public noncopyable
 {
@@ -111,7 +108,6 @@ class Logger : public noncopyable
   private:
 	static std::unique_ptr<AsyncLogging> async_logging_;
 	static std::atomic<bool> async_enabled_;
-	// static std::mutex mtx_;
 
   public:
 	/**
@@ -138,7 +134,7 @@ class Logger : public noncopyable
 	{
 	  private:
 		LogLevel level_;
-		std::ostringstream stream_;
+		// std::ostringstream stream_;
 
 		const char* file_;
 		const char* func_;
@@ -152,12 +148,12 @@ class Logger : public noncopyable
 
 		~LogStream()
 		{
-			if (!stream_.str().empty())
+			if (!CurrentThread::oss().str().empty())
 			{
 				if (Logger::isAsyncEnabled())
 				{
-					Logger::appendAsyncLog(level_, stream_.str(), file_, func_,
-										   line_);
+					Logger::appendAsyncLog(level_, CurrentThread::oss().str(),
+										   file_, func_, line_);
 				}
 				else
 				{
@@ -166,22 +162,24 @@ class Logger : public noncopyable
 						logLevel2Color(level_),
 						TimeStamp::now().toFormattedString(),
 						CurrentThread::tid(), level_, getShortName(file_),
-						line_, func_, stream_.str());
+						line_, func_, CurrentThread::oss().str());
 
 					std::cout << formatted_log;
 				}
 			}
+			CurrentThread::oss().str("");
+			CurrentThread::oss().clear();
 		}
 
 		template <typename T> LogStream& operator<<(const T& val)
 		{
-			stream_ << val;
+			CurrentThread::oss() << val;
 			return *this;
 		}
 
 		LogStream& operator<<(std::ostream& (*manip)(std::ostream))
 		{
-			stream_ << manip;
+			CurrentThread::oss() << manip;
 			return *this;
 		}
 
@@ -203,8 +201,16 @@ class Logger : public noncopyable
 	};
 };
 
+#define LYNX_TRACE lynx::TRACE
+#define LYNX_DEBUG lynx::DEBUG
+#define LYNX_INFO lynx::INFO
+#define LYNX_WARN lynx::WARN
+#define LYNX_ERROR lynx::ERROR
+#define LYNX_FATAL lynx::FATAL
+#define LYNX_OFF lynx::OFF
+
 #ifndef LOGGER_LEVEL_SETTING
-#define LOGGER_LEVEL_SETTING lynx::INFO
+#define LOGGER_LEVEL_SETTING LYNX_INFO
 #endif
 
 constexpr LogLevel GLOBAL_MIN_LEVEL =

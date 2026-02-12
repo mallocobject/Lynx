@@ -8,7 +8,9 @@ const int Buffer::kDataSize = 1024;
 const int Buffer::kPrependSize = 8;
 static const char CRLF[] = "\r\n";
 
-Buffer::Buffer() : data_(kDataSize, 0), ridx_(kPrependSize), widx_(kPrependSize)
+Buffer::Buffer()
+	: data_(kDataSize, 0), ridx_(kPrependSize), widx_(kPrependSize),
+	  enabled_read_(true)
 {
 }
 

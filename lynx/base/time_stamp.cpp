@@ -6,7 +6,10 @@
 
 namespace lynx
 {
-extern const int kMicroSecond2Second = 1e6 * 1.0;
+const int kMicroSecond2Second = 1e6;
+}
+
+using namespace lynx;
 
 TimeStamp TimeStamp::now()
 {
@@ -18,25 +21,9 @@ TimeStamp TimeStamp::now()
 			now_us.time_since_epoch())
 			.count();
 
-	// auto seconds =
-	// std::chrono::time_point_cast<std::chrono::seconds>(now_us);
-
-	// auto micro_seconds = now_us - seconds;
-
-	// int curent_second = std::chrono::system_clock::to_time_t(seconds);
-
-	// if (cached_time_.last_second != curent_second)
-	// {
-	// 	// todo
-	// }
-
-	// static thread_local std::string final_time_stamp;
-	// final_time_stamp = std::format(
-	// 	"{}{:06d}", cached_time_.formatted_time_stamp,
-	// micro_seconds.count());
-
 	return TimeStamp(micro_seconds);
 }
+
 TimeStamp TimeStamp::addTime(TimeStamp time_stamp, double add_seconds)
 {
 	int64_t delta = static_cast<int64_t>(add_seconds * kMicroSecond2Second);
@@ -79,4 +66,3 @@ std::ostream& operator<<(std::ostream& os, const TimeStamp& ts)
 	os << ts.toFormattedString();
 	return os;
 }
-} // namespace lynx

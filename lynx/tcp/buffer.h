@@ -19,10 +19,21 @@ class Buffer : noncopyable
 	size_t widx_;
 	static const int kDataSize;
 	static const int kPrependSize;
+	bool enabled_read_;
 
   public:
 	Buffer();
 	~Buffer();
+
+	bool reading() const
+	{
+		return enabled_read_;
+	}
+
+	void setReading(bool on = true)
+	{
+		enabled_read_ = on;
+	}
 
 	size_t readableBytes() const
 	{
@@ -70,6 +81,11 @@ class Buffer : noncopyable
 
 	void append(const char* data, size_t len)
 	{
+		if (!enabled_read_)
+		{
+			return;
+		}
+
 		ensureWritableBytes(len);
 		std::copy(data, data + len, data_.data() + widx_);
 		widx_ += len;

@@ -1,41 +1,39 @@
 #include "lynx/http/http_context.h"
 #include "lynx/http/http_parser.h"
-#include "lynx/http/http_request.hpp"
-#include "lynx/logger/logger.h"
-#include "lynx/net/buffer.h"
-#include <algorithm>
-#include <cstddef>
+#include "lynx/tcp/buffer.h"
 #include <memory>
 
-namespace lynx
+using namespace lynx;
+
+HttpContext::HttpContext()
 {
-HttpContext::HttpContext() : parser_(std::make_unique<HttpParser>())
-{
+	parser_ = std::make_unique<HttpParser>();
 }
 
-HttpContext::~HttpContext() = default;
+HttpContext::~HttpContext()
+{
+}
 
 bool HttpContext::completed() const
 {
 	return parser_->completed();
 }
 
-const HttpRequest& HttpContext::request() const
+const HttpRequest& HttpContext::req() const
 {
-	return parser_->request();
+	return parser_->req();
 }
 
-void HttpContext::reset()
+void HttpContext::clear()
 {
-	parser_->HttpParser::reset();
+	parser_->clear();
 }
 
-// return true if complete or hasn't completed
-bool HttpContext::parserBuffer(Buffer* buf)
+bool HttpContext::parser(Buffer* buf)
 {
 	while (buf->readableBytes() > 0)
 	{
-		if (parser_->state() == HttpParser::State::BODY)
+		if (parser_->state() == HttpParser::State::kBody)
 		{
 			size_t n = std::min(buf->readableBytes(), parser_->bodyRemaining());
 			parser_->appendBody(buf->peek(), n);
@@ -44,7 +42,7 @@ bool HttpContext::parserBuffer(Buffer* buf)
 
 			if (parser_->bodyRemaining() == 0)
 			{
-				parser_->setState(HttpParser::State::COMPLETE);
+				parser_->setState(HttpParser::State::kComplete);
 				return true;
 			}
 			continue;
@@ -65,4 +63,3 @@ bool HttpContext::parserBuffer(Buffer* buf)
 	}
 	return true;
 }
-} // namespace lynx

@@ -2,22 +2,17 @@
 #include "lynx/http/http_request.hpp"
 #include "lynx/http/http_response.h"
 #include "lynx/logger/logger.h"
-#include "lynx/net/tcp_connection.h"
-#include <cstddef>
-#include <cstring>
-#include <memory>
-#include <string>
-#include <string_view>
+#include "lynx/tcp/tcp_connection.h"
+#include <fcntl.h>
+#include <iostream>
 #include <sys/stat.h>
-#include <utility>
-#include <vector>
 
-namespace lynx
-{
+using namespace lynx;
+
 HttpRouter::HttpRouter()
 {
-	tries_["GET"] = Trie();
-	tries_["POST"] = Trie();
+	tries_.emplace("GET", Trie());
+	tries_.emplace("POST", Trie());
 }
 
 HttpRouter::~HttpRouter()
@@ -28,7 +23,7 @@ void HttpRouter::dispatch(const HttpRequest& req, HttpResponse* res,
 						  const std::shared_ptr<TcpConnection>& conn)
 {
 	http_handler f;
-	std::string method = req.method_raw;
+	std::string method = req.method;
 	std::string path = req.path;
 
 	if ((f = tries_[method].search(path)))
@@ -45,17 +40,10 @@ void HttpRouter::dispatch(const HttpRequest& req, HttpResponse* res,
 	}
 }
 
-void HttpRouter::serveFile(const std::shared_ptr<lynx::TcpConnection>& conn,
-						   lynx::HttpResponse* res,
-						   const std::string& file_path)
+void HttpRouter::sendFile(const std::shared_ptr<lynx::TcpConnection>& conn,
+						  lynx::HttpResponse* res, const std::string& file_path)
 {
 	std::string path = file_path;
-
-	// // remove the prefix '/'
-	// if (file_path.starts_with('/'))
-	// {
-	// 	path = file_path.substr(1);
-	// }
 
 	struct stat st;
 	if (::stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode))
@@ -159,31 +147,3 @@ std::string HttpRouter::Trie::subPath(const std::string& path, size_t* start)
 	*start = std::string::npos;
 	return path.substr(begin);
 }
-
-// 是否有前缀 / 均可解析
-std::vector<std::string_view> HttpRouter::Trie::splitPath(std::string_view path)
-{
-	std::vector<std::string_view> segments;
-	size_t start = 0;
-	size_t end = path.find('/');
-
-	while (end != std::string_view::npos)
-	{
-		std::string_view segment = path.substr(start, end - start);
-		if (!segment.empty())
-		{
-			segments.push_back(segment);
-		}
-		start = end + 1;
-		end = path.find('/', start);
-	}
-
-	std::string_view last_segment = path.substr(start);
-	if (!last_segment.empty())
-	{
-		segments.push_back(last_segment);
-	}
-
-	return segments;
-}
-} // namespace lynx

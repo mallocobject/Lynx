@@ -1,9 +1,15 @@
 #include "lynx/http/http_response.h"
 #include <format>
-#include <string>
 
-namespace lynx
+using namespace lynx;
+
+HttpResponse::HttpResponse() : version_("HTTP/1.1")
 {
+}
+HttpResponse::~HttpResponse()
+{
+}
+
 std::string HttpResponse::toFormattedString() const
 {
 	std::string result;
@@ -24,4 +30,3 @@ std::string HttpResponse::toFormattedString() const
 
 	return result;
 }
-} // namespace lynx

@@ -5,10 +5,15 @@
 #include "lynx/tcp/event_loop.h"
 #include "lynx/tcp/inet_addr.hpp"
 #include "lynx/tcp/socket.h"
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <fcntl.h>
 #include <memory>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace lynx;
 
@@ -32,6 +37,10 @@ TcpConnection::TcpConnection(int fd, EventLoop* loop, const InetAddr& addr,
 
 TcpConnection::~TcpConnection()
 {
+	if (file_fd_ != -1)
+	{
+		::close(file_fd_);
+	}
 }
 
 void TcpConnection::send(const std::string& message)
@@ -144,7 +153,7 @@ void TcpConnection::connEstablish()
 	{
 		connect_callback_(shared_from_this());
 	}
-	LOG_INFO << "Connection form" << addr_.toFormattedString()
+	LOG_INFO << "Connection form " << addr_.toFormattedString()
 			 << " is fully establish.";
 }
 
@@ -164,13 +173,115 @@ void TcpConnection::connDestroy()
 	}
 
 	ch_->remove();
-	LOG_DEBUG << "Connection form" << addr_.toFormattedString()
+	LOG_DEBUG << "Connection form " << addr_.toFormattedString()
 			  << " is fully destroyed.";
+}
+
+void TcpConnection::sendFile(const std::string& file_path)
+{
+	if (state_ == State::kConnected)
+	{
+		if (loop_->InLoopThread())
+		{
+			sendFileInLoop(file_path);
+		}
+		else
+		{
+			loop_->runInLoop(std::bind(&TcpConnection::sendFileInLoop,
+									   shared_from_this(), file_path));
+		}
+	}
+}
+
+void TcpConnection::sendFileInLoop(const std::string& file_path)
+{
+	loop_->assertInLoopThread();
+	LOG_TRACE << "start send file";
+	if (state_ == State::kDisconnected)
+	{
+		return;
+	}
+
+	if (file_fd_ != -1)
+	{
+		LOG_WARN << "TcpConnection::sendFile: a file has been send.";
+		return;
+	}
+	int fd = ::open(file_path.c_str(), O_RDONLY);
+	if (fd == -1)
+	{
+		LOG_WARN << "cannot open file: " << file_path;
+		return;
+	}
+	struct stat st;
+	if (::fstat(fd, &st) < 0)
+	{
+		LOG_ERROR << "cannot get the file's state.";
+		::close(fd);
+		return;
+	}
+
+	file_fd_ = fd;
+	file_bytes_to_send_ = st.st_size;
+	file_offset_ = 0;
+
+	if (!ch_->writing())
+	{
+		ch_->enableOUT();
+	}
+
+	if (outbuf_->readableBytes() == 0)
+	{
+		trySendFile();
+	}
+}
+
+void TcpConnection::trySendFile()
+{
+	loop_->assertInLoopThread();
+	bool fault_error = false;
+
+	while (file_bytes_to_send_ > 0)
+	{
+		ssize_t n =
+			::sendfile(ch_->fd(), file_fd_, &file_offset_, file_bytes_to_send_);
+		if (n >= 0)
+		{
+			file_bytes_to_send_ -= n;
+		}
+		else
+		{
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+			{
+				if (!ch_->writing())
+				{
+					ch_->enableOUT();
+				}
+				break;
+			}
+			else
+			{
+				LOG_ERROR << "try send file failed - fd " << ch_->fd() << ": "
+						  << strerror(errno);
+
+				::close(file_fd_);
+				file_fd_ = -1;
+				handleError();
+				return;
+			}
+		}
+	}
+
+	if (file_bytes_to_send_ == 0)
+	{
+		::close(file_fd_);
+		file_fd_ = -1;
+		LOG_DEBUG << "TcpConnection::trySendFile : file send successfully.";
+	}
 }
 
 void TcpConnection::handleError()
 {
-	LOG_TRACE << "TcpConnection::handleError";
 	int error = Socket::socketErrno(ch_->fd());
 
 	if (error == 0 || error == -1)
@@ -180,12 +291,12 @@ void TcpConnection::handleError()
 
 	else if (error == ECONNRESET)
 	{
-		LOG_WARN << "normal error occupied on" << addr_.toFormattedString()
-				 << strerror(error);
+		LOG_INFO << "Client disconnected unexpectedly RESET on "
+				 << addr_.toFormattedString();
 	}
-	else if (error)
+	else
 	{
-		LOG_ERROR << "error occupied on" << addr_.toFormattedString()
+		LOG_ERROR << "error occupied on " << addr_.toFormattedString() << ' '
 				  << strerror(error);
 	}
 }
@@ -227,7 +338,6 @@ void TcpConnection::handleRead()
 	}
 	else
 	{
-		errno = saved_errno;
 		handleError();
 	}
 }
@@ -255,7 +365,12 @@ void TcpConnection::handleWrite()
 			}
 		}
 
-		if (outbuf_->readableBytes() == 0)
+		if (outbuf_->readableBytes() == 0 && file_fd_ != -1)
+		{
+			trySendFile();
+		}
+
+		if (outbuf_->readableBytes() == 0 && file_fd_ == -1)
 		{
 
 			ch_->disableOUT();

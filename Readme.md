@@ -41,16 +41,7 @@ cmake --build build
 ./build/examples/Lynx_WebServer -p 8080 -n Lynx-WebServer
 ```
 
-<!-- 成功启动后，将看到类似输出:
-
-```bash
-[INFO]2026-02-02 22:04:48.041130 : Server [Lynx-WebServer] starting...
-[INFO]2026-02-02 22:04:48.041182 : Listen on 0.0.0.0:8080
-[INFO]2026-02-02 22:04:48.041197 : Threads: 1 (Main) + 12 (Workers) + 1 (Logger)
-[INFO]2026-02-02 22:04:48.042570 : Server started at 0.0.0.0:8080
-``` -->
-
-## 📊 性能基准测试
+<!-- ## 📊 性能基准测试
 
 使用 wrk 进行压力测试
 
@@ -93,7 +84,7 @@ Running 30s test @ http://127.0.0.1:8080/
   13570294 requests in 30.10s, 15.36GB read
 Requests/sec: 450856.01
 Transfer/sec:    522.41MB
-```
+``` -->
 
 ## 📁 项目结构
 
@@ -106,7 +97,7 @@ Lynx
 │   ├── handlers.h
 │   ├── http_app.h
 │   ├── http_base.hpp
-|   ├── log/
+|   ├── logs
 │   ├── main.cpp
 │   ├── static
 │   │   ├── css
@@ -116,12 +107,13 @@ Lynx
 │   └── templates
 │       ├── hello.html
 │       └── index.html
+├── logs
 ├── lynx
 │   ├── CMakeLists.txt
 │   ├── base/
 │   ├── http/
 │   ├── logger/
-│   └── net/
+│   └── tcp/
 └── test/
 ...
 ```
@@ -134,13 +126,13 @@ Lynx 提供高性能的异步日志系统, 支持 **编译期级别** 过滤（�
 
 ```CMake
 # 设置日志过滤级别
-# 可选值: lynx::TRACE, lynx::DEBUG, lynx::INFO, lynx::WARN, lynx::ERROR, lynx::FATAL, lynx::OFF
+# 可选值: LYNX_TRACE, LYNX_DEBUG, LYNX_INFO, LYNX_WARN, LYNX_ERROR, LYNX_FATAL, LYNX_OFF
 
 # 示例：生产环境推荐 (仅保留 INFO 及以上)
-set(LOG_LEVEL "lynx::INFO")
+set(LOG_LEVEL "LYNX_INFO")
 
 # 示例：极致性能压测 (完全关闭日志)
-# set(LOG_LEVEL "lynx::OFF")
+# set(LOG_LEVEL "LYNX_OFF")
 
 message(STATUS "Current logger level: ${LOG_LEVEL}")
 add_definitions(-DLOGGER_LEVEL_SETTING=${LOG_LEVEL})

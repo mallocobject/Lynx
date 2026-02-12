@@ -11,15 +11,6 @@ extern const int kMicroSecond2Second;
 class TimeStamp
 {
   private:
-	// struct CachedTime
-	// {
-	// 	std::string formatted_time_stamp;
-	// 	std::chrono::microseconds last_update;
-	// 	int last_second;
-	// };
-
-	// static thread_local CachedTime cached_time_;
-
 	int64_t micro_seconds_{0};
 
   public:

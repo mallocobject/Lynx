@@ -1,57 +1,51 @@
-#ifndef TCP_CONNECTION_H
-#define TCP_CONNECTION_H
+#ifndef LYNX_TCP_CONNECTION_H
+#define LYNX_TCP_CONNECTION_H
 
-#include "lynx/base/common.hpp"
+#include "lynx/base/noncopyable.hpp"
+#include "lynx/tcp/inet_addr.hpp"
 #include <any>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <netinet/in.h>
-#include <string>
-#include <sys/types.h>
-#include <utility>
 namespace lynx
 {
 class Channel;
 class EventLoop;
 class Buffer;
-class TcpConnection : public std::enable_shared_from_this<TcpConnection>
+class TcpConnection : public noncopyable,
+					  public std::enable_shared_from_this<TcpConnection>
 {
   private:
-	enum State
+	enum class State
 	{
-		Disconnected,
-		Connecting,
-		Connected,
-		Disconnecting
+		kDisconnected,
+		kConnecting,
+		kConnected,
+		kDisconnecting
 	} state_;
 	// establish: Connecting -> Connected
 	// shutdown: Connected -> Disconnecting
-	// handleColse: Connected/Disconnecting -> Disconnected
+	// handleClose: Connected/Disconnecting -> Disconnected
 	// destroy: [Connected/Disconnecting -> Disconnected]
 
-	int fd_;
-	std::unique_ptr<Channel> ch_;
 	EventLoop* loop_;
-	std::string name_;
-	char peer_ip_[INET_ADDRSTRLEN]; // include '\0'
-	char local_ip_[INET_ADDRSTRLEN];
-	uint16_t peer_port_;
-	uint16_t local_port_;
-	size_t high_water_mark_;
-	bool reading_;
-	std::shared_ptr<Buffer> input_buffer_;
-	std::shared_ptr<Buffer> output_buffer_;
+	std::unique_ptr<Channel> ch_;
+	InetAddr addr_;
+	uint64_t seq_;
 
-	std::any context_;
+	size_t high_water_mark_;
+	std::unique_ptr<Buffer> inbuf_;
+	std::unique_ptr<Buffer> outbuf_;
+
+	std::any ctx_;
 
 	int file_fd_ = -1;
 	size_t file_bytes_to_send_ = 0;
 	off_t file_offset_ = 0;
 
 	std::function<void(const std::shared_ptr<TcpConnection>&,
-					   std::shared_ptr<Buffer>)>
+					   Buffer*)>
 		message_callback_; // defined by user
 	std::function<void(const std::shared_ptr<TcpConnection>&)>
 		write_complete_callback_; // defined by user, executed in
@@ -66,41 +60,34 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		high_water_mark_callback_;
 
   public:
-	DISABLE_COPY(TcpConnection)
-
-	TcpConnection(int fd, EventLoop* loop, const std::string& name,
-				  const char* local_ip, uint16_t local_port,
-				  const char* peer_ip, uint16_t peer_port);
+	TcpConnection(int fd, EventLoop* loop, const InetAddr& addr, uint64_t seq);
 	~TcpConnection();
 
-	int fd() const
-	{
-		return fd_;
-	}
+	int fd() const;
 
-	std::string name() const
+	uint64_t seq() const
 	{
-		return name_;
+		return seq_;
 	}
 
 	bool connected() const
 	{
-		return state_ == Connected;
+		return state_ == State::kConnected;
 	}
 
 	bool connecting() const
 	{
-		return state_ == Connecting;
+		return state_ == State::kConnecting;
+	}
+
+	bool disconnected() const
+	{
+		return state_ == State::kDisconnected;
 	}
 
 	bool disconnecting() const
 	{
-		return state_ == Disconnecting;
-	}
-
-	bool disconnnected() const
-	{
-		return state_ == Disconnected;
+		return state_ == State::kDisconnecting;
 	}
 
 	EventLoop* loop() const
@@ -108,20 +95,18 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 		return loop_;
 	}
 
-	const char* peerIp() const
+	const InetAddr& addr() const
 	{
-		return peer_ip_;
+		return addr_;
 	}
 
-	uint16_t peerPort() const
+	InetAddr& addr()
 	{
-		return peer_port_;
+		return addr_;
 	}
 
 	void setMessageCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&,
-						   std::shared_ptr<Buffer>)>
-			cb)
+		std::function<void(const std::shared_ptr<TcpConnection>&, Buffer*)> cb)
 	{
 		message_callback_ = std::move(cb);
 	}
@@ -159,43 +144,23 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void send(const std::string& message);
 	void shutdown();
 
-	std::shared_ptr<Buffer> inputBuffer() const
+	void setContext(const std::any& ctx)
 	{
-		return input_buffer_;
-	}
-
-	std::shared_ptr<Buffer> outputBuffer() const
-	{
-		return output_buffer_;
-	}
-
-	void establish();
-	void destroy();
-
-	bool reading() const
-	{
-		return reading_;
-	}
-
-	void stopRead();
-	void startRead();
-
-	void forceClose();
-
-	void setContext(const std::any& context)
-	{
-		context_ = context;
+		ctx_ = ctx;
 	}
 
 	std::any context() const
 	{
-		return context_;
+		return ctx_;
 	}
 
 	std::any* contextPtr()
 	{
-		return &context_;
+		return &ctx_;
 	}
+
+	void connEstablish();
+	void connDestroy();
 
 	void sendFile(const std::string& file_path);
 
@@ -205,16 +170,10 @@ class TcpConnection : public std::enable_shared_from_this<TcpConnection>
 	void handleClose();
 	void handleError();
 
-	void sendInLocalLoop(const std::string& message);
-	void shutdownInLocalLoop();
+	void sendInLoop(const std::string& message);
+	void shutdownInLoop();
 
-	void stopReadInLocalLoop();
-	void startReadInLocalLoop();
-
-	void forceCloseInLocalLoop();
-
-	void sendFileInLocalLoop(const std::string& file_path);
-
+	void sendFileInLoop(const std::string& file_path);
 	void trySendFile();
 };
 } // namespace lynx

@@ -1,66 +1,60 @@
 #ifndef LYNX_HTTP_PARSER_H
 #define LYNX_HTTP_PARSER_H
 
+#include "lynx/base/noncopyable.hpp"
 #include "lynx/http/http_request.hpp"
 #include <cassert>
 #include <cstddef>
-#include <string_view>
-#include <utility>
 namespace lynx
 {
-class HttpParser
+class HttpParser : public noncopyable
 {
   public:
 	enum class State
 	{
-		START = 0,
-		METHOD,
-		PATH,
-		QUERY_KEY,
-		QUERY_VALUE,
-		FRAGMENT, // skip
-		VERSION,
-		EXPECT_LF_AFTER_STATUS, // 等待状态行后的换行
-		HEADER_KEY,
-		HEADER_VALUE,
-		EXPECT_LF_AFTER_HEADER, // 等待头部后的换行
-		EXPECT_DOUBLE_LF,		// 等待空行（\r\n\r\n）
-		BODY,
-		COMPLETE,
-		ERROR
+		kStart,
+		kMethod,
+		kPath,
+		kQueryKey,
+		kQueryValue,
+		kFragment,
+		kVersion,
+		kExpectLfAfterStatusLine,
+		kHeaderKey,
+		kHeaderValue,
+		kExpectLfAfterHeader,
+		kExpectDoubleLf,
+		kBody,
+		kComplete,
+		kError
 	};
 
   private:
 	State state_;
 
-	HttpRequest request_;
+	HttpRequest req_;
 	std::string tmp_key_;
 	std::string tmp_value_;
-	long body_remaining_;
+	size_t body_remaining_;
 
   public:
-	HttpParser() : state_(State::START), body_remaining_(0)
-	{
-	}
-
-	~HttpParser()
-	{
-	}
+	HttpParser();
+	~HttpParser();
 
 	size_t bodyRemaining() const
 	{
-		assert(state_ == State::BODY);
+		assert(state_ == State::kBody);
 		return body_remaining_;
 	}
 
-	void reset()
+	void clear()
 	{
-		state_ = State::START;
+		state_ = State::kStart;
 		tmp_key_.clear();
 		tmp_value_.clear();
 		body_remaining_ = 0;
 
-		request_.clear();
+		req_.clear();
 	}
 
 	bool parse(const std::string& data)
@@ -75,11 +69,6 @@ class HttpParser
 		return true;
 	}
 
-	bool completed() const
-	{
-		return state_ == State::COMPLETE;
-	}
-
 	State state() const
 	{
 		return state_;
@@ -90,39 +79,20 @@ class HttpParser
 		state_ = state;
 	}
 
+	bool completed() const
+	{
+		return state_ == State::kComplete;
+	}
+
 	void appendBody(const char* data, size_t len)
 	{
-		request_.body.append(data, len);
+		req_.body.append(data, len);
 		body_remaining_ -= len;
 	}
 
-	static std::string_view state2string(State state)
+	const HttpRequest& req() const
 	{
-		static const std::unordered_map<State, std::string_view> state_names = {
-			{State::START, "START"},
-			{State::METHOD, "METHOD"},
-			{State::PATH, "PATH"},
-			{State::QUERY_KEY, "QUERY_KEY"},
-			{State::QUERY_VALUE, "QUERY_VALUE"},
-			{State::FRAGMENT, "FRAGMENT"},
-			{State::VERSION, "VERSION"},
-			{State::EXPECT_LF_AFTER_STATUS, "EXPECT_LF_AFTER_STATUS"},
-			{State::HEADER_KEY, "HEADER_KEY"},
-			{State::HEADER_VALUE, "HEADER_VALUE"},
-			{State::EXPECT_LF_AFTER_HEADER, "EXPECT_LF_AFTER_HEADER"},
-			{State::EXPECT_DOUBLE_LF, "EXPECT_DOUBLE_LF"},
-			{State::BODY, "BODY"},
-			{State::COMPLETE, "COMPLETE"},
-			{State::ERROR, "ERROR"},
-		};
-
-		auto it = state_names.find(state);
-		return (it != state_names.end()) ? it->second : "UNKNOWN";
-	};
-
-	const HttpRequest& request() const
-	{
-		return request_;
+		return req_;
 	}
 
 	bool consume(char c);
