@@ -3,7 +3,7 @@
 
 #include "lynx/base/current_thread.hpp"
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/base/time_stamp.h"
+#include "lynx/time/time_stamp.h"
 #include <atomic>
 #include <cassert>
 #include <cstring>

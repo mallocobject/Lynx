@@ -46,7 +46,7 @@ TcpServer::TcpServer(EventLoop* loop, const std::string& ip, uint16_t port,
 TcpServer::~TcpServer()
 {
 	main_reactor_->assertInLoopThread();
-	LOG_INFO << "TcpServer::~TcpServer [" << name_ << "] is a shutting down";
+	LOG_TRACE << "TcpServer::~TcpServer [" << name_ << "] is a shutting down";
 
 	for (auto& item : conn_map_)
 	{
@@ -64,7 +64,7 @@ TcpServer::~TcpServer()
 		conn->loop()->runInLoop(std::bind(&TcpConnection::connDestroy, conn));
 	}
 
-	LOG_INFO << "TcpServer: " << name_ << " has dispatched all cleanup tasks";
+	LOG_TRACE << "TcpServer: " << name_ << " has dispatched all cleanup tasks";
 }
 
 void TcpServer::run()
@@ -77,7 +77,7 @@ void TcpServer::handleNewConnection(int conn_fd, const InetAddr& addr)
 {
 	main_reactor_->assertInLoopThread();
 
-	LOG_INFO << "New connection from " << addr.toFormattedString();
+	LOG_TRACE << "New connection from " << addr.toFormattedString();
 
 	EventLoop* io_loop = sub_reactor_pool_->nextLoop();
 	seq_.fetch_add(1, std::memory_order_acq_rel);

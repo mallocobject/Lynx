@@ -2,7 +2,7 @@
 #define LYNX_TIMER_H
 
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/base/time_stamp.h"
+#include "lynx/time/time_stamp.h"
 #include <atomic>
 #include <cstdint>
 #include <functional>

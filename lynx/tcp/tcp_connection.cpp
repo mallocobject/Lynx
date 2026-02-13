@@ -123,7 +123,7 @@ void TcpConnection::shutdown()
 {
 	if (state_ == State::kConnected)
 	{
-		state_ = State::kDisconnected;
+		state_ = State::kDisconnecting;
 		loop_->runInLoop(
 			std::bind(&TcpConnection::shutdownInLoop, shared_from_this()));
 	}
@@ -132,7 +132,7 @@ void TcpConnection::shutdown()
 void TcpConnection::shutdownInLoop()
 {
 	loop_->assertInLoopThread();
-	assert(state_ == State::kConnecting);
+	assert(state_ == State::kDisconnecting);
 
 	if (!ch_->writing())
 	{
@@ -153,8 +153,8 @@ void TcpConnection::connEstablish()
 	{
 		connect_callback_(shared_from_this());
 	}
-	LOG_INFO << "Connection form " << addr_.toFormattedString()
-			 << " is fully establish.";
+	LOG_TRACE << "Connection form " << addr_.toFormattedString()
+			  << " is fully establish.";
 }
 
 void TcpConnection::connDestroy()
@@ -291,7 +291,7 @@ void TcpConnection::handleError()
 
 	else if (error == ECONNRESET)
 	{
-		LOG_INFO << "Client disconnected unexpectedly RESET on "
+		LOG_WARN << "Client disconnected unexpectedly RESET on "
 				 << addr_.toFormattedString();
 	}
 	else
@@ -308,8 +308,8 @@ void TcpConnection::handleClose()
 	{
 		return;
 	}
-	LOG_INFO << "Connection closed - FD: " << ch_->fd()
-			 << ", Peer: " << addr_.toFormattedString();
+	LOG_TRACE << "Connection closed - FD: " << ch_->fd()
+			  << ", Peer: " << addr_.toFormattedString();
 	assert(state_ == State::kConnected || state_ == State::kDisconnecting);
 	state_ = State::kDisconnected;
 	ch_->disableAll();

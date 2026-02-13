@@ -2,8 +2,8 @@
 #define LYNX_CHANNEL_H
 
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/base/time_stamp.h"
 #include "lynx/logger/logger.h"
+#include "lynx/time/time_stamp.h"
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>

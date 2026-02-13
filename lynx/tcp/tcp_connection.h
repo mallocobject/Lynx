@@ -40,9 +40,9 @@ class TcpConnection : public noncopyable,
 
 	std::any ctx_;
 
-	int file_fd_ = -1;
-	size_t file_bytes_to_send_ = 0;
-	off_t file_offset_ = 0;
+	int file_fd_{-1};
+	size_t file_bytes_to_send_{0};
+	off_t file_offset_{0};
 
 	std::function<void(const std::shared_ptr<TcpConnection>&,
 					   Buffer*)>

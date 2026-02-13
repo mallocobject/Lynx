@@ -1,9 +1,9 @@
 #include "lynx/tcp/event_loop.h"
-#include "lynx/base/timer_id.hpp"
-#include "lynx/base/timer_queue.h"
 #include "lynx/logger/logger.h"
 #include "lynx/tcp/channel.h"
 #include "lynx/tcp/epoller.h"
+#include "lynx/time/timer_id.hpp"
+#include "lynx/time/timer_queue.h"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -62,7 +62,7 @@ void EventLoop::run()
 		}
 		doPendingFuncs();
 	}
-	LOG_INFO << "EventLoop " << this << " stop looping";
+	LOG_TRACE << "EventLoop " << this << " stop looping";
 }
 
 TimerId EventLoop::runAt(TimeStamp time_stamp, const std::function<void()>& cb)

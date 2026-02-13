@@ -54,8 +54,15 @@ class HttpBase
 	{
 		if (conn->connected())
 		{
+			LOG_INFO << "New connection from "
+					 << conn->addr().toFormattedString();
 			// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
 			conn->setContext(std::make_shared<lynx::HttpContext>());
+		}
+		else if (conn->disconnected())
+		{
+			LOG_INFO << "Connection closed on "
+					 << conn->addr().toFormattedString();
 		}
 	}
 
