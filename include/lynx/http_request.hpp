@@ -1,0 +1,44 @@
+#ifndef LYNX_PUBLIC_HTTP_REQUEST_HPP
+#define LYNX_PUBLIC_HTTP_REQUEST_HPP
+
+#include "noncopyable.hpp"
+#include <cstddef>
+#include <string>
+#include <unordered_map>
+namespace lynx
+{
+struct HttpRequest : public noncopyable
+{
+	std::string method;
+	std::string path;
+	std::string version;
+
+	std::unordered_map<std::string, std::string> headers;
+	std::unordered_map<std::string, std::string> query_params;
+
+	std::string body;
+
+	bool keep_alive = false;
+	size_t ctx_length = 0;
+
+	std::string header(const std::string& key) const
+	{
+		auto it = headers.find(key);
+		return (it != headers.end()) ? it->second : "";
+	}
+
+	void clear()
+	{
+		method.clear();
+		path.clear();
+		version.clear();
+		headers.clear();
+		query_params.clear();
+		body.clear();
+		keep_alive = false;
+		ctx_length = 0;
+	}
+};
+} // namespace lynx
+
+#endif

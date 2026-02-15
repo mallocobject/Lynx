@@ -1,146 +1,139 @@
-#include "handlers.h"
-#include "http_app.h"
-#include "lynx/http/http_router.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/event_loop.h"
-#include "lynx/tcp/tcp_connection.h"
-#include "lynx/tcp/tcp_server.h"
-#include <cstddef>
-#include <cstdint>
-#include <iostream>
-#include <string>
-#include <unistd.h>
-
-struct Config
-{
-	std::string ip = "0.0.0.0";
-	uint16_t port = 8080;
-	std::string name = "Lynx-WebServer";
-	size_t worker_threads = std::thread::hardware_concurrency() - 2;
-	bool valid = false;
-};
-
-Config parseArgs(int argc, char* argv[])
-{
-	Config conf;
-	int opt;
-	while ((opt = ::getopt(argc, argv, "p:i:n:t:h")) != -1)
-	{
-		switch (opt)
-		{
-		case 'p':
-			conf.port = static_cast<uint16_t>(std::stoi(optarg));
-			conf.valid = true;
-			break;
-		case 'i':
-			conf.ip = optarg;
-			break;
-		case 't':
-			conf.worker_threads = std::stoi(optarg);
-			break;
-		case 'n':
-			conf.name = optarg;
-			break;
-		case 'h':
-		default:
-			conf.valid = false;
-			break;
-		}
-	}
-	return conf;
-}
+#include <lynx/lynx.hpp>
 
 using namespace lynx;
 
+void handleCalculate(const HttpRequest& req, HttpResponse* res,
+					 const std::shared_ptr<TcpConnection>& conn)
+{
+	double a = 0.0;
+	double b = 0.0;
+
+	try
+	{
+		const std::string& body = req.body;
+
+		auto a_pos = req.body.find("\"a\"");
+		auto b_pos = req.body.find("\"b\"");
+
+		if (a_pos == std::string::npos || b_pos == std::string::npos)
+		{
+			throw std::runtime_error("Invalid data");
+		}
+
+		a = std::stod(req.body.substr(a_pos + 4));
+		b = std::stod(req.body.substr(b_pos + 4));
+
+		double sum = a + b;
+
+		res->setStatusCode(200);
+		res->setContentType("application/json");
+		res->setBody(std::format("{{\"sum\": {0}}}", sum));
+
+		conn->send(res->toFormattedString());
+	}
+	catch (const std::exception& e)
+	{
+		res->setStatusCode(400);
+		res->setContentType("application/json");
+		res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
+
+		conn->send(res->toFormattedString());
+	}
+}
+
 int main(int argc, char* argv[])
 {
-	Config conf = parseArgs(argc, argv);
-	if (!conf.valid)
-	{
-		printf("Usage: %s -p <port> [-i <ip>] [-t <threads>] [-n <name>]\n",
-			   argv[0]);
-		printf("Options:\n");
-		printf("  -p : Port number (Mandatory)\n");
-		printf("  -i : IP address (Default: 0.0.0.0)\n");
-		printf("  -t : Number of worker threads (Default: CPU cores - 2)\n");
-		printf("  -n : Server name (Default: Lynx-WebServer)\n");
-		return 1;
-	}
+	// 初始化日志
+	Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "http_server");
 
-	Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs", argv[0]);
-
+	// 创建 HTTP 服务器
 	EventLoop loop;
-	HttpApp http_app(&loop, conf.ip, conf.port, conf.name, conf.worker_threads);
+	TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 4);
 
-	LOG_INFO << "Server [" << conf.name << "] starting...";
-	LOG_INFO << "Listen on " << conf.ip << ":" << conf.port;
-	LOG_INFO << "Threads: 1 (Main) + " << conf.worker_threads << " (Workers)"
-			 << " + 1 (Logger)";
+	// 创建路由器
+	auto router = HttpRouter();
 
-	http_app.addRoute("GET", "/",
-					  [](const auto& req, auto* res, const auto& conn) {
-						  HttpRouter::sendFile(conn, res,
-											   LYNX_WEB_SRC_DIR
-											   "/templates/index.html");
-					  });
+	// 注册路由
+	router.addRoute("GET", "/",
+					[](const auto& req, auto* res, const auto& conn) {
+						HttpRouter::sendFile(conn, res,
+											 LYNX_WEB_SRC_DIR
+											 "/templates/index.html");
+					});
 
 	// 注册 CSS 路由
-	http_app.addRoute("GET", "/static/css/style.css",
-					  [](const auto& req, auto* res, const auto& conn) {
-						  HttpRouter::sendFile(conn, res,
-											   LYNX_WEB_SRC_DIR
-											   "/static/css/style.css");
-					  });
+	router.addRoute("GET", "/static/css/style.css",
+					[](const auto& req, auto* res, const auto& conn) {
+						HttpRouter::sendFile(conn, res,
+											 LYNX_WEB_SRC_DIR
+											 "/static/css/style.css");
+					});
 
 	// 注册 JS 路由
-	http_app.addRoute("GET", "/static/js/script.js",
-					  [](const auto& req, auto* res, const auto& conn) {
-						  HttpRouter::sendFile(conn, res,
-											   LYNX_WEB_SRC_DIR
-											   "/static/js/script.js");
-					  });
+	router.addRoute("GET", "/static/js/script.js",
+					[](const auto& req, auto* res, const auto& conn) {
+						HttpRouter::sendFile(
+							conn, res, LYNX_WEB_SRC_DIR "/static/js/script.js");
+					});
 
-	http_app.addRoute("POST", "/calculate", handler::handleCalculate);
+	router.addRoute("POST", "/calculate", &handleCalculate);
 
-	http_app.addRoute("GET", "/json",
-					  [](const auto& req, auto* res, const auto& conn)
-					  {
-						  res->setStatusCode(200);
-						  res->setContentType("application/json");
-						  res->setBody("{\"message\":\"ok\"}");
+	// 设置连接回调
+	server.setConnectionCallback(
+		[](const std::shared_ptr<TcpConnection>& conn)
+		{
+			if (conn->connected())
+			{
+				LOG_INFO << "Client connected: "
+						 << conn->addr().toFormattedString();
+				// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
+				conn->setContext(std::make_shared<HttpContext>());
+			}
+			else if (conn->disconnected())
+			{
+				LOG_INFO << "Client disconnected: "
+						 << conn->addr().toFormattedString();
+			}
+		});
 
-						  conn->send(res->toFormattedString());
-					  });
+	// 设置 HTTP 处理回调
+	server.setMessageCallback(
+		[&router](const std::shared_ptr<TcpConnection>& conn, Buffer* buf)
+		{
+			auto context =
+				std::any_cast<std::shared_ptr<HttpContext>>(conn->context());
 
-	http_app.addRoute("GET", "/hello",
-					  [](const auto& req, auto* res, const auto& conn)
-					  {
-						  res->setStatusCode(200);
-						  res->setContentType("text/plain");
-						  res->setHeader("Server", "Lynx");
-						  res->setBody("hello, world!\n");
+			if (!context->parser(buf))
+			{
+				conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
+				conn->shutdown();
+				return;
+			}
 
-						  conn->send(res->toFormattedString());
-					  });
-	// // 注册大文件下载路由
-	// http_app.addRoute(
-	// 	"GET", "/download",
-	// 	[](const auto& req, auto* res, const auto& conn)
-	// 	{
-	// 		LOG_INFO << "Request large file download...";
-	// 		HttpRouter::serveFile(
-	// 			conn, res, LYNX_WEB_SRC_DIR "/templates/large_test_file.dat");
-	// 	});
+			if (context->completed())
+			{
+				const HttpRequest& req = context->req();
+				HttpResponse res;
 
-	// loop.runEvery(2, [&http_app]()
-	// 			  { std::cout << http_app.connectionNum() << std::endl; });
+				router.dispatch(req, &res, conn);
 
-	http_app.run();
-	std::cout << "Server started at " << conf.ip << ":" << conf.port
-			  << std::endl;
+				std::string conn_header = req.header("connection");
+				if (conn_header == "close" ||
+					(req.version == "HTTP/1.0" && conn_header != "keep-alive"))
+				{
+					conn->shutdown();
+				}
+				else
+				{
+					context->clear();
+				}
+			}
+		});
+
+	LOG_INFO << "HTTP Server listening on 0.0.0.0:8080";
+	server.run();
 	loop.run();
 
 	Logger::shutdownAsyncLogging();
-
 	return 0;
 }

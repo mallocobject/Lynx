@@ -38,6 +38,11 @@ class Acceptor : noncopyable
 
 	int fd() const;
 
+	EventLoop* loop() const
+	{
+		return loop_;
+	}
+
   private:
 	void handleRead();
 };

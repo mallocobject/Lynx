@@ -1,17 +1,4 @@
-#include "lynx/base/noncopyable.hpp"
-#include "lynx/http/http_context.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/buffer.h"
-#include "lynx/tcp/event_loop.h"
-#include "lynx/tcp/tcp_connection.h"
-#include "lynx/tcp/tcp_server.h"
-#include "lynx/time/circular_buffer.hpp"
-#include "lynx/time/entry.h"
-#include <any>
-#include <cassert>
-#include <functional>
-#include <memory>
-#include <thread>
+#include "lynx/lynx.hpp"
 
 class EchoApp : public lynx::noncopyable
 {

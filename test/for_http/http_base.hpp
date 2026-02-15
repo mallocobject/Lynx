@@ -1,15 +1,15 @@
 #ifndef HTTP_BASE_HPP
 #define HTTP_BASE_HPP
 
-#include "lynx/http/http_context.h"
-#include "lynx/http/http_request.hpp"
-#include "lynx/http/http_response.h"
-#include "lynx/http/http_router.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/buffer.h"
-#include "lynx/tcp/event_loop.h"
-#include "lynx/tcp/tcp_connection.h"
-#include "lynx/tcp/tcp_server.h"
+#include "lynx/buffer.hpp"
+#include "lynx/event_loop.hpp"
+#include "lynx/http_context.hpp"
+#include "lynx/http_request.hpp"
+#include "lynx/http_response.hpp"
+#include "lynx/http_router.hpp"
+#include "lynx/logger.hpp"
+#include "lynx/tcp_connection.hpp"
+#include "lynx/tcp_server.hpp"
 #include <any>
 #include <cstdint>
 #include <functional>

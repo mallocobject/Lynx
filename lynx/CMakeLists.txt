@@ -8,4 +8,6 @@ endforeach()
 
 add_library(lynx_lib STATIC ${LIB_SOURCES})
 
-target_include_directories(lynx_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(lynx_lib 
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
