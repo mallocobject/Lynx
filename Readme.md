@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
     EventLoop loop;
     
     // 创建 TCP 服务器
-    TcpServer server(&loop, "0.0.0.0", 8080, "EchoServer", 4);
+    TcpServer server(&loop, "0.0.0.0", 9999, "EchoServer", 4);
 
     // 设置连接回调
     server.setConnectionCallback(
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
             LOG_INFO << "Echo: " << msg;
         });
 
-    LOG_INFO << "Echo Server listening on 0.0.0.0:8080";
+    LOG_INFO << "Echo Server listening on 0.0.0.0:9999";
     
     server.run();
     loop.run();
@@ -210,7 +210,7 @@ cmake --build build
 **测试：**
 ```bash
 # 另一个终端
-nc 127.0.0.1 8080
+nc 127.0.0.1 9999
 # 输入任意内容，会被原样返回
 ```
 
