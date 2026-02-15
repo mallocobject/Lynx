@@ -98,7 +98,7 @@ int main() {
         3                    // 后端定期刷盘间隔 (3秒)
     );
 
-    LOG_INFO("Lynx Server Started");
+    LOG_INFO << "Lynx Server Started";
 
     // 业务逻辑代码
     // ...
