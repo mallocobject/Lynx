@@ -1,5 +1,5 @@
-#include "lynx/tcp/socket.h"
-#include "lynx/logger/logger.h"
+#include "lynx/tcp/socket.hpp"
+#include "lynx/logger/logger.hpp"
 #include <asm-generic/socket.h>
 #include <cerrno>
 #include <fcntl.h>

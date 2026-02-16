@@ -1,5 +1,5 @@
-#ifndef LYNX_BUFFER_H
-#define LYNX_BUFFER_H
+#ifndef LYNX_BUFFER_HPP
+#define LYNX_BUFFER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <algorithm>

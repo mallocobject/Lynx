@@ -1,10 +1,9 @@
-#include "lynx/http/http_router.h"
+#include "lynx/http/http_router.hpp"
 #include "lynx/http/http_request.hpp"
-#include "lynx/http/http_response.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/tcp_connection.h"
+#include "lynx/http/http_response.hpp"
+#include "lynx/logger/logger.hpp"
+#include "lynx/tcp/tcp_connection.hpp"
 #include <fcntl.h>
-#include <iostream>
 #include <sys/stat.h>
 
 using namespace lynx;

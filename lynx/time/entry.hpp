@@ -1,5 +1,5 @@
-#ifndef LYNX_ENTRY_H
-#define LYNX_ENTRY_H
+#ifndef LYNX_ENTRY_HPP
+#define LYNX_ENTRY_HPP
 
 #include "lynx/base/copyable.hpp"
 #include <memory>

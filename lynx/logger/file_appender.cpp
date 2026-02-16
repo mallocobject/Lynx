@@ -1,4 +1,4 @@
-#include "lynx/logger/file_appender.h"
+#include "lynx/logger/file_appender.hpp"
 #include <cstdio>
 #include <filesystem>
 #include <string>

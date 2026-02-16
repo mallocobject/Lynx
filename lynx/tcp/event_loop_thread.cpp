@@ -1,6 +1,6 @@
-#include "lynx/tcp/event_loop_thread.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/event_loop.h"
+#include "lynx/tcp/event_loop_thread.hpp"
+#include "lynx/logger/logger.hpp"
+#include "lynx/tcp/event_loop.hpp"
 #include <functional>
 #include <latch>
 #include <thread>

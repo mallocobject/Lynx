@@ -1,4 +1,4 @@
-#include "lynx/http/http_response.h"
+#include "lynx/http/http_response.hpp"
 #include <format>
 
 using namespace lynx;

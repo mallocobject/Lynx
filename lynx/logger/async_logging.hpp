@@ -1,5 +1,5 @@
-#ifndef LYNX_ASYNCLOGGING_H
-#define LYNX_ASYNCLOGGING_H
+#ifndef LYNX_ASYNCLOGGING_HPP
+#define LYNX_ASYNCLOGGING_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/logger/context.hpp"

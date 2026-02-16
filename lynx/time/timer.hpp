@@ -1,8 +1,8 @@
-#ifndef LYNX_TIMER_H
-#define LYNX_TIMER_H
+#ifndef LYNX_TIMER_HPP
+#define LYNX_TIMER_HPP
 
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include <atomic>
 #include <cstdint>
 #include <functional>

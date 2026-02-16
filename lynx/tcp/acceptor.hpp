@@ -1,5 +1,5 @@
-#ifndef LYNX_ACCEPTOR_H
-#define LYNX_ACCEPTOR_H
+#ifndef LYNX_ACCEPTOR_HPP
+#define LYNX_ACCEPTOR_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/tcp/inet_addr.hpp"

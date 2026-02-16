@@ -1,5 +1,5 @@
-#include "lynx/time/entry.h"
-#include "lynx/tcp/tcp_connection.h"
+#include "lynx/time/entry.hpp"
+#include "lynx/tcp/tcp_connection.hpp"
 
 using namespace lynx;
 

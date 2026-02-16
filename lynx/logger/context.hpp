@@ -1,7 +1,7 @@
 #ifndef LYNX_CONTEXT_HPP
 #define LYNX_CONTEXT_HPP
 
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include <cstdint>
 #include <string>
 #include <utility>

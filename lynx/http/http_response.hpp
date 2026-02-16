@@ -1,5 +1,5 @@
-#ifndef LYNX_HTTP_RESPONSE_H
-#define LYNX_HTTP_RESPONSE_H
+#ifndef LYNX_HTTP_RESPONSE_HPP
+#define LYNX_HTTP_RESPONSE_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <string>

@@ -1,7 +1,7 @@
-#include "lynx/tcp/channel.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/event_loop.h"
-#include "lynx/tcp/socket.h"
+#include "lynx/tcp/channel.hpp"
+#include "lynx/logger/logger.hpp"
+#include "lynx/tcp/event_loop.hpp"
+#include "lynx/tcp/socket.hpp"
 #include <cassert>
 using namespace lynx;
 

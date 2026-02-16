@@ -1,5 +1,5 @@
-#ifndef LYNX_LOG_FILE_H
-#define LYNX_LOG_FILE_H
+#ifndef LYNX_LOG_FILE_HPP
+#define LYNX_LOG_FILE_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <memory>

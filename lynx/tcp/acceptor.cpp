@@ -1,9 +1,9 @@
-#include "lynx/tcp/acceptor.h"
-#include "lynx/logger/logger.h"
-#include "lynx/tcp/channel.h"
-#include "lynx/tcp/event_loop.h"
+#include "lynx/tcp/acceptor.hpp"
+#include "lynx/logger/logger.hpp"
+#include "lynx/tcp/channel.hpp"
+#include "lynx/tcp/event_loop.hpp"
 #include "lynx/tcp/inet_addr.hpp"
-#include "lynx/tcp/socket.h"
+#include "lynx/tcp/socket.hpp"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>

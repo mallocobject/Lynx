@@ -1,5 +1,5 @@
-#ifndef LYNX_FILE_APPENDER_H
-#define LYNX_FILE_APPENDER_H
+#ifndef LYNX_FILE_APPENDER_HPP
+#define LYNX_FILE_APPENDER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cstddef>

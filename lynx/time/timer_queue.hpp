@@ -1,8 +1,8 @@
-#ifndef LYNX_TIMER_QUEUE_H
-#define LYNX_TIMER_QUEUE_H
+#ifndef LYNX_TIMER_QUEUE_HPP
+#define LYNX_TIMER_QUEUE_HPP
 
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include "lynx/time/timer_id.hpp"
 #include <cstddef>
 #include <functional>

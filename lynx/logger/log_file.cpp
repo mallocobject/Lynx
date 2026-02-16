@@ -1,5 +1,5 @@
-#include "lynx/logger/log_file.h"
-#include "lynx/logger/file_appender.h"
+#include "lynx/logger/log_file.hpp"
+#include "lynx/logger/file_appender.hpp"
 #include <cstdint>
 #include <ctime>
 #include <format>

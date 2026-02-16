@@ -1,5 +1,5 @@
-#ifndef LYNX_TCP_SERVER_H
-#define LYNX_TCP_SERVER_H
+#ifndef LYNX_TCP_SERVER_HPP
+#define LYNX_TCP_SERVER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/tcp/inet_addr.hpp"

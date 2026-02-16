@@ -1,7 +1,7 @@
 #ifndef LYNX_INET_ADDR_HPP
 #define LYNX_INET_ADDR_HPP
 
-#include "lynx/logger/logger.h"
+#include "lynx/logger/logger.hpp"
 #include <arpa/inet.h>
 #include <cstdint>
 #include <format>

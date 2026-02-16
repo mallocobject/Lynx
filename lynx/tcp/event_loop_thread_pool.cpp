@@ -1,5 +1,5 @@
-#include "lynx/tcp/event_loop_thread_pool.h"
-#include "lynx/tcp/event_loop_thread.h"
+#include "lynx/tcp/event_loop_thread_pool.hpp"
+#include "lynx/tcp/event_loop_thread.hpp"
 
 using namespace lynx;
 

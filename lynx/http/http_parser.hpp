@@ -1,5 +1,5 @@
-#ifndef LYNX_HTTP_PARSER_H
-#define LYNX_HTTP_PARSER_H
+#ifndef LYNX_HTTP_PARSER_HPP
+#define LYNX_HTTP_PARSER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/http/http_request.hpp"

@@ -1,5 +1,5 @@
-#ifndef LYNX_HTTP_CONTEXT_H
-#define LYNX_HTTP_CONTEXT_H
+#ifndef LYNX_HTTP_CONTEXT_HPP
+#define LYNX_HTTP_CONTEXT_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <memory>

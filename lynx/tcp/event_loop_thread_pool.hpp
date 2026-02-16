@@ -1,5 +1,5 @@
-#ifndef LYNX_EVENT_LOOP_THREAD_POOL_H
-#define LYNX_EVENT_LOOP_THREAD_POOL_H
+#ifndef LYNX_EVENT_LOOP_THREAD_POOL_HPP
+#define LYNX_EVENT_LOOP_THREAD_POOL_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cstddef>

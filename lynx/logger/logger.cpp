@@ -1,8 +1,8 @@
-#include "lynx/logger/logger.h"
+#include "lynx/logger/logger.hpp"
 #include "lynx/base/current_thread.hpp"
-#include "lynx/logger/async_logging.h"
+#include "lynx/logger/async_logging.hpp"
 #include "lynx/logger/context.hpp"
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include <atomic>
 #include <cassert>
 #include <memory>

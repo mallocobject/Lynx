@@ -1,9 +1,9 @@
-#ifndef LYNX_EVENT_LOOP_H
-#define LYNX_EVENT_LOOP_H
+#ifndef LYNX_EVENT_LOOP_HPP
+#define LYNX_EVENT_LOOP_HPP
 
 #include "lynx/base/current_thread.hpp"
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/logger/logger.h"
+#include "lynx/logger/logger.hpp"
 #include "lynx/time/timer_id.hpp"
 #include <atomic>
 #include <cstdint>

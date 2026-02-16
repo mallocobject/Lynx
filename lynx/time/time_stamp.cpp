@@ -1,4 +1,4 @@
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include <chrono>
 #include <cstdint>
 #include <ctime>

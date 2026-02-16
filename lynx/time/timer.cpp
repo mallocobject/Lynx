@@ -1,5 +1,5 @@
-#include "lynx/time/timer.h"
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/timer.hpp"
+#include "lynx/time/time_stamp.hpp"
 #include <atomic>
 #include <cstdint>
 #include <functional>

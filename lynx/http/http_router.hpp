@@ -1,5 +1,5 @@
-#ifndef LYNX_HTTP_ROUTER_H
-#define LYNX_HTTP_ROUTER_H
+#ifndef LYNX_HTTP_ROUTER_HPP
+#define LYNX_HTTP_ROUTER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cassert>

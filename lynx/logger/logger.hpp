@@ -1,9 +1,9 @@
-#ifndef LYNX_LOGGER_H
-#define LYNX_LOGGER_H
+#ifndef LYNX_LOGGER_HPP
+#define LYNX_LOGGER_HPP
 
 #include "lynx/base/current_thread.hpp"
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include <atomic>
 #include <cassert>
 #include <cstring>

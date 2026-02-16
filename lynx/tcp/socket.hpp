@@ -1,5 +1,5 @@
-#ifndef LYNX_SOCKET_H
-#define LYNX_SOCKET_H
+#ifndef LYNX_SOCKET_HPP
+#define LYNX_SOCKET_HPP
 
 #include "lynx/tcp/inet_addr.hpp"
 #include <cstdlib>

@@ -396,7 +396,7 @@ cmake -B build_release \
     -DCMAKE_BUILD_TYPE=Release \
     -DLOG_LEVEL=INFO
 cmake --build build_release -j 16
-sudo cmake --install build_release
+sudo cmake --install build_release --config=Release
 ```
 
 ### 设置自定义日志目录

@@ -1,6 +1,6 @@
-#include "lynx/http/http_context.h"
-#include "lynx/http/http_parser.h"
-#include "lynx/tcp/buffer.h"
+#include "lynx/http/http_context.hpp"
+#include "lynx/http/http_parser.hpp"
+#include "lynx/tcp/buffer.hpp"
 #include <memory>
 
 using namespace lynx;

@@ -1,5 +1,5 @@
-#ifndef LYNX_TIME_STAMP_H
-#define LYNX_TIME_STAMP_H
+#ifndef LYNX_TIME_STAMP_HPP
+#define LYNX_TIME_STAMP_HPP
 
 #include <cstdint>
 #include <ostream>

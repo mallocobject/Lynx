@@ -1,8 +1,8 @@
-#ifndef LYNX_EPOLLER_H
-#define LYNX_EPOLLER_H
+#ifndef LYNX_EPOLLER_HPP
+#define LYNX_EPOLLER_HPP
 
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/time/time_stamp.h"
+#include "lynx/time/time_stamp.hpp"
 #include <sys/epoll.h>
 #include <vector>
 namespace lynx

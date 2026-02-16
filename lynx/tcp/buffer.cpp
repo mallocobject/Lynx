@@ -1,4 +1,4 @@
-#include "lynx/tcp/buffer.h"
+#include "lynx/tcp/buffer.hpp"
 #include <bits/types/struct_iovec.h>
 #include <sys/uio.h>
 
