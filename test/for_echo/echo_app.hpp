@@ -3,7 +3,7 @@
 class EchoApp : public lynx::noncopyable
 {
   private:
-	using cc_type = lynx::CircularBuffer<lynx::Entry>;
+	using cc_type = lynx::CircularBuffer<lynx::Entry<lynx::TcpConnection>>;
 
 	lynx::TcpServer server_;
 	cc_type conn_buckets_;
@@ -49,10 +49,10 @@ class EchoApp : public lynx::noncopyable
 		{
 			LOG_INFO << "New connection from "
 					 << conn->addr().toFormattedString();
-			std::shared_ptr<lynx::Entry> entry =
-				std::make_shared<lynx::Entry>(conn);
+			std::shared_ptr<lynx::Entry<lynx::TcpConnection>> entry =
+				std::make_shared<lynx::Entry<lynx::TcpConnection>>(conn);
 			conn_buckets_.push_back(entry);
-			std::weak_ptr<lynx::Entry> weak_entry = entry;
+			std::weak_ptr<lynx::Entry<lynx::TcpConnection>> weak_entry = entry;
 			conn->setContext(weak_entry);
 		}
 		else if (conn->disconnected())
@@ -60,8 +60,9 @@ class EchoApp : public lynx::noncopyable
 			LOG_INFO << "Connection closed on "
 					 << conn->addr().toFormattedString();
 			assert(conn->context().has_value());
-			std::weak_ptr<lynx::Entry> weak_entry =
-				std::any_cast<std::weak_ptr<lynx::Entry>>(conn->context());
+			std::weak_ptr<lynx::Entry<lynx::TcpConnection>> weak_entry =
+				std::any_cast<std::weak_ptr<lynx::Entry<lynx::TcpConnection>>>(
+					conn->context());
 			LOG_DEBUG << "Entry use_count = " << weak_entry.use_count();
 		}
 	}
@@ -74,9 +75,11 @@ class EchoApp : public lynx::noncopyable
 		conn->send(message);
 
 		assert(conn->context().has_value());
-		std::weak_ptr<lynx::Entry> weak_entry =
-			std::any_cast<std::weak_ptr<lynx::Entry>>(conn->context());
-		std::shared_ptr<lynx::Entry> entry = weak_entry.lock();
+		std::weak_ptr<lynx::Entry<lynx::TcpConnection>> weak_entry =
+			std::any_cast<std::weak_ptr<lynx::Entry<lynx::TcpConnection>>>(
+				conn->context());
+		std::shared_ptr<lynx::Entry<lynx::TcpConnection>> entry =
+			weak_entry.lock();
 		if (entry)
 		{
 			conn_buckets_.push_back(entry);

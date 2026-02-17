@@ -5,15 +5,24 @@
 #include <memory>
 namespace lynx
 {
-class TcpConnection;
-class Entry : public copyable
+template <typename T> class Entry : public copyable
 {
   private:
-	std::weak_ptr<TcpConnection> weak_conn_;
+	std::weak_ptr<T> weak_conn_;
 
   public:
-	explicit Entry(const std::weak_ptr<TcpConnection>& weak_conn);
-	~Entry();
+	explicit Entry(const std::weak_ptr<T>& weak_conn) : weak_conn_(weak_conn)
+	{
+	}
+
+	~Entry()
+	{
+		auto conn = weak_conn_.lock();
+		if (conn)
+		{
+			conn->shutdown();
+		}
+	}
 };
 } // namespace lynx
 
