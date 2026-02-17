@@ -11,3 +11,7 @@ add_library(lynx_lib STATIC ${LIB_SOURCES})
 target_include_directories(lynx_lib 
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set_target_properties(lynx_lib PROPERTIES DEBUG_POSTFIX "_d")
+endif()
