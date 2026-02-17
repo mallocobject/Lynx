@@ -176,7 +176,7 @@ class Channel : public noncopyable
 			if (guard == nullptr)
 			{
 				LOG_FATAL << "weak_ptr -> shared_ptr error";
-				exit(EXIT_FAILURE);
+				return;
 			}
 			handleEventWithGuard(time_stamp);
 		}
