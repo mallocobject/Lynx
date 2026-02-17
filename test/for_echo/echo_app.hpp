@@ -1,4 +1,6 @@
 #include "lynx/lynx.hpp"
+#include <functional>
+#include <lynx/tcp_connection.hpp>
 
 class EchoApp : public lynx::noncopyable
 {
@@ -50,7 +52,9 @@ class EchoApp : public lynx::noncopyable
 			LOG_INFO << "New connection from "
 					 << conn->addr().toFormattedString();
 			std::shared_ptr<lynx::Entry<lynx::TcpConnection>> entry =
-				std::make_shared<lynx::Entry<lynx::TcpConnection>>(conn);
+				std::make_shared<lynx::Entry<lynx::TcpConnection>>(
+					conn,
+					std::bind(&lynx::TcpConnection::shutdown, conn.get()));
 			conn_buckets_.push_back(entry);
 			std::weak_ptr<lynx::Entry<lynx::TcpConnection>> weak_entry = entry;
 			conn->setContext(weak_entry);
