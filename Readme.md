@@ -35,12 +35,12 @@ sudo cmake --install build
 ```
 
 **安装位置：**
-- 静态库: `/usr/local/lib/liblynx_lib.a`
+- 静态库: `/usr/local/lib/liblynx_lib_d.a`
 - 公开头文件: `/usr/local/include/lynx/`
 
 #### 4. 验证安装
 ```bash
-ls /usr/local/lib/liblynx_lib.a
+ls /usr/local/lib/liblynx_lib_d.a
 ls /usr/local/include/lynx/
 ```
 

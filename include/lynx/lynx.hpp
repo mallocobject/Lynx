@@ -21,4 +21,10 @@
 #include "entry.hpp"
 #include "timer_id.hpp"
 
+// SQL模块
+#include "schema.hpp"
+#include "session.hpp"
+#include "table.hpp"
+#include "types.hpp"
+
 #endif // LYNX_HPP

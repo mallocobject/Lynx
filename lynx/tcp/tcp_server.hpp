@@ -7,9 +7,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <utility>
 namespace lynx
 {
@@ -25,7 +25,7 @@ class TcpServer : public noncopyable
 	const std::string name_;
 	std::unique_ptr<Acceptor> acceptor_;
 	std::unique_ptr<EventLoopThreadPool> sub_reactor_pool_;
-	std::unordered_map<uint64_t, std::shared_ptr<TcpConnection>> conn_map_;
+	std::map<uint64_t, std::shared_ptr<TcpConnection>> conn_map_;
 
 	std::atomic<uint64_t> seq_;
 

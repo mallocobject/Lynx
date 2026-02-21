@@ -4,17 +4,14 @@ project(MyProject)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(Lynx_EchoServer test_echo.cpp)
+add_executable(Lynx_test test_sql.cpp)
 
-target_include_directories(Lynx_EchoServer PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(Lynx_test PRIVATE 
     /usr/local/include
 )
 
-link_directories(/usr/local/lib)
+# link_directories(/usr/local/lib)
 
-target_link_libraries(Lynx_EchoServer PRIVATE lynx_lib)
+find_library(MYSQL_CONNECTOR_CPP NAMES mysqlcppconn)
 
-target_compile_definitions(Lynx_EchoServer PRIVATE 
-    LYNX_WEB_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
-)
+target_link_libraries(Lynx_test PRIVATE /usr/local/lib/liblynx_lib_d.a ${MYSQL_CONNECTOR_CPP})

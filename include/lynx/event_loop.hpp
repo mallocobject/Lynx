@@ -100,7 +100,8 @@ class EventLoop : public noncopyable
 	void abortNotInLoopThread()
 	{
 		LOG_FATAL << "EventLoop was created in threadId_ = " << tid_
-				  << ", current thread id = " << std::this_thread::get_id();
+				  << ", current thread id = "
+				  << std::hash<std::thread::id>{}(std::this_thread::get_id());
 	}
 
 	void doPendingFuncs()

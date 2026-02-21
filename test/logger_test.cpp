@@ -1,6 +1,4 @@
-#define LOGGER_LEVEL_SETTING LYNX_TRACE
-
-#include "lynx/logger/logger.h"
+#include "lynx/logger/logger.hpp"
 int main()
 {
 	LOG_TRACE << "hello world!";

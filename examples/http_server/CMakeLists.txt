@@ -11,9 +11,11 @@ target_include_directories(Lynx_WebServer PRIVATE
     /usr/local/include
 )
 
-link_directories(/usr/local/lib)
-
-target_link_libraries(Lynx_WebServer PRIVATE lynx_lib)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_libraries(Lynx_WebServer PRIVATE /usr/local/lib/liblynx_lib_d.a)
+else()
+    target_link_libraries(Lynx_WebServer PRIVATE /usr/local/lib/liblynx_lib.a)
+endif()
 
 target_compile_definitions(Lynx_WebServer PRIVATE 
     LYNX_WEB_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}"

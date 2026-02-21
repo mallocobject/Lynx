@@ -4,9 +4,9 @@
 #include "noncopyable.hpp"
 #include <cassert>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 namespace lynx
 {
 class HttpRequest;
@@ -23,7 +23,7 @@ class HttpRouter : public noncopyable
 	struct TrieNode
 	{
 		http_handler f;
-		std::unordered_map<std::string, std::unique_ptr<TrieNode>> next_node;
+		std::map<std::string, std::unique_ptr<TrieNode>> next_node;
 	};
 
 	struct Trie
@@ -47,7 +47,7 @@ class HttpRouter : public noncopyable
 		std::string subPath(const std::string& path, size_t* start);
 	};
 
-	std::unordered_map<std::string, Trie> tries_;
+	std::map<std::string, Trie> tries_;
 
   public:
 	HttpRouter();

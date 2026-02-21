@@ -3,8 +3,8 @@
 
 #include "noncopyable.hpp"
 #include <cstddef>
+#include <map>
 #include <string>
-#include <unordered_map>
 namespace lynx
 {
 struct HttpRequest : public noncopyable
@@ -13,8 +13,8 @@ struct HttpRequest : public noncopyable
 	std::string path;
 	std::string version;
 
-	std::unordered_map<std::string, std::string> headers;
-	std::unordered_map<std::string, std::string> query_params;
+	std::map<std::string, std::string> headers;
+	std::map<std::string, std::string> query_params;
 
 	std::string body;
 

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <functional>
-#include <sstream>
+#include <string>
 #include <thread>
 namespace lynx
 {
@@ -16,17 +16,16 @@ inline uint64_t tid()
 	return cached_tid;
 }
 
-inline std::ostringstream& oss()
+inline std::string& str()
 {
-	thread_local std::ostringstream oss;
+	thread_local std::string str;
 	static bool initialed = []()
 	{
-		oss.str("");
-		oss.clear();
+		str.clear();
 		return true;
 	}();
 
-	return oss;
+	return str;
 }
 } // namespace CurrentThread
 } // namespace lynx

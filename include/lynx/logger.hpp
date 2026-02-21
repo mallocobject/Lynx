@@ -134,7 +134,6 @@ class Logger : public noncopyable
 	{
 	  private:
 		LogLevel level_;
-		// std::ostringstream stream_;
 
 		const char* file_;
 		const char* func_;
@@ -148,12 +147,12 @@ class Logger : public noncopyable
 
 		~LogStream()
 		{
-			if (!CurrentThread::oss().str().empty())
+			if (!CurrentThread::str().empty())
 			{
 				if (Logger::isAsyncEnabled())
 				{
-					Logger::appendAsyncLog(level_, CurrentThread::oss().str(),
-										   file_, func_, line_);
+					Logger::appendAsyncLog(level_, CurrentThread::str(), file_,
+										   func_, line_);
 				}
 				else
 				{
@@ -162,24 +161,17 @@ class Logger : public noncopyable
 						logLevel2Color(level_),
 						TimeStamp::now().toFormattedString(),
 						CurrentThread::tid(), level_, getShortName(file_),
-						line_, func_, CurrentThread::oss().str());
+						line_, func_, CurrentThread::str());
 
 					std::cout << formatted_log;
 				}
 			}
-			CurrentThread::oss().str("");
-			CurrentThread::oss().clear();
+			CurrentThread::str().clear();
 		}
 
 		template <typename T> LogStream& operator<<(const T& val)
 		{
-			CurrentThread::oss() << val;
-			return *this;
-		}
-
-		LogStream& operator<<(std::ostream& (*manip)(std::ostream))
-		{
-			CurrentThread::oss() << manip;
+			std::format_to(std::back_inserter(CurrentThread::str()), "{}", val);
 			return *this;
 		}
 

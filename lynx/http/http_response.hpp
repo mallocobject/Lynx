@@ -2,8 +2,8 @@
 #define LYNX_HTTP_RESPONSE_HPP
 
 #include "lynx/base/noncopyable.hpp"
+#include <map>
 #include <string>
-#include <unordered_map>
 namespace lynx
 {
 class HttpResponse : public noncopyable
@@ -12,7 +12,7 @@ class HttpResponse : public noncopyable
 	int status_code_;
 	std::string status_msg_;
 	std::string version_;
-	std::unordered_map<std::string, std::string> headers_;
+	std::map<std::string, std::string> headers_;
 	std::string body_;
 
   public:
@@ -58,7 +58,7 @@ class HttpResponse : public noncopyable
   private:
 	static std::string_view code2msg(int code)
 	{
-		static const std::unordered_map<int, std::string_view> status_msgs = {
+		static const std::map<int, std::string_view> status_msgs = {
 			{200, "OK"},		  {301, "Moved Permanently"},
 			{400, "Bad Request"}, {403, "Forbidden"},
 			{404, "Not Found"},	  {500, "Internal Server Error"},
