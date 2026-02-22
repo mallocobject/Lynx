@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 	// 创建 TCP 服务器
 	EventLoop loop;
 
-	TcpServer server(&loop, "0.0.0.0", 9999, "EchoServer", 4);
+	TcpServer server(&loop, "0.0.0.0", 9999, "EchoServer", 8);
 
 	// 设置连接回调
 	server.setConnectionCallback(

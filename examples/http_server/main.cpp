@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 
 	// 创建 HTTP 服务器
 	EventLoop loop;
-	TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 4);
+	TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 8);
 
 	// 创建路由器
 	auto router = HttpRouter();

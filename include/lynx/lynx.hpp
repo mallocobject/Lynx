@@ -22,6 +22,7 @@
 #include "timer_id.hpp"
 
 // SQL模块
+#include "connection_pool.hpp"
 #include "schema.hpp"
 #include "session.hpp"
 #include "table.hpp"
