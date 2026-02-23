@@ -49,14 +49,14 @@ class Array : public Element
 		appendRawPtr(new Value(val));
 	}
 
-	Element* at(size_t index)
+	Element*& at(size_t index)
 	{
 		return arr_.at(index);
 	}
 
-	Element* operator[](size_t index)
+	Element*& operator[](size_t index)
 	{
-		return arr_.at(index);
+		return arr_[index];
 	}
 
   private:

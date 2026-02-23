@@ -7,6 +7,7 @@
 #include <format>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <variant>
 namespace lynx
 {
@@ -15,9 +16,11 @@ using value_t =
 
 template <typename T>
 concept JsonValueType =
-	std::same_as<T, std::nullptr_t> || std::same_as<T, bool> ||
-	std::integral<T> || std::floating_point<T> ||
-	std::convertible_to<T, std::string>;
+	std::same_as<std::remove_cvref_t<T>, std::nullptr_t> ||
+	std::same_as<std::remove_cvref_t<T>, bool> ||
+	std::integral<std::remove_cvref_t<T>> ||
+	std::floating_point<std::remove_cvref_t<T>> ||
+	std::convertible_to<std::remove_cvref_t<T>, std::string>;
 
 class Value : public Element
 {

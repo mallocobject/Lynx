@@ -49,14 +49,14 @@ class Object : public Element
 		insertRawPtr(key, new Value(val));
 	}
 
-	Element* at(const std::string& key)
+	Element*& at(const std::string& key)
 	{
 		return obj_.at(key);
 	}
 
-	Element* operator[](const std::string& key)
+	Element*& operator[](const std::string& key)
 	{
-		return obj_.at(key);
+		return obj_[key];
 	}
 
   private:
