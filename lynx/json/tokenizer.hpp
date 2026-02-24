@@ -142,6 +142,10 @@ class Tokenizer : public noncopyable
 		std::string str;
 		while (stream_.peek() != '"')
 		{
+			if (stream_.peek() == '\\')
+			{
+				stream_.get();
+			}
 			str += stream_.get();
 		}
 		stream_.get(); // 跳过 "
@@ -189,18 +193,46 @@ class Tokenizer : public noncopyable
 	Token parseNumber()
 	{
 		std::string num;
-		bool has_dot = false;
-		while (stream_.peek() == '-' || stream_.peek() == '.' ||
-			   isdigit(stream_.peek()))
+
+		if (stream_.peek() == '-')
 		{
-			if (stream_.peek() == '.')
-			{
-				has_dot = true;
-			}
 			num += stream_.get();
 		}
 
-		if (has_dot)
+		while (isdigit(stream_.peek()))
+		{
+			num += stream_.get();
+		}
+
+		bool is_float = false;
+		if (stream_.peek() == '.')
+		{
+			is_float = true;
+			num += stream_.get();
+
+			while (isdigit(stream_.peek()))
+			{
+				num += stream_.get();
+			}
+		}
+
+		if (stream_.peek() == 'e' || stream_.peek() == 'E')
+		{
+			is_float = true;
+			num += stream_.get();
+
+			if (stream_.peek() == '+' || stream_.peek() == '-')
+			{
+				num += stream_.get();
+			}
+
+			while (isdigit(stream_.peek()))
+			{
+				num += stream_.get();
+			}
+		}
+
+		if (is_float)
 		{
 			return {TokenType::kFloat, std::move(num)};
 		}
