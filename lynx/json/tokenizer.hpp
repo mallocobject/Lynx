@@ -3,6 +3,7 @@
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/json/token.hpp"
+#include "lynx/logger/logger.hpp"
 #include <cctype>
 #include <concepts>
 #include <cstddef>
@@ -55,9 +56,9 @@ class Tokenizer : public noncopyable
 	Token token_;
 
   public:
-	template <typename T>
-		requires std::constructible_from<InputStream, T>
-	Tokenizer(T&& stream) : stream_(stream)
+	template <typename String>
+		requires std::constructible_from<std::string, String>
+	Tokenizer(String&& context) : stream_(std::forward<String>(context))
 	{
 		consume();
 	}
@@ -119,6 +120,7 @@ class Tokenizer : public noncopyable
 			}
 			else
 			{
+				LOG_ERROR << "Unexpected character";
 				throw std::runtime_error("Unexpected character");
 			}
 		}
@@ -126,7 +128,9 @@ class Tokenizer : public noncopyable
 
 	void skipWihteSpace()
 	{
-		while (!stream_.eof() && stream_.peek() == ' ')
+		while (!stream_.eof() &&
+			   (stream_.peek() == ' ' || stream_.peek() == '\n' ||
+				stream_.peek() == '\r' || stream_.peek() == '\t'))
 		{
 			stream_.get();
 		}
@@ -146,19 +150,24 @@ class Tokenizer : public noncopyable
 
 	Token parseBool()
 	{
-		if (stream_.get() == 't' && stream_.get() == 'r' &&
-			stream_.get() == 'u' && stream_.get() == 'e')
+		if (stream_.get() == 't')
 		{
-			return {TokenType::kBool, "true"};
-		}
-		else if (stream_.get() == 'f' && stream_.get() == 'a' &&
-				 stream_.get() == 'l' && stream_.get() == 's' &&
-				 stream_.get() == 'e')
-		{
-			return {TokenType::kBool, "false"};
+			if (stream_.get() == 'r' && stream_.get() == 'u' &&
+				stream_.get() == 'e')
+			{
+				return {TokenType::kBool, "true"};
+			}
+			LOG_FATAL << "Unexpected boolean";
+			throw std::runtime_error("Unexpected boolean");
 		}
 		else
 		{
+			if (stream_.get() == 'a' && stream_.get() == 'l' &&
+				stream_.get() == 's' && stream_.get() == 'e')
+			{
+				return {TokenType::kBool, "false"};
+			}
+			LOG_FATAL << "Unexpected boolean";
 			throw std::runtime_error("Unexpected boolean");
 		}
 	}
@@ -172,6 +181,7 @@ class Tokenizer : public noncopyable
 		}
 		else
 		{
+			LOG_FATAL << "Unexpected null";
 			throw std::runtime_error("Unexpected null");
 		}
 	}

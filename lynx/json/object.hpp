@@ -3,6 +3,8 @@
 
 #include "lynx/json/element.hpp"
 #include "lynx/json/value.hpp"
+#include <cstddef>
+#include <format>
 #include <map>
 #include <string>
 namespace lynx
@@ -23,6 +25,16 @@ class Object : public Element
 		clear();
 	}
 
+	static void* operator new(size_t size)
+	{
+		return alloc::allocate(size);
+	}
+
+	static void operator delete(void* p, size_t size)
+	{
+		alloc::deallocate(p, size);
+	}
+
 	bool isObject() const noexcept override
 	{
 		return true;
@@ -31,6 +43,24 @@ class Object : public Element
 	Object* asObject() override
 	{
 		return this;
+	}
+
+	std::string serialize() const override
+	{
+		std::string result = "{";
+		bool first = true;
+		for (const auto& kv : obj_)
+		{
+			if (!first)
+			{
+				result += ',';
+			}
+			result +=
+				std::format("\"{}\":{}", kv.first, kv.second->serialize());
+			first = false;
+		}
+		result += '}';
+		return result;
 	}
 
 	Element* copy() const override
@@ -49,6 +79,11 @@ class Object : public Element
 		insertRawPtr(key, new Value(val));
 	}
 
+	void insertRawPtr(const std::string& key, Element* val)
+	{
+		obj_[key] = val;
+	}
+
 	Element*& at(const std::string& key)
 	{
 		return obj_.at(key);
@@ -57,6 +92,21 @@ class Object : public Element
 	Element*& operator[](const std::string& key)
 	{
 		return obj_[key];
+	}
+
+	size_t size() const noexcept
+	{
+		return obj_.size();
+	}
+
+	object_t::const_iterator begin() const
+	{
+		return obj_.begin();
+	}
+
+	object_t::const_iterator end() const
+	{
+		return obj_.end();
 	}
 
   private:
@@ -70,11 +120,6 @@ class Object : public Element
 			}
 		}
 		obj_.clear();
-	}
-
-	void insertRawPtr(const std::string& key, Element* val)
-	{
-		obj_[key] = val;
 	}
 };
 } // namespace lynx

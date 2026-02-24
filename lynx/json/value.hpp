@@ -1,13 +1,16 @@
 #ifndef LYNX_VALUE_HPP
 #define LYNX_VALUE_HPP
 
+#include "lynx/base/alloc.hpp"
 #include "lynx/json/element.hpp"
+#include "lynx/logger/logger.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <format>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <variant>
 namespace lynx
 {
@@ -36,6 +39,16 @@ class Value : public Element
 	{
 	}
 
+	static void* operator new(size_t size)
+	{
+		return alloc::allocate(size);
+	}
+
+	static void operator delete(void* p, size_t size)
+	{
+		alloc::deallocate(p, size);
+	}
+
 	bool isValue() const noexcept override
 	{
 		return true;
@@ -48,7 +61,7 @@ class Value : public Element
 
 	Element* copy() const override
 	{
-		return new Value(*this); // deep copy construction
+		return new Value(*this); // copy construction
 	}
 
 	std::string serialize() const override
@@ -110,6 +123,7 @@ class Value : public Element
 		{
 			return asT<bool>();
 		}
+		LOG_FATAL << "Not bool type";
 		throw std::runtime_error("Not bool type");
 	}
 
@@ -119,6 +133,7 @@ class Value : public Element
 		{
 			return asT<int64_t>();
 		}
+		LOG_FATAL << "Not int type";
 		throw std::runtime_error("Not int type");
 	}
 
@@ -128,6 +143,7 @@ class Value : public Element
 		{
 			return asT<double>();
 		}
+		LOG_FATAL << "Not float type";
 		throw std::runtime_error("Not float type");
 	}
 
@@ -137,7 +153,18 @@ class Value : public Element
 		{
 			return asT<std::string>();
 		}
+		LOG_FATAL << "Not str type";
 		throw std::runtime_error("Not str type");
+	}
+
+	std::nullptr_t asNull() const
+	{
+		if (isNull())
+		{
+			return asT<std::nullptr_t>();
+		}
+		LOG_FATAL << "Not null type";
+		throw std::runtime_error("Not null type");
 	}
 
   private:

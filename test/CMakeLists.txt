@@ -11,6 +11,8 @@ target_include_directories(Lynx_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
+target_link_libraries(Lynx_test PRIVATE lynx_lib)
+
 # link_directories(/usr/local/lib)
 
 # find_library(MYSQL_CONNECTOR_CPP NAMES mysqlcppconn)

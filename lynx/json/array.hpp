@@ -4,6 +4,9 @@
 #include "lynx/json/element.hpp"
 #include "lynx/json/value.hpp"
 #include <cstddef>
+#include <format>
+#include <iterator>
+#include <string>
 #include <vector>
 namespace lynx
 {
@@ -23,6 +26,16 @@ class Array : public Element
 		clear();
 	}
 
+	static void* operator new(size_t size)
+	{
+		return alloc::allocate(size);
+	}
+
+	static void operator delete(void* p, size_t size)
+	{
+		alloc::deallocate(p, size);
+	}
+
 	bool isArray() const noexcept override
 	{
 		return true;
@@ -31,6 +44,23 @@ class Array : public Element
 	Array* asArray() override
 	{
 		return this;
+	}
+
+	std::string serialize() const override
+	{
+		std::string result = "[";
+		bool first = true;
+		for (const auto& v : arr_)
+		{
+			if (!first)
+			{
+				result += ',';
+			}
+			result += v->serialize(); // 多态
+			first = false;
+		}
+		result += ']';
+		return result;
 	}
 
 	Element* copy() const override
@@ -49,6 +79,11 @@ class Array : public Element
 		appendRawPtr(new Value(val));
 	}
 
+	void appendRawPtr(Element* child)
+	{
+		arr_.push_back(child);
+	}
+
 	Element*& at(size_t index)
 	{
 		return arr_.at(index);
@@ -57,6 +92,21 @@ class Array : public Element
 	Element*& operator[](size_t index)
 	{
 		return arr_[index];
+	}
+
+	size_t size() const noexcept
+	{
+		return arr_.size();
+	}
+
+	array_t::const_iterator begin() const
+	{
+		return arr_.begin();
+	}
+
+	array_t::const_iterator end() const
+	{
+		return arr_.end();
 	}
 
   private:
@@ -70,11 +120,6 @@ class Array : public Element
 			}
 		}
 		arr_.clear();
-	}
-
-	void appendRawPtr(Element* child)
-	{
-		arr_.push_back(child);
 	}
 };
 } // namespace lynx

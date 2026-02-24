@@ -24,7 +24,7 @@ add_definitions(-DLOGGER_LEVEL_SETTING=LYNX_${LOG_LEVEL})
 message(STATUS "cmake build mode: ${CMAKE_BUILD_TYPE}")
 
 add_subdirectory(lynx)
-# add_subdirectory(test)
+add_subdirectory(test)
 
 # 安装库文件到 /usr/local/lib
 install(TARGETS lynx_lib
