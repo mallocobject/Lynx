@@ -53,8 +53,11 @@ class Parser : public noncopyable
 		case TokenType::kArrayBegin:
 			return parseArray();
 		case TokenType::kString:
+		{
+			std::string val = token.value;
 			consume();
-			return new Value(token.value);
+			return new Value(val);
+		}
 		case TokenType::kInteger:
 		{
 			int64_t val = std::stoll(token.value);

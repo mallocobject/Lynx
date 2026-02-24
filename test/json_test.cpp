@@ -14,32 +14,33 @@ using namespace lynx;
 int main()
 {
 	std::string json_str = R"({
-		"name": "张三",
+		"name": "zhangsan",
 		"age": 28,
 		"is_student": false,
 		"height": 175.5,
 		"address": {
-			"city": "北京",
-			"district": "朝阳区",
-			"street": "建国路"
+			"city": "beijing",
+			"district": "chaoyangqu",
+			"street": "jianguolu"
 		},
-		"hobbies": ["读书", "游泳", "编程"],
+		"hobbies": ["dushu", "youyong", "biancheng"],
 		"contact": {
 			"email": "zhangsan@example.com",
 			"phone": null
 		},
 		"scores": [
-			{"subject": "数学", "score": 95},
-			{"subject": "英语", "score": 88}
+			{"subject": "shuxue", "score": 95},
+			{"subject": "yingyu", "score": 88}
 		]
 	})";
 
 	Tokenizer tokenizer(json_str);
-	Ref root = make_object(
-		{{"name", make_value("John")},
-		 {"age", make_value(30)},
-		 {"courses", make_array({make_value("C++"), make_value("Python")})},
-		 {"address", make_value(nullptr)}});
+	Ref root = Parser(&tokenizer).parse();
+	// Ref root = make_object(
+	// 	{{"name", make_value("John")},
+	// 	 {"age", make_value(30)},
+	// 	 {"courses", make_array({make_value("C++"), make_value("Python")})},
+	// 	 {"address", make_value(nullptr)}});
 
 	std::cout << root << std::endl;
 
