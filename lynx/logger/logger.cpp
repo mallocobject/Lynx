@@ -7,7 +7,6 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <pthread.h>
 
 using namespace lynx;

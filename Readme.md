@@ -191,7 +191,6 @@ nc 127.0.0.1 9999
 **文件：** `examples/http_server/main.cpp`
 
 ```cpp
-#include "lynx/logger/logger.hpp"
 #include <lynx/lynx.hpp>
 
 using namespace lynx;
@@ -243,8 +242,6 @@ int main(int argc, char* argv[])
 				json::Tokenizer tokenizer(req.body);
 				json::Ref root = json::Parser(&tokenizer).parse();
 
-				LOG_TRACE << "root: " << root;
-
 				double sum = 0.0;
 
 				auto a = root["a"];
@@ -278,7 +275,6 @@ int main(int argc, char* argv[])
 				res->setStatusCode(200);
 				res->setContentType("application/json");
 
-				LOG_TRACE << "result: " << result.serialize();
 				res->setBody(result.serialize());
 
 				conn->send(res->toFormattedString());
