@@ -1,8 +1,10 @@
-#ifndef LYNX_FLAGS_HPP
-#define LYNX_FLAGS_HPP
+#ifndef LYNX_LOGGER_FLAGS_HPP
+#define LYNX_LOGGER_FLAGS_HPP
 
 #include <cstdint>
 namespace lynx
+{
+namespace logger
 {
 class Flags
 {
@@ -82,6 +84,7 @@ class Flags
 		return value_;
 	}
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

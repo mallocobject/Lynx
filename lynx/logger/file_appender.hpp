@@ -1,5 +1,5 @@
-#ifndef LYNX_FILE_APPENDER_HPP
-#define LYNX_FILE_APPENDER_HPP
+#ifndef LYNX_LOGGER_FILE_APPENDER_HPP
+#define LYNX_LOGGER_FILE_APPENDER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cstddef>
@@ -7,7 +7,9 @@
 #include <filesystem>
 namespace lynx
 {
-class FileAppender : noncopyable
+namespace logger
+{
+class FileAppender : base::noncopyable
 {
   private:
 	std::filesystem::path filepath_;
@@ -40,6 +42,7 @@ class FileAppender : noncopyable
   private:
 	void ensureDirectoryExists() const;
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

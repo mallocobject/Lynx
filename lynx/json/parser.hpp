@@ -1,5 +1,5 @@
-#ifndef LYNX_PARSER_HPP
-#define LYNX_PARSER_HPP
+#ifndef LYNX_JSON_PARSER_HPP
+#define LYNX_JSON_PARSER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/json/array.hpp"
@@ -16,7 +16,9 @@
 #include <string>
 namespace lynx
 {
-class Parser : public noncopyable
+namespace json
+{
+class Parser : public base::noncopyable
 {
   private:
 	Tokenizer* tokenizer_;
@@ -180,6 +182,7 @@ class Parser : public noncopyable
 		return arr;
 	}
 };
+} // namespace json
 } // namespace lynx
 
 #endif

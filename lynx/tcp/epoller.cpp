@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 static const int kInitEventSize = 16;
 
@@ -52,10 +53,10 @@ void Epoller::removeChannel(Channel* ch)
 	ch->setInEpoll(false);
 }
 
-TimeStamp Epoller::poll(std::vector<Channel*>* active_chs, int timeout)
+time::TimeStamp Epoller::poll(std::vector<Channel*>* active_chs, int timeout)
 {
 	int nevs = ::epoll_wait(epfd_, evs_.data(), evs_.size(), timeout);
-	TimeStamp now = TimeStamp::now();
+	time::TimeStamp now = time::TimeStamp::now();
 
 	int saved_errno = errno;
 

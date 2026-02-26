@@ -1,5 +1,5 @@
-#ifndef LYNX_SOCKET_HPP
-#define LYNX_SOCKET_HPP
+#ifndef LYNX_TCP_SOCKET_HPP
+#define LYNX_TCP_SOCKET_HPP
 
 #include "lynx/tcp/inet_addr.hpp"
 #include <cstdlib>
@@ -15,6 +15,8 @@
 	} while (0)
 
 namespace lynx
+{
+namespace tcp
 {
 namespace Socket
 {
@@ -36,6 +38,7 @@ void shutdown(int fd);
 void close(int fd);
 
 } // namespace Socket
+} // namespace tcp
 } // namespace lynx
 
 #endif

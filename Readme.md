@@ -87,115 +87,51 @@ cmake -B build -DLOG_LEVEL=OFF
 在应用程序启动时初始化异步日志系统：
 
 ```cpp
-#include "lynx/logger.hpp"
-
-int main() {
-    // 1. 初始化异步日志系统
-    lynx::Logger::initAsyncLogging(
-        "logs/",             // 日志文件存放目录（需提前创建）
-        "my_server",         // 日志文件名前缀
-        100 * 1024 * 1024,   // 单个日志文件滚动大小 (100MB)
-        3                    // 后端定期刷盘间隔 (3秒)
-    );
-
-    LOG_INFO << "Lynx Server Started";
-
-    // 业务逻辑代码
-    // ...
-
-    // 2. 程序退出前关闭日志系统
-    lynx::Logger::shutdownAsyncLogging();
-    
-    return 0;
-}
-```
-
----
-
-## 📁 项目结构
-
-```
-Lynx/
-├── CMakeLists.txt              # 顶层构建配置
-├── README.md
-├── include/
-│   └── lynx/                   # 公开 API 头文件
-│       ├── lynx.hpp            # 总入口
-│       ├── logger.hpp
-│       ├── tcp_server.hpp
-│       ├── tcp_connection.hpp
-│       ├── http_router.hpp
-│       └── ...
-├── lynx/                       # 库的实现
-│   ├── CMakeLists.txt
-│   ├── base/                   # 基础工具
-│   ├── http/                   # HTTP 协议实现
-│   ├── logger/                 # 日志系统
-│   ├── tcp/                    # TCP 网络层
-│   └── time/                   # 定时器
-├── examples/                   # 使用示例
-│   ├── echo_server/            # Echo 服务器示例
-│   └── http_server/            # HTTP 服务器示例
-└── test/                       # 单元测试
-```
-
----
-
-## 📚 使用示例
-
-### 示例 1: Echo 服务器
-
-简单的 Echo 服务器，接收客户端消息并原样返回。
-
-**文件：** `examples/echo_server/main.cpp`
-
-```cpp
 #include <lynx/lynx.hpp>
 
 using namespace lynx;
 
 int main(int argc, char* argv[])
 {
-    // 初始化日志
-    Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", argv[0]);
+	// 初始化日志
+	logger::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", argv[0]);
 
-    // 创建事件循环
-    EventLoop loop;
-    
-    // 创建 TCP 服务器
-    TcpServer server(&loop, "0.0.0.0", 9999, "EchoServer", 4);
+	// 创建 TCP 服务器
+	tcp::EventLoop loop;
 
-    // 设置连接回调
-    server.setConnectionCallback(
-        [](const std::shared_ptr<TcpConnection>& conn)
-        {
-            if (conn->connected())
-            {
-                LOG_INFO << "Client connected: "
-                         << conn->addr().toFormattedString();
-            }
-            if (conn->disconnected())
-            {
-                LOG_INFO << "Client disconnected: "
-                         << conn->addr().toFormattedString();
-            }
-        });
+	tcp::Server server(&loop, "0.0.0.0", 9999, "EchoServer", 8);
 
-    // 设置消息回调（Echo 逻辑）
-    server.setMessageCallback(
-        [](const std::shared_ptr<TcpConnection>& conn, Buffer* buf)
-        {
-            std::string msg = buf->retrieveString(buf->readableBytes());
-            conn->send(msg);  // 原样返回
-            LOG_INFO << "Echo: " << msg;
-        });
+	// 设置连接回调
+	server.setConnectionCallback(
+		[](const std::shared_ptr<tcp::Connection>& conn)
+		{
+			if (conn->connected())
+			{
+				LOG_INFO << "Client connected: "
+						 << conn->addr().toFormattedString();
+			}
+			if (conn->disconnected())
+			{
+				LOG_INFO << "Client disconnected: "
+						 << conn->addr().toFormattedString();
+			}
+		});
 
-    LOG_INFO << "Echo Server listening on 0.0.0.0:9999";
-    
-    server.run();
-    loop.run();
+	// 设置消息回调（Echo 逻辑）
+	server.setMessageCallback(
+		[](const std::shared_ptr<tcp::Connection>& conn, tcp::Buffer* buf)
+		{
+			std::string msg = buf->retrieveString(buf->readableBytes());
+			conn->send(msg); // 原样返回
+			LOG_INFO << "Echo: " << msg;
+		});
 
-    return 0;
+	LOG_INFO << "Echo Server listening on 0.0.0.0:9999";
+	server.run();
+	loop.run();
+
+	logger::Logger::shutdownAsyncLogging();
+	return 0;
 }
 ```
 
@@ -227,145 +163,144 @@ nc 127.0.0.1 9999
 
 using namespace lynx;
 
-// 计算接口处理函数
-void handleCalculate(const HttpRequest& req, HttpResponse* res,
-                     const std::shared_ptr<TcpConnection>& conn)
+void handleCalculate(const http::Request& req, http ::Response* res,
+					 const std::shared_ptr<tcp::Connection>& conn)
 {
-    double a = 0.0;
-    double b = 0.0;
+	double a = 0.0;
+	double b = 0.0;
 
-    try
-    {
-        // 从 JSON 请求体中解析参数
-        auto a_pos = req.body.find("\"a\"");
-        auto b_pos = req.body.find("\"b\"");
+	try
+	{
+		const std::string& body = req.body;
 
-        if (a_pos == std::string::npos || b_pos == std::string::npos)
-        {
-            throw std::runtime_error("Invalid data");
-        }
+		auto a_pos = req.body.find("\"a\"");
+		auto b_pos = req.body.find("\"b\"");
 
-        a = std::stod(req.body.substr(a_pos + 4));
-        b = std::stod(req.body.substr(b_pos + 4));
+		if (a_pos == std::string::npos || b_pos == std::string::npos)
+		{
+			throw std::runtime_error("Invalid data");
+		}
 
-        double sum = a + b;
+		a = std::stod(req.body.substr(a_pos + 4));
+		b = std::stod(req.body.substr(b_pos + 4));
 
-        // 返回 JSON 结果
-        res->setStatusCode(200);
-        res->setContentType("application/json");
-        res->setBody(std::format("{{\"sum\": {0}}}", sum));
+		double sum = a + b;
 
-        conn->send(res->toFormattedString());
-    }
-    catch (const std::exception& e)
-    {
-        // 错误处理
-        res->setStatusCode(400);
-        res->setContentType("application/json");
-        res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
+		res->setStatusCode(200);
+		res->setContentType("application/json");
+		res->setBody(std::format("{{\"sum\": {0}}}", sum));
 
-        conn->send(res->toFormattedString());
-    }
+		conn->send(res->toFormattedString());
+	}
+	catch (const std::exception& e)
+	{
+		res->setStatusCode(400);
+		res->setContentType("application/json");
+		res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
+
+		conn->send(res->toFormattedString());
+	}
 }
 
 int main(int argc, char* argv[])
 {
-    // 初始化日志
-    Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "http_server");
+	// 初始化日志
+	logger::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "http_server");
 
-    // 创建事件循环和 TCP 服务器
-    EventLoop loop;
-    TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 4);
+	// 创建 HTTP 服务器
+	tcp::EventLoop loop;
+	tcp::Server server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 8);
 
-    // 创建路由器
-    auto router = HttpRouter();
+	// 创建路由器
+	auto router = http::Router();
 
-    // 注册静态路由
-    router.addRoute("GET", "/",
-                    [](const auto& req, auto* res, const auto& conn) {
-                        HttpRouter::sendFile(conn, res,
-                                             LYNX_WEB_SRC_DIR
-                                             "/templates/index.html");
-                    });
+	// 注册路由
+	router.addRoute("GET", "/",
+					[](const auto& req, auto* res, const auto& conn)
+					{
+						http::Router::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/templates/index.html");
+					});
 
-    router.addRoute("GET", "/static/css/style.css",
-                    [](const auto& req, auto* res, const auto& conn) {
-                        HttpRouter::sendFile(conn, res,
-                                             LYNX_WEB_SRC_DIR
-                                             "/static/css/style.css");
-                    });
+	// 注册 CSS 路由
+	router.addRoute("GET", "/static/css/style.css",
+					[](const auto& req, auto* res, const auto& conn)
+					{
+						http::Router::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/static/css/style.css");
+					});
 
-    router.addRoute("GET", "/static/js/script.js",
-                    [](const auto& req, auto* res, const auto& conn) {
-                        HttpRouter::sendFile(conn, res,
-                                             LYNX_WEB_SRC_DIR
-                                             "/static/js/script.js");
-                    });
+	// 注册 JS 路由
+	router.addRoute("GET", "/static/js/script.js",
+					[](const auto& req, auto* res, const auto& conn)
+					{
+						http::Router::sendFile(
+							conn, res, LYNX_WEB_SRC_DIR "/static/js/script.js");
+					});
 
-    // 注册动态接口
-    router.addRoute("POST", "/calculate", &handleCalculate);
+	router.addRoute("POST", "/calculate", &handleCalculate);
 
-    // 设置连接回调
-    server.setConnectionCallback(
-        [](const std::shared_ptr<TcpConnection>& conn)
-        {
-            if (conn->connected())
-            {
-                LOG_INFO << "Client connected: "
-                         << conn->addr().toFormattedString();
-                // 为每条连接绑定 HTTP 解析上下文
-                conn->setContext(std::make_shared<HttpContext>());
-            }
-            else if (conn->disconnected())
-            {
-                LOG_INFO << "Client disconnected: "
-                         << conn->addr().toFormattedString();
-            }
-        });
+	// 设置连接回调
+	server.setConnectionCallback(
+		[](const std::shared_ptr<tcp::Connection>& conn)
+		{
+			if (conn->connected())
+			{
+				LOG_INFO << "Client connected: "
+						 << conn->addr().toFormattedString();
+				// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
+				conn->setContext(std::make_shared<http::Context>());
+			}
+			else if (conn->disconnected())
+			{
+				LOG_INFO << "Client disconnected: "
+						 << conn->addr().toFormattedString();
+			}
+		});
 
-    // 设置消息回调（HTTP 处理）
-    server.setMessageCallback(
-        [&router](const std::shared_ptr<TcpConnection>& conn, Buffer* buf)
-        {
-            auto context =
-                std::any_cast<std::shared_ptr<HttpContext>>(conn->context());
+	// 设置 HTTP 处理回调
+	server.setMessageCallback(
+		[&router](const std::shared_ptr<tcp::Connection>& conn,
+				  tcp::Buffer* buf)
+		{
+			auto context =
+				std::any_cast<std::shared_ptr<http::Context>>(conn->context());
 
-            // 解析 HTTP 请求
-            if (!context->parser(buf))
-            {
-                conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
-                conn->shutdown();
-                return;
-            }
+			if (!context->parser(buf))
+			{
+				conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
+				conn->shutdown();
+				return;
+			}
 
-            // 请求完整，进行路由分发
-            if (context->completed())
-            {
-                const HttpRequest& req = context->req();
-                HttpResponse res;
+			if (context->completed())
+			{
+				const http::Request& req = context->req();
+				http::Response res;
 
-                router.dispatch(req, &res, conn);
+				router.dispatch(req, &res, conn);
 
-                // 判断是否保持连接
-                std::string conn_header = req.header("connection");
-                if (conn_header == "close" ||
-                    (req.version == "HTTP/1.0" && conn_header != "keep-alive"))
-                {
-                    conn->shutdown();
-                }
-                else
-                {
-                    context->clear();  // 清空上下文，准备下一个请求
-                }
-            }
-        });
+				std::string conn_header = req.header("connection");
+				if (conn_header == "close" ||
+					(req.version == "HTTP/1.0" && conn_header != "keep-alive"))
+				{
+					conn->shutdown();
+				}
+				else
+				{
+					context->clear();
+				}
+			}
+		});
 
-    LOG_INFO << "HTTP Server listening on 0.0.0.0:8080";
-    server.run();
-    loop.run();
+	LOG_INFO << "HTTP Server listening on 0.0.0.0:8080";
+	server.run();
+	loop.run();
 
-    Logger::shutdownAsyncLogging();
-    return 0;
+	logger::Logger::shutdownAsyncLogging();
+	return 0;
 }
 ```
 

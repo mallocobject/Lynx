@@ -12,9 +12,9 @@ target_include_directories(Lynx_EchoServer PRIVATE
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_link_libraries(Lynx_WebServer PRIVATE /usr/local/lib/liblynx_lib_d.a)
+    target_link_libraries(Lynx_EchoServer PRIVATE /usr/local/lib/liblynx_lib_d.a)
 else()
-    target_link_libraries(Lynx_WebServer PRIVATE /usr/local/lib/liblynx_lib.a)
+    target_link_libraries(Lynx_EchoServer PRIVATE /usr/local/lib/liblynx_lib.a)
 endif()
 
 target_compile_definitions(Lynx_EchoServer PRIVATE 

@@ -1,25 +1,26 @@
-#include "lynx/http/http_router.hpp"
-#include "lynx/http/http_request.hpp"
-#include "lynx/http/http_response.hpp"
+#include "lynx/http/router.hpp"
+#include "lynx/http/request.hpp"
+#include "lynx/http/response.hpp"
 #include "lynx/logger/logger.hpp"
-#include "lynx/tcp/tcp_connection.hpp"
+#include "lynx/tcp/connection.hpp"
 #include <fcntl.h>
 #include <sys/stat.h>
 
 using namespace lynx;
+using namespace lynx::http;
 
-HttpRouter::HttpRouter()
+Router::Router()
 {
 	tries_.emplace("GET", Trie());
 	tries_.emplace("POST", Trie());
 }
 
-HttpRouter::~HttpRouter()
+Router::~Router()
 {
 }
 
-void HttpRouter::dispatch(const HttpRequest& req, HttpResponse* res,
-						  const std::shared_ptr<TcpConnection>& conn)
+void Router::dispatch(const Request& req, Response* res,
+					  const std::shared_ptr<tcp::Connection>& conn)
 {
 	http_handler f;
 	std::string method = req.method;
@@ -39,8 +40,8 @@ void HttpRouter::dispatch(const HttpRequest& req, HttpResponse* res,
 	}
 }
 
-void HttpRouter::sendFile(const std::shared_ptr<lynx::TcpConnection>& conn,
-						  lynx::HttpResponse* res, const std::string& file_path)
+void Router::sendFile(const std::shared_ptr<tcp::Connection>& conn,
+					  Response* res, const std::string& file_path)
 {
 	std::string path = file_path;
 
@@ -56,7 +57,7 @@ void HttpRouter::sendFile(const std::shared_ptr<lynx::TcpConnection>& conn,
 	}
 	else
 	{
-		LOG_ERROR << "HttpRouter::serveFile: " << file_path
+		LOG_ERROR << "Router::serveFile: " << file_path
 				  << " Error: " << strerror(errno);
 		res->setStatusCode(404);
 		res->setContentType("text/html");
@@ -66,7 +67,7 @@ void HttpRouter::sendFile(const std::shared_ptr<lynx::TcpConnection>& conn,
 	}
 }
 
-void HttpRouter::Trie::insert(const std::string& path, http_handler handler)
+void Router::Trie::insert(const std::string& path, http_handler handler)
 {
 	if (path == "/")
 	{
@@ -96,7 +97,7 @@ void HttpRouter::Trie::insert(const std::string& path, http_handler handler)
 	cur->f = std::move(handler);
 }
 
-HttpRouter::http_handler HttpRouter::Trie::search(const std::string& path)
+Router::http_handler Router::Trie::search(const std::string& path)
 {
 	if (path == "/")
 	{
@@ -125,7 +126,7 @@ HttpRouter::http_handler HttpRouter::Trie::search(const std::string& path)
 	return cur->f;
 }
 
-std::string HttpRouter::Trie::subPath(const std::string& path, size_t* start)
+std::string Router::Trie::subPath(const std::string& path, size_t* start)
 {
 	// because *start maybe arive 1
 	if (*start == std::string::npos || *start >= path.size())

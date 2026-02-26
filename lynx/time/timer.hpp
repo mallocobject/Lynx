@@ -1,5 +1,5 @@
-#ifndef LYNX_TIMER_HPP
-#define LYNX_TIMER_HPP
+#ifndef LYNX_TIME_TIMER_HPP
+#define LYNX_TIME_TIMER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/time/time_stamp.hpp"
@@ -8,7 +8,9 @@
 #include <functional>
 namespace lynx
 {
-class Timer : public noncopyable
+namespace time
+{
+class Timer : public base::noncopyable
 {
   private:
 	TimeStamp expiration_;
@@ -60,6 +62,7 @@ class Timer : public noncopyable
 		expiration_ = TimeStamp::addTime(TimeStamp::now(), interval_);
 	}
 };
+} // namespace time
 } // namespace lynx
 
 #endif

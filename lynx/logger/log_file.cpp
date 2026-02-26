@@ -6,6 +6,7 @@
 #include <memory>
 
 using namespace lynx;
+using namespace lynx::logger;
 
 static const int kRollPerSeconds = 24 * 60 * 60;
 

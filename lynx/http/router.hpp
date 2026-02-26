@@ -9,15 +9,20 @@
 #include <string>
 namespace lynx
 {
-class HttpRequest;
-class HttpResponse;
-class TcpConnection;
-class HttpRouter : public noncopyable
+namespace tcp
+{
+class Connection;
+}
+
+namespace http
+{
+class Request;
+class Response;
+class Router : public base::noncopyable
 {
   public:
-	using http_handler =
-		std::function<void(const HttpRequest&, HttpResponse*,
-						   const std::shared_ptr<TcpConnection>&)>;
+	using http_handler = std::function<void(
+		const Request&, Response*, const std::shared_ptr<tcp::Connection>&)>;
 
   private:
 	struct TrieNode
@@ -50,8 +55,8 @@ class HttpRouter : public noncopyable
 	std::map<std::string, Trie> tries_;
 
   public:
-	HttpRouter();
-	~HttpRouter();
+	Router();
+	~Router();
 
 	void addRoute(const std::string& method, const std::string& path,
 				  const http_handler& handler)
@@ -60,11 +65,11 @@ class HttpRouter : public noncopyable
 		tries_[method].insert(path, handler);
 	}
 
-	void dispatch(const HttpRequest& req, HttpResponse* res,
-				  const std::shared_ptr<TcpConnection>& conn);
+	void dispatch(const Request& req, Response* res,
+				  const std::shared_ptr<tcp::Connection>& conn);
 
-	static void sendFile(const std::shared_ptr<lynx::TcpConnection>& conn,
-						 lynx::HttpResponse* res, const std::string& file_path);
+	static void sendFile(const std::shared_ptr<tcp::Connection>& conn,
+						 Response* res, const std::string& file_path);
 
   private:
 	static std::string getMineType(const std::string& path)
@@ -93,6 +98,7 @@ class HttpRouter : public noncopyable
 		return "application/octet-stream";
 	}
 };
+} // namespace http
 } // namespace lynx
 
 #endif

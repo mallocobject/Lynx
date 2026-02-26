@@ -1,11 +1,12 @@
-#ifndef LYNX_LOGGER_HPP
-#define LYNX_LOGGER_HPP
+#ifndef LYNX_LOGGER_LOGGER_HPP
+#define LYNX_LOGGER_LOGGER_HPP
 
 #include "lynx/base/current_thread.hpp"
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/time/time_stamp.hpp"
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <format>
 #include <iostream>
@@ -15,8 +16,9 @@
 #include <type_traits>
 namespace lynx
 {
-
-enum LogLevel
+namespace logger
+{
+enum class LogLevel : uint8_t
 {
 	TRACE = 0,
 	DEBUG,
@@ -31,17 +33,17 @@ constexpr std::string_view logLevel2String(LogLevel level)
 {
 	switch (level)
 	{
-	case TRACE:
+	case LogLevel::TRACE:
 		return "TRACE";
-	case DEBUG:
+	case LogLevel::DEBUG:
 		return "DEBUG";
-	case INFO:
+	case LogLevel::INFO:
 		return "INFO";
-	case WARN:
+	case LogLevel::WARN:
 		return "WARN";
-	case ERROR:
+	case LogLevel::ERROR:
 		return "ERROR";
-	case FATAL:
+	case LogLevel::FATAL:
 		return "FATAL";
 	default:
 		return "UNKNOWN";
@@ -52,38 +54,40 @@ constexpr const char* logLevel2Color(LogLevel level)
 {
 	switch (level)
 	{
-	case TRACE:
+	case LogLevel::TRACE:
 		return "\033[90m";
-	case DEBUG:
+	case LogLevel::DEBUG:
 		return "\033[36m";
-	case INFO:
+	case LogLevel::INFO:
 		return "\033[32m";
-	case WARN:
+	case LogLevel::WARN:
 		return "\033[33m";
-	case ERROR:
+	case LogLevel::ERROR:
 		return "\033[31m";
-	case FATAL:
+	case LogLevel::FATAL:
 		return "\033[35m";
 	default:
 		return "\033[0m";
 	}
 }
+} // namespace logger
 } // namespace lynx
 
 template <>
-struct std::formatter<lynx::LogLevel> : std::formatter<std::string_view>
+struct std::formatter<lynx::logger::LogLevel> : std::formatter<std::string_view>
 {
-	auto format(lynx::LogLevel level, std::format_context& ctx) const
+	auto format(lynx::logger::LogLevel level, std::format_context& ctx) const
 	{
 		return std::formatter<std::string_view>::format(
-			lynx::logLevel2String(level), ctx);
+			lynx::logger::logLevel2String(level), ctx);
 	}
 };
 
 namespace lynx
 {
-
-class NullLogger : public noncopyable
+namespace logger
+{
+class NullLogger : public base::noncopyable
 {
   public:
 	NullLogger(LogLevel, const char*, const char*, int)
@@ -102,7 +106,7 @@ class NullLogger : public noncopyable
 };
 
 class AsyncLogging;
-class Logger : public noncopyable
+class Logger : public base::noncopyable
 {
 
   private:
@@ -147,31 +151,32 @@ class Logger : public noncopyable
 
 		~LogStream()
 		{
-			if (!CurrentThread::str().empty())
+			if (!base::CurrentThread::str().empty())
 			{
 				if (Logger::isAsyncEnabled())
 				{
-					Logger::appendAsyncLog(level_, CurrentThread::str(), file_,
-										   func_, line_);
+					Logger::appendAsyncLog(level_, base::CurrentThread::str(),
+										   file_, func_, line_);
 				}
 				else
 				{
 					std::string formatted_log = std::format(
 						"{}{}[{}]{} {}:{} {}()-> {}\033[0m\n",
 						logLevel2Color(level_),
-						TimeStamp::now().toFormattedString(),
-						CurrentThread::tid(), level_, getShortName(file_),
-						line_, func_, CurrentThread::str());
+						time::TimeStamp::now().toFormattedString(),
+						base::CurrentThread::tid(), level_, getShortName(file_),
+						line_, func_, base::CurrentThread::str());
 
 					std::cout << formatted_log;
 				}
 			}
-			CurrentThread::str().clear();
+			base::CurrentThread::str().clear();
 		}
 
 		template <typename T> LogStream& operator<<(const T& val)
 		{
-			std::format_to(std::back_inserter(CurrentThread::str()), "{}", val);
+			std::format_to(std::back_inserter(base::CurrentThread::str()), "{}",
+						   val);
 			return *this;
 		}
 
@@ -199,13 +204,13 @@ class Logger : public noncopyable
 	};
 };
 
-#define LYNX_TRACE lynx::TRACE
-#define LYNX_DEBUG lynx::DEBUG
-#define LYNX_INFO lynx::INFO
-#define LYNX_WARN lynx::WARN
-#define LYNX_ERROR lynx::ERROR
-#define LYNX_FATAL lynx::FATAL
-#define LYNX_OFF lynx::OFF
+#define LYNX_TRACE LogLevel::TRACE
+#define LYNX_DEBUG LogLevel::DEBUG
+#define LYNX_INFO LogLevel::INFO
+#define LYNX_WARN LogLevel::WARN
+#define LYNX_ERROR LogLevel::ERROR
+#define LYNX_FATAL LogLevel::FATAL
+#define LYNX_OFF LogLevel::OFF
 
 #ifndef LOGGER_LEVEL_SETTING
 #define LOGGER_LEVEL_SETTING LYNX_INFO
@@ -217,26 +222,26 @@ constexpr LogLevel GLOBAL_MIN_LEVEL =
 template <LogLevel level>
 using SelectedLogStream = std::conditional_t<level >= GLOBAL_MIN_LEVEL,
 											 Logger::LogStream, NullLogger>;
-
+} // namespace logger
 } // namespace lynx
 
 #define LOG_TRACE                                                              \
-	lynx::SelectedLogStream<lynx::TRACE>(lynx::TRACE, __FILE__, __func__,      \
-										 __LINE__)
+	lynx::logger::SelectedLogStream<lynx::logger::LogLevel::TRACE>(            \
+		lynx::logger::LogLevel::TRACE, __FILE__, __func__, __LINE__)
 #define LOG_DEBUG                                                              \
-	lynx::SelectedLogStream<lynx::DEBUG>(lynx::DEBUG, __FILE__, __func__,      \
-										 __LINE__)
+	lynx::logger::SelectedLogStream<lynx::logger::LogLevel::DEBUG>(            \
+		lynx::logger::LogLevel::DEBUG, __FILE__, __func__, __LINE__)
 #define LOG_INFO                                                               \
-	lynx::SelectedLogStream<lynx::INFO>(lynx::INFO, __FILE__, __func__,        \
-										__LINE__)
+	lynx::logger::SelectedLogStream<lynx::logger::LogLevel::INFO>(             \
+		lynx::logger::LogLevel::INFO, __FILE__, __func__, __LINE__)
 #define LOG_WARN                                                               \
-	lynx::SelectedLogStream<lynx::WARN>(lynx::WARN, __FILE__, __func__,        \
-										__LINE__)
+	lynx::logger::SelectedLogStream<lynx::logger::LogLevel::WARN>(             \
+		lynx::logger::LogLevel::WARN, __FILE__, __func__, __LINE__)
 #define LOG_ERROR                                                              \
-	lynx::SelectedLogStream<lynx::ERROR>(lynx::ERROR, __FILE__, __func__,      \
-										 __LINE__)
+	lynx::logger::SelectedLogStream<lynx::logger::LogLevel::ERROR>(            \
+		lynx::logger::LogLevel::ERROR, __FILE__, __func__, __LINE__)
 #define LOG_FATAL                                                              \
-	lynx::SelectedLogStream<lynx::FATAL>(lynx::FATAL, __FILE__, __func__,      \
-										 __LINE__)
+	lynx::logger::SelectedLogStream<lynx::logger::LogLevel::FATAL>(            \
+		lynx::logger::LogLevel::FATAL, __FILE__, __func__, __LINE__)
 
 #endif

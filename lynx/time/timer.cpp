@@ -7,10 +7,14 @@
 
 namespace lynx
 {
+namespace time
+{
 std::atomic<int64_t> Timer::seq_creator_(0);
-};
+}
+}; // namespace lynx
 
 using namespace lynx;
+using namespace lynx::time;
 
 Timer::Timer(TimeStamp expiration, std::function<void()> cb, double interval)
 	: expiration_(expiration), callback_(std::move(cb)), interval_(interval),

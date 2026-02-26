@@ -1,13 +1,15 @@
-#ifndef LYNX_LOG_FILE_HPP
-#define LYNX_LOG_FILE_HPP
+#ifndef LYNX_LOGGER_LOG_FILE_HPP
+#define LYNX_LOGGER_LOG_FILE_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <memory>
 #include <string>
 namespace lynx
 {
+namespace logger
+{
 class FileAppender;
-class LogFile : public noncopyable
+class LogFile : public base::noncopyable
 {
   private:
 	const std::string basename_;
@@ -38,6 +40,7 @@ class LogFile : public noncopyable
 	void rollFile(const time_t* cached_now = nullptr);
 	std::string getFilename(const time_t& now);
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

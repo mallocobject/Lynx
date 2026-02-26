@@ -11,6 +11,7 @@
 #include <mutex>
 
 using namespace lynx;
+using namespace lynx::sql;
 
 ConnectionPool::ConnectionPool(const std::string& ip, uint16_t port,
 							   const std::string& user, const std::string& pass,
@@ -33,9 +34,9 @@ ConnectionPool::ConnectionPool(const std::string& ip, uint16_t port,
 			 << " connections";
 }
 
-ConnectionPool::ConnectionPool(const InetAddr& addr, const std::string& user,
-							   const std::string& pass, uint32_t min_conn_num,
-							   uint32_t max_conn_num)
+ConnectionPool::ConnectionPool(const tcp::InetAddr& addr,
+							   const std::string& user, const std::string& pass,
+							   uint32_t min_conn_num, uint32_t max_conn_num)
 	: ConnectionPool(addr.ip(), addr.port(), user, pass, min_conn_num,
 					 max_conn_num)
 {

@@ -1,5 +1,5 @@
-#ifndef LYNX_CONNECTION_POOL_HPP
-#define LYNX_CONNECTION_POOL_HPP
+#ifndef LYNX_SQL_CONNECTION_POOL_HPP
+#define LYNX_SQL_CONNECTION_POOL_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/tcp/inet_addr.hpp"
@@ -12,9 +12,14 @@
 #include <string>
 namespace lynx
 {
-class Session;
+namespace tcp
+{
 class InetAddr;
-class ConnectionPool : public noncopyable
+}
+namespace sql
+{
+class Session;
+class ConnectionPool : public base::noncopyable
 {
   private:
 	std::queue<Session*> sesses_;
@@ -38,7 +43,7 @@ class ConnectionPool : public noncopyable
 				   const std::string& user, const std::string& pass,
 				   uint32_t min_conn_num, uint32_t max_conn_num);
 
-	ConnectionPool(const InetAddr& addr, const std::string& user,
+	ConnectionPool(const tcp::InetAddr& addr, const std::string& user,
 				   const std::string& pass, uint32_t min_conn_num,
 				   uint32_t max_conn_num);
 
@@ -53,6 +58,7 @@ class ConnectionPool : public noncopyable
 
 	void close();
 };
+} // namespace sql
 } // namespace lynx
 
 #endif

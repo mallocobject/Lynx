@@ -1,8 +1,10 @@
-#ifndef LYNX_TIMER_ID_HPP
-#define LYNX_TIMER_ID_HPP
+#ifndef LYNX_TIME_TIMER_ID_HPP
+#define LYNX_TIME_TIMER_ID_HPP
 
 #include <cstdint>
 namespace lynx
+{
+namespace time
 {
 class Timer;
 class TimerId
@@ -24,6 +26,7 @@ class TimerId
 
 	TimerId(const TimerId&) = default;
 };
+} // namespace time
 } // namespace lynx
 
 #endif

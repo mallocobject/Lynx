@@ -1,5 +1,5 @@
-#ifndef LYNX_SCHEMA_HPP
-#define LYNX_SCHEMA_HPP
+#ifndef LYNX_SQL_SCHEMA_HPP
+#define LYNX_SQL_SCHEMA_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/sql/operations.hpp"
@@ -7,14 +7,16 @@
 #include <cppconn/connection.h>
 namespace lynx
 {
-class Schema : public noncopyable
+namespace sql
+{
+class Schema : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string name_;
 
   public:
-	Schema(sql::Connection* conn, const std::string& name)
+	Schema(::sql::Connection* conn, const std::string& name)
 		: conn_(conn), name_(name)
 	{
 		conn_->setSchema(name);
@@ -30,6 +32,7 @@ class Schema : public noncopyable
 		return CreateTableOp(conn_, table_name, if_not_exists);
 	}
 };
+} // namespace sql
 } // namespace lynx
 
 #endif

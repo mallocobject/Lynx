@@ -1,5 +1,5 @@
-#ifndef LYNX_FORMATTER_HPP
-#define LYNX_FORMATTER_HPP
+#ifndef LYNX_LOGGER_FORMATTER_HPP
+#define LYNX_LOGGER_FORMATTER_HPP
 
 #include "lynx/logger/context.hpp"
 #include "lynx/logger/flags.hpp"
@@ -7,6 +7,8 @@
 #include <iterator>
 #include <string>
 namespace lynx
+{
+namespace logger
 {
 class Formatter
 {
@@ -102,6 +104,7 @@ class Formatter
 		}
 	}
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

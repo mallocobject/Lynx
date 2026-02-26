@@ -1,5 +1,5 @@
-#ifndef LYNX_EVENT_LOOP_HPP
-#define LYNX_EVENT_LOOP_HPP
+#ifndef LYNX_TCP_EVENT_LOOP_HPP
+#define LYNX_TCP_EVENT_LOOP_HPP
 
 #include "lynx/base/current_thread.hpp"
 #include "lynx/base/noncopyable.hpp"
@@ -11,10 +11,15 @@
 #include <vector>
 namespace lynx
 {
+namespace time
+{
+class TimerQueue;
+}
+namespace tcp
+{
 class Epoller;
 class Channel;
-class TimerQueue;
-class EventLoop : public noncopyable
+class EventLoop : public base::noncopyable
 {
   private:
 	std::unique_ptr<Epoller> epoller_;
@@ -28,7 +33,7 @@ class EventLoop : public noncopyable
 	std::vector<std::function<void()>> pending_funcs_; // guarded by mutex
 
 	std::vector<Channel*> active_chs_;
-	std::unique_ptr<TimerQueue> tq_;
+	std::unique_ptr<time::TimerQueue> tq_;
 
   public:
 	EventLoop();
@@ -87,14 +92,15 @@ class EventLoop : public noncopyable
 
 	bool InLoopThread() const
 	{
-		return CurrentThread::tid() == tid_;
+		return base::CurrentThread::tid() == tid_;
 	}
 
-	TimerId runAt(TimeStamp time_stamp, const std::function<void()>& cb);
-	TimerId runAfter(double delay, const std::function<void()>& cb);
-	TimerId runEvery(double interval, const std::function<void()>& cb);
+	time::TimerId runAt(time::TimeStamp time_stamp,
+						const std::function<void()>& cb);
+	time::TimerId runAfter(double delay, const std::function<void()>& cb);
+	time::TimerId runEvery(double interval, const std::function<void()>& cb);
 
-	void cancell(TimerId timer_id);
+	void cancell(time::TimerId timer_id);
 
   private:
 	void abortNotInLoopThread()
@@ -145,6 +151,7 @@ class EventLoop : public noncopyable
 		}
 	}
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

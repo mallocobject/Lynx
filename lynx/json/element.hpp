@@ -1,5 +1,5 @@
-#ifndef LYNX_ELEMENT_HPP
-#define LYNX_ELEMENT_HPP
+#ifndef LYNX_JSON_ELEMENT_HPP
+#define LYNX_JSON_ELEMENT_HPP
 
 #include "lynx/base/copyable.hpp"
 #include "lynx/logger/logger.hpp"
@@ -8,10 +8,12 @@
 
 namespace lynx
 {
+namespace json
+{
 class Value;
 class Array;
 class Object;
-class Element : public copyable
+class Element : public base::copyable
 {
   public:
 	virtual ~Element()
@@ -73,6 +75,7 @@ class Element : public copyable
 		return true;
 	}
 };
+} // namespace json
 } // namespace lynx
 
 #endif

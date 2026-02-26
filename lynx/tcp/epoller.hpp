@@ -1,5 +1,5 @@
-#ifndef LYNX_EPOLLER_HPP
-#define LYNX_EPOLLER_HPP
+#ifndef LYNX_TCP_EPOLLER_HPP
+#define LYNX_TCP_EPOLLER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/time/time_stamp.hpp"
@@ -7,8 +7,10 @@
 #include <vector>
 namespace lynx
 {
+namespace tcp
+{
 class Channel;
-class Epoller : public noncopyable
+class Epoller : public base::noncopyable
 {
   private:
 	int epfd_;
@@ -21,8 +23,9 @@ class Epoller : public noncopyable
 	void updataChannel(Channel* ch);
 	void removeChannel(Channel* ch);
 
-	TimeStamp poll(std::vector<Channel*>* active_chs, int timeout = -1);
+	time::TimeStamp poll(std::vector<Channel*>* active_chs, int timeout = -1);
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef LYNX_ACCEPTOR_HPP
-#define LYNX_ACCEPTOR_HPP
+#ifndef LYNX_TCP_ACCEPTOR_HPP
+#define LYNX_TCP_ACCEPTOR_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/tcp/inet_addr.hpp"
@@ -8,9 +8,11 @@
 #include <utility>
 namespace lynx
 {
+namespace tcp
+{
 class EventLoop;
 class Channel;
-class Acceptor : noncopyable
+class Acceptor : base::noncopyable
 {
   private:
 	EventLoop* loop_;
@@ -46,6 +48,7 @@ class Acceptor : noncopyable
   private:
 	void handleRead();
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

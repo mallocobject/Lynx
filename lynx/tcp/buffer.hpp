@@ -1,5 +1,5 @@
-#ifndef LYNX_BUFFER_HPP
-#define LYNX_BUFFER_HPP
+#ifndef LYNX_TCP_BUFFER_HPP
+#define LYNX_TCP_BUFFER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <algorithm>
@@ -11,7 +11,9 @@
 #include <vector>
 namespace lynx
 {
-class Buffer : noncopyable
+namespace tcp
+{
+class Buffer : base::noncopyable
 {
   private:
 	std::vector<char> data_;
@@ -164,6 +166,7 @@ class Buffer : noncopyable
 
 	void makeSpace(size_t len);
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

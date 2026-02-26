@@ -1,5 +1,5 @@
-#ifndef LYNX_EVENT_LOOP_THREAD_POOL_HPP
-#define LYNX_EVENT_LOOP_THREAD_POOL_HPP
+#ifndef LYNX_TCP_EVENT_LOOP_THREAD_POOL_HPP
+#define LYNX_TCP_EVENT_LOOP_THREAD_POOL_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cstddef>
@@ -7,9 +7,11 @@
 #include <vector>
 namespace lynx
 {
+namespace tcp
+{
 class EventLoop;
 class EventLoopThread;
-class EventLoopThreadPool : public noncopyable
+class EventLoopThreadPool : public base::noncopyable
 {
   private:
 	size_t thread_num_;
@@ -39,6 +41,7 @@ class EventLoopThreadPool : public noncopyable
 		return loop;
 	}
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

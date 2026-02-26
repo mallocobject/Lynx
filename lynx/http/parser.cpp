@@ -1,16 +1,17 @@
-#include "lynx/http/http_parser.hpp"
+#include "lynx/http/parser.hpp"
 
 using namespace lynx;
+using namespace lynx::http;
 
-HttpParser::HttpParser() : state_(State::kStart)
+Parser::Parser() : state_(State::kStart)
 {
 }
 
-HttpParser::~HttpParser()
+Parser::~Parser()
 {
 }
 
-bool HttpParser::consume(char c)
+bool Parser::consume(char c)
 {
 	switch (state_)
 	{

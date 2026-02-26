@@ -3,6 +3,7 @@
 #include <sys/uio.h>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 const int Buffer::kDataSize = 1024;
 const int Buffer::kPrependSize = 8;

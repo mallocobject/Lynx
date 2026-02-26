@@ -2,12 +2,14 @@
 #define LYNX_HTTP_PARSER_HPP
 
 #include "lynx/base/noncopyable.hpp"
-#include "lynx/http/http_request.hpp"
+#include "lynx/http/request.hpp"
 #include <cassert>
 #include <cstddef>
 namespace lynx
 {
-class HttpParser : public noncopyable
+namespace http
+{
+class Parser : public base::noncopyable
 {
   public:
 	enum class State
@@ -32,14 +34,14 @@ class HttpParser : public noncopyable
   private:
 	State state_;
 
-	HttpRequest req_;
+	Request req_;
 	std::string tmp_key_;
 	std::string tmp_value_;
 	size_t body_remaining_;
 
   public:
-	HttpParser();
-	~HttpParser();
+	Parser();
+	~Parser();
 
 	size_t bodyRemaining() const
 	{
@@ -90,13 +92,14 @@ class HttpParser : public noncopyable
 		body_remaining_ -= len;
 	}
 
-	const HttpRequest& req() const
+	const Request& req() const
 	{
 		return req_;
 	}
 
 	bool consume(char c);
 };
+} // namespace http
 } // namespace lynx
 
 #endif

@@ -1,7 +1,9 @@
-#ifndef LYNX_NONCOPYABLE_HPP
-#define LYNX_NONCOPYABLE_HPP
+#ifndef LYNX_BASE_NONCOPYABLE_HPP
+#define LYNX_BASE_NONCOPYABLE_HPP
 
 namespace lynx
+{
+namespace base
 {
 class noncopyable
 {
@@ -12,6 +14,7 @@ class noncopyable
 	noncopyable(const noncopyable&) = delete;
 	noncopyable& operator=(const noncopyable&) = delete;
 };
+} // namespace base
 } // namespace lynx
 
 #endif

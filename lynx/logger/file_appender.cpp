@@ -5,6 +5,7 @@
 #include <system_error>
 
 using namespace lynx;
+using namespace lynx::logger;
 
 static constexpr size_t BUFFER_SIZE = 64 * 1024;
 

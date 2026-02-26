@@ -1,5 +1,5 @@
-#ifndef LYNX_TABLE_HPP
-#define LYNX_TABLE_HPP
+#ifndef LYNX_SQL_TABLE_HPP
+#define LYNX_SQL_TABLE_HPP
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/sql/operations.hpp"
 #include <cppconn/connection.h>
@@ -7,14 +7,16 @@
 #include <vector>
 namespace lynx
 {
-class Table : public noncopyable
+namespace sql
+{
+class Table : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string name_;
 
   public:
-	Table(sql::Connection* conn, const std::string& name)
+	Table(::sql::Connection* conn, const std::string& name)
 		: conn_(conn), name_(name)
 	{
 	}
@@ -41,6 +43,7 @@ class Table : public noncopyable
 		return RemoveOp(conn_, name_);
 	}
 };
+} // namespace sql
 } // namespace lynx
 
 #endif

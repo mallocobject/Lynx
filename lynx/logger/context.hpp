@@ -1,5 +1,5 @@
-#ifndef LYNX_CONTEXT_HPP
-#define LYNX_CONTEXT_HPP
+#ifndef LYNX_LOGGER_CONTEXT_HPP
+#define LYNX_LOGGER_CONTEXT_HPP
 
 #include "lynx/time/time_stamp.hpp"
 #include <cstdint>
@@ -7,11 +7,13 @@
 #include <utility>
 namespace lynx
 {
+namespace logger
+{
 struct Context
 {
-	TimeStamp time_stamp{0};
+	time::TimeStamp time_stamp{0};
 	uint64_t tid{0};
-	int level{2};
+	uint8_t level{2};
 
 	struct Data
 	{
@@ -25,7 +27,7 @@ struct Context
 
 	Context() = default;
 
-	explicit Context(int _level, const char* _file, const char* _func,
+	explicit Context(uint8_t _level, const char* _file, const char* _func,
 					 int _line)
 		: level(_level),
 		  data({.line = _line, .short_name = _file, .func = _func})
@@ -48,7 +50,7 @@ struct Context
 		return *this;
 	}
 
-	Context& withTimeStamp(TimeStamp time)
+	Context& withTimeStamp(time::TimeStamp time)
 	{
 		time_stamp = time;
 		return *this;
@@ -60,7 +62,7 @@ struct Context
 		return *this;
 	}
 
-	Context& withLevel(int _level)
+	Context& withLevel(uint8_t _level)
 	{
 		level = _level;
 		return *this;
@@ -72,6 +74,7 @@ struct Context
 		return *this;
 	}
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

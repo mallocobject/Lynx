@@ -2,8 +2,8 @@
 
 using namespace lynx;
 
-void handleCalculate(const HttpRequest& req, HttpResponse* res,
-					 const std::shared_ptr<TcpConnection>& conn)
+void handleCalculate(const http::Request& req, http ::Response* res,
+					 const std::shared_ptr<tcp::Connection>& conn)
 {
 	double a = 0.0;
 	double b = 0.0;
@@ -44,35 +44,38 @@ void handleCalculate(const HttpRequest& req, HttpResponse* res,
 int main(int argc, char* argv[])
 {
 	// 初始化日志
-	Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "http_server");
+	logger::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "http_server");
 
 	// 创建 HTTP 服务器
-	EventLoop loop;
-	TcpServer server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 8);
+	tcp::EventLoop loop;
+	tcp::Server server(&loop, "0.0.0.0", 8080, "Lynx-WebServer", 8);
 
 	// 创建路由器
-	auto router = HttpRouter();
+	auto router = http::Router();
 
 	// 注册路由
 	router.addRoute("GET", "/",
-					[](const auto& req, auto* res, const auto& conn) {
-						HttpRouter::sendFile(conn, res,
-											 LYNX_WEB_SRC_DIR
-											 "/templates/index.html");
+					[](const auto& req, auto* res, const auto& conn)
+					{
+						http::Router::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/templates/index.html");
 					});
 
 	// 注册 CSS 路由
 	router.addRoute("GET", "/static/css/style.css",
-					[](const auto& req, auto* res, const auto& conn) {
-						HttpRouter::sendFile(conn, res,
-											 LYNX_WEB_SRC_DIR
-											 "/static/css/style.css");
+					[](const auto& req, auto* res, const auto& conn)
+					{
+						http::Router::sendFile(conn, res,
+											   LYNX_WEB_SRC_DIR
+											   "/static/css/style.css");
 					});
 
 	// 注册 JS 路由
 	router.addRoute("GET", "/static/js/script.js",
-					[](const auto& req, auto* res, const auto& conn) {
-						HttpRouter::sendFile(
+					[](const auto& req, auto* res, const auto& conn)
+					{
+						http::Router::sendFile(
 							conn, res, LYNX_WEB_SRC_DIR "/static/js/script.js");
 					});
 
@@ -80,14 +83,14 @@ int main(int argc, char* argv[])
 
 	// 设置连接回调
 	server.setConnectionCallback(
-		[](const std::shared_ptr<TcpConnection>& conn)
+		[](const std::shared_ptr<tcp::Connection>& conn)
 		{
 			if (conn->connected())
 			{
 				LOG_INFO << "Client connected: "
 						 << conn->addr().toFormattedString();
 				// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
-				conn->setContext(std::make_shared<HttpContext>());
+				conn->setContext(std::make_shared<http::Context>());
 			}
 			else if (conn->disconnected())
 			{
@@ -98,10 +101,11 @@ int main(int argc, char* argv[])
 
 	// 设置 HTTP 处理回调
 	server.setMessageCallback(
-		[&router](const std::shared_ptr<TcpConnection>& conn, Buffer* buf)
+		[&router](const std::shared_ptr<tcp::Connection>& conn,
+				  tcp::Buffer* buf)
 		{
 			auto context =
-				std::any_cast<std::shared_ptr<HttpContext>>(conn->context());
+				std::any_cast<std::shared_ptr<http::Context>>(conn->context());
 
 			if (!context->parser(buf))
 			{
@@ -112,8 +116,8 @@ int main(int argc, char* argv[])
 
 			if (context->completed())
 			{
-				const HttpRequest& req = context->req();
-				HttpResponse res;
+				const http::Request& req = context->req();
+				http::Response res;
 
 				router.dispatch(req, &res, conn);
 
@@ -134,6 +138,6 @@ int main(int argc, char* argv[])
 	server.run();
 	loop.run();
 
-	Logger::shutdownAsyncLogging();
+	logger::Logger::shutdownAsyncLogging();
 	return 0;
 }

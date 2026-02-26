@@ -10,11 +10,13 @@
 #include <memory>
 namespace lynx
 {
+namespace tcp
+{
 class Channel;
 class EventLoop;
 class Buffer;
-class TcpConnection : public noncopyable,
-					  public std::enable_shared_from_this<TcpConnection>
+class Connection : public base::noncopyable,
+				   public std::enable_shared_from_this<Connection>
 {
   private:
 	enum class State
@@ -44,24 +46,24 @@ class TcpConnection : public noncopyable,
 	size_t file_bytes_to_send_{0};
 	off_t file_offset_{0};
 
-	std::function<void(const std::shared_ptr<TcpConnection>&,
+	std::function<void(const std::shared_ptr<Connection>&,
 					   Buffer*)>
 		message_callback_; // defined by user
-	std::function<void(const std::shared_ptr<TcpConnection>&)>
+	std::function<void(const std::shared_ptr<Connection>&)>
 		write_complete_callback_; // defined by user, executed in
 								  // pendingfunctors
-	std::function<void(const std::shared_ptr<TcpConnection>&)>
-		close_callback_; // provided by "TcpServer"
-	std::function<void(const std::shared_ptr<TcpConnection>&)>
+	std::function<void(const std::shared_ptr<Connection>&)>
+		close_callback_; // provided by "Server"
+	std::function<void(const std::shared_ptr<Connection>&)>
 		connect_callback_; // for read and close, defined by user. Only called
 						   // when established or destroyed
 
-	std::function<void(const std::shared_ptr<TcpConnection>&, size_t)>
+	std::function<void(const std::shared_ptr<Connection>&, size_t)>
 		high_water_mark_callback_;
 
   public:
-	TcpConnection(int fd, EventLoop* loop, const InetAddr& addr, uint64_t seq);
-	~TcpConnection();
+	Connection(int fd, EventLoop* loop, const InetAddr& addr, uint64_t seq);
+	~Connection();
 
 	int fd() const;
 
@@ -106,31 +108,31 @@ class TcpConnection : public noncopyable,
 	}
 
 	void setMessageCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&, Buffer*)> cb)
+		std::function<void(const std::shared_ptr<Connection>&, Buffer*)> cb)
 	{
 		message_callback_ = std::move(cb);
 	}
 
 	void setWriteCompleteCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
+		std::function<void(const std::shared_ptr<Connection>&)> cb)
 	{
 		write_complete_callback_ = std::move(cb);
 	}
 
 	void setConnectCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
+		std::function<void(const std::shared_ptr<Connection>&)> cb)
 	{
 		connect_callback_ = std::move(cb);
 	}
 
 	void setCloseCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&)> cb)
+		std::function<void(const std::shared_ptr<Connection>&)> cb)
 	{
 		close_callback_ = std::move(cb);
 	}
 
 	void setHighWaterMarkCallback(
-		std::function<void(const std::shared_ptr<TcpConnection>&, size_t)> cb,
+		std::function<void(const std::shared_ptr<Connection>&, size_t)> cb,
 		size_t high_water_mark)
 	{
 		high_water_mark_callback_ = std::move(cb);
@@ -176,6 +178,7 @@ class TcpConnection : public noncopyable,
 	void sendFileInLoop(const std::string& file_path);
 	void trySendFile();
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

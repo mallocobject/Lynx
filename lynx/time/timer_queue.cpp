@@ -14,11 +14,12 @@
 #include <sys/timerfd.h>
 
 using namespace lynx;
+using namespace lynx::time;
 
-TimerQueue::TimerQueue(EventLoop* loop) : loop_(loop)
+TimerQueue::TimerQueue(tcp::EventLoop* loop) : loop_(loop)
 {
 	int fd = ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-	ch_ = std::make_unique<Channel>(fd, loop);
+	ch_ = std::make_unique<tcp::Channel>(fd, loop);
 	ch_->setReadCallback(std::bind(&TimerQueue::handleRead, this));
 	ch_->enableIN();
 }

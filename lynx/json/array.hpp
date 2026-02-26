@@ -1,5 +1,5 @@
-#ifndef LYNX_ARRAY_HPP
-#define LYNX_ARRAY_HPP
+#ifndef LYNX_JSON_ARRAY_HPP
+#define LYNX_JSON_ARRAY_HPP
 
 #include "lynx/json/element.hpp"
 #include "lynx/json/value.hpp"
@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 namespace lynx
+{
+namespace json
 {
 using array_t = std::vector<Element*>;
 
@@ -28,12 +30,12 @@ class Array : public Element
 
 	static void* operator new(size_t size)
 	{
-		return alloc::allocate(size);
+		return base::alloc::allocate(size);
 	}
 
 	static void operator delete(void* p, size_t size)
 	{
-		alloc::deallocate(p, size);
+		base::alloc::deallocate(p, size);
 	}
 
 	bool isArray() const noexcept override
@@ -122,6 +124,7 @@ class Array : public Element
 		arr_.clear();
 	}
 };
+} // namespace json
 } // namespace lynx
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef LYNX_FIXED_BUFFER_HPP
-#define LYNX_FIXED_BUFFER_HPP
+#ifndef LYNX_LOGGER_FIXED_BUFFER_HPP
+#define LYNX_LOGGER_FIXED_BUFFER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/logger/context.hpp"
@@ -7,7 +7,9 @@
 #include <cstddef>
 namespace lynx
 {
-template <size_t N> class FixedBuffer : public noncopyable
+namespace logger
+{
+template <size_t N> class FixedBuffer : public base::noncopyable
 {
   public:
 	using iterator = Context*;
@@ -118,6 +120,7 @@ template <size_t N> class FixedBuffer : public noncopyable
 		return ctxs_[index];
 	}
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

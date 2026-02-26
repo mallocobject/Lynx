@@ -1,4 +1,4 @@
-#include "lynx/tcp/tcp_connection.hpp"
+#include "lynx/tcp/connection.hpp"
 #include "lynx/logger/logger.hpp"
 #include "lynx/tcp/buffer.hpp"
 #include "lynx/tcp/channel.hpp"
@@ -16,9 +16,10 @@
 #include <unistd.h>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
-TcpConnection::TcpConnection(int fd, EventLoop* loop, const InetAddr& addr,
-							 uint64_t seq)
+Connection::Connection(int fd, EventLoop* loop, const InetAddr& addr,
+					   uint64_t seq)
 	: loop_(loop), addr_(addr), seq_(seq), state_(State::kConnecting),
 	  high_water_mark_(64 * 1024 * 1024)
 {
@@ -26,16 +27,16 @@ TcpConnection::TcpConnection(int fd, EventLoop* loop, const InetAddr& addr,
 	Socket::setNoDelay(fd);
 	ch_ = std::make_unique<Channel>(fd, loop);
 
-	ch_->setReadCallback(std::bind(&TcpConnection::handleRead, this));
-	ch_->setWriteCallback(std::bind(&TcpConnection::handleWrite, this));
-	ch_->setCloseCallback(std::bind(&TcpConnection::handleClose, this));
-	ch_->setErrorCallback(std::bind(&TcpConnection::handleError, this));
+	ch_->setReadCallback(std::bind(&Connection::handleRead, this));
+	ch_->setWriteCallback(std::bind(&Connection::handleWrite, this));
+	ch_->setCloseCallback(std::bind(&Connection::handleClose, this));
+	ch_->setErrorCallback(std::bind(&Connection::handleError, this));
 
 	inbuf_ = std::make_unique<Buffer>();
 	outbuf_ = std::make_unique<Buffer>();
 }
 
-TcpConnection::~TcpConnection()
+Connection::~Connection()
 {
 	if (file_fd_ != -1)
 	{
@@ -43,7 +44,7 @@ TcpConnection::~TcpConnection()
 	}
 }
 
-void TcpConnection::send(const std::string& message)
+void Connection::send(const std::string& message)
 {
 	if (state_ == State::kConnected)
 	{
@@ -54,13 +55,13 @@ void TcpConnection::send(const std::string& message)
 		}
 		else
 		{
-			loop_->runInLoop(std::bind(&TcpConnection::sendInLoop,
+			loop_->runInLoop(std::bind(&Connection::sendInLoop,
 									   shared_from_this(), message));
 		}
 	}
 }
 
-void TcpConnection::sendInLoop(const std::string& message)
+void Connection::sendInLoop(const std::string& message)
 {
 	loop_->assertInLoopThread();
 	if (state_ == State::kDisconnected)
@@ -119,17 +120,17 @@ void TcpConnection::sendInLoop(const std::string& message)
 	}
 }
 
-void TcpConnection::shutdown()
+void Connection::shutdown()
 {
 	if (state_ == State::kConnected)
 	{
 		state_ = State::kDisconnecting;
 		loop_->runInLoop(
-			std::bind(&TcpConnection::shutdownInLoop, shared_from_this()));
+			std::bind(&Connection::shutdownInLoop, shared_from_this()));
 	}
 }
 
-void TcpConnection::shutdownInLoop()
+void Connection::shutdownInLoop()
 {
 	loop_->assertInLoopThread();
 	assert(state_ == State::kDisconnecting);
@@ -140,7 +141,7 @@ void TcpConnection::shutdownInLoop()
 	}
 }
 
-void TcpConnection::connEstablish()
+void Connection::connEstablish()
 {
 	loop_->assertInLoopThread();
 	assert(state_ == State::kConnecting);
@@ -157,7 +158,7 @@ void TcpConnection::connEstablish()
 			  << " is fully establish.";
 }
 
-void TcpConnection::connDestroy()
+void Connection::connDestroy()
 {
 	loop_->assertInLoopThread();
 	if (state_ != State::kDisconnected)
@@ -177,7 +178,7 @@ void TcpConnection::connDestroy()
 			  << " is fully destroyed.";
 }
 
-void TcpConnection::sendFile(const std::string& file_path)
+void Connection::sendFile(const std::string& file_path)
 {
 	if (state_ == State::kConnected)
 	{
@@ -187,13 +188,13 @@ void TcpConnection::sendFile(const std::string& file_path)
 		}
 		else
 		{
-			loop_->runInLoop(std::bind(&TcpConnection::sendFileInLoop,
+			loop_->runInLoop(std::bind(&Connection::sendFileInLoop,
 									   shared_from_this(), file_path));
 		}
 	}
 }
 
-void TcpConnection::sendFileInLoop(const std::string& file_path)
+void Connection::sendFileInLoop(const std::string& file_path)
 {
 	loop_->assertInLoopThread();
 	LOG_TRACE << "start send file";
@@ -204,7 +205,7 @@ void TcpConnection::sendFileInLoop(const std::string& file_path)
 
 	if (file_fd_ != -1)
 	{
-		LOG_WARN << "TcpConnection::sendFile: a file has been send.";
+		LOG_WARN << "Connection::sendFile: a file has been send.";
 		return;
 	}
 	int fd = ::open(file_path.c_str(), O_RDONLY);
@@ -236,7 +237,7 @@ void TcpConnection::sendFileInLoop(const std::string& file_path)
 	}
 }
 
-void TcpConnection::trySendFile()
+void Connection::trySendFile()
 {
 	loop_->assertInLoopThread();
 	bool fault_error = false;
@@ -276,11 +277,11 @@ void TcpConnection::trySendFile()
 	{
 		::close(file_fd_);
 		file_fd_ = -1;
-		LOG_DEBUG << "TcpConnection::trySendFile : file send successfully.";
+		LOG_DEBUG << "Connection::trySendFile : file send successfully.";
 	}
 }
 
-void TcpConnection::handleError()
+void Connection::handleError()
 {
 	int error = Socket::socketErrno(ch_->fd());
 
@@ -301,7 +302,7 @@ void TcpConnection::handleError()
 	}
 }
 
-void TcpConnection::handleClose()
+void Connection::handleClose()
 {
 	loop_->assertInLoopThread();
 	if (state_ == State::kDisconnected)
@@ -323,7 +324,7 @@ void TcpConnection::handleClose()
 	}
 }
 
-void TcpConnection::handleRead()
+void Connection::handleRead()
 {
 	loop_->assertInLoopThread();
 	int saved_errno = 0;
@@ -342,7 +343,7 @@ void TcpConnection::handleRead()
 	}
 }
 
-void TcpConnection::handleWrite()
+void Connection::handleWrite()
 {
 	loop_->assertInLoopThread();
 

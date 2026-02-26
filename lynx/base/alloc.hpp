@@ -1,15 +1,29 @@
-#ifndef LYNX_ALLOC_HPP
-#define LYNX_ALLOC_HPP
+#ifndef LYNX_BASE_ALLOC_HPP
+#define LYNX_BASE_ALLOC_HPP
 
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <mutex>
+#include <type_traits>
 #include <utility>
 
 namespace lynx
 {
+namespace base
+{
+struct NoOpLock
+{
+	void lock()
+	{
+	}
+	void unlock()
+	{
+	}
+};
+
 #define THROW_BAD_ALLOC                                                        \
 	std::cout << "out of memory" << std::endl;                                 \
 	throw std::bad_alloc()
@@ -47,8 +61,7 @@ template <int inst> class malloc_alloc_template
 		void* result = malloc(size);
 		if (nullptr == result)
 		{
-			// 暂时如此处理
-			THROW_BAD_ALLOC;
+			result = oom_allocate(size);
 		}
 		return result;
 	}
@@ -58,8 +71,7 @@ template <int inst> class malloc_alloc_template
 		void* result = realloc(p, new_size);
 		if (nullptr == result)
 		{
-			// 暂时如此处理
-			THROW_BAD_ALLOC;
+			result = oom_reallocate(p, new_size);
 		}
 		return result;
 	}
@@ -69,14 +81,21 @@ template <int inst> class malloc_alloc_template
 		free(p);
 	}
 
-  protected:
+	static void (*set_malloc_handler(void (*f)()))()
+	{
+		void (*old)() = malloc_alloc_oom_handler;
+		malloc_alloc_oom_handler = f;
+		return old;
+	}
+
+  private:
 	static pointer oom_allocate(size_type size);
 	static pointer oom_reallocate(pointer p, size_type new_size);
-	static void (*malloc_alloc_oom_hander)();
+	static void (*malloc_alloc_oom_handler)();
 };
 
 template <int inst>
-void (*malloc_alloc_template<inst>::malloc_alloc_oom_hander)() = nullptr;
+void (*malloc_alloc_template<inst>::malloc_alloc_oom_handler)() = nullptr;
 
 template <int inst>
 void* malloc_alloc_template<inst>::oom_allocate(std::size_t size)
@@ -85,10 +104,10 @@ void* malloc_alloc_template<inst>::oom_allocate(std::size_t size)
 	void* result;
 	while (true)
 	{
-		my_malloc_hander = malloc_alloc_oom_hander;
+		my_malloc_hander = malloc_alloc_oom_handler;
 		if (nullptr == my_malloc_hander)
 		{
-			oom_allocate(size);
+			THROW_BAD_ALLOC;
 		}
 		(*my_malloc_hander)();
 		result = malloc(size);
@@ -106,10 +125,10 @@ void* malloc_alloc_template<inst>::oom_reallocate(void* p, std::size_t new_size)
 	void* result;
 	while (true)
 	{
-		my_malloc_hander = malloc_alloc_oom_hander;
+		my_malloc_hander = malloc_alloc_oom_handler;
 		if (nullptr == my_malloc_hander)
 		{
-			oom_reallocate(p, new_size);
+			THROW_BAD_ALLOC;
 		}
 		(*my_malloc_hander)();
 		result = realloc(p, new_size);
@@ -140,42 +159,56 @@ template <bool threads, int inst> class default_alloc_template
   public:
 	using pointer = void*;
 	using size_type = std::size_t;
+	using lock_type = std::conditional_t<threads, std::mutex, NoOpLock>;
 
   public:
 	static pointer allocate(size_type size)
 	{
-		void* result = nullptr;
+		if (size == 0)
+		{
+			return nullptr;
+		}
+
 		if (size > MAX_BYTES)
 		{
-			result = malloc_alloc::allocate(size);
+			return malloc_alloc::allocate(size);
 		}
 		else
 		{
+			std::lock_guard<lock_type> lock(mtx);
+
 			Obj* free_space = free_list[free_list_index(size)];
 			if (nullptr == free_space)
 			{
-				result = refill(round_up(size));
+				return refill(round_up(size));
 			}
 			else
 			{
 				free_list[free_list_index(size)] = free_space->free_list_link;
-				result = free_space;
+				return free_space;
 			}
 		}
-		return result;
 	}
 
 	static void deallocate(pointer p, size_type size)
 	{
+		if (p == nullptr)
+		{
+			return;
+		}
+
 		if (size > MAX_BYTES)
 		{
 			malloc_alloc::deallocate(p, size);
 		}
 		else
 		{
+			std::lock_guard<lock_type> lock(mtx);
+
 			Obj* q = (Obj*)p;
-			q->free_list_link = free_list[free_list_index(size)];
-			free_list[free_list_index(size)] = q;
+			size_type index = free_list_index(size);
+			q->free_list_link = free_list[index];
+			free_list[index] = q;
 		}
 	}
 
@@ -194,6 +227,8 @@ template <bool threads, int inst> class default_alloc_template
 		char* client_data;
 	};
 
+	static_assert(ALIGN >= sizeof(Obj*), "ALIGN must be >= sizeof(pointer)");
+
 	static size_type free_list_index(size_type bytes)
 	{
 		return (bytes + ALIGN - 1) / ALIGN - 1;
@@ -208,11 +243,15 @@ template <bool threads, int inst> class default_alloc_template
 	static char* start_free;
 	static char* end_free;
 	static size_type heap_size;
+	static lock_type mtx;
 };
 
 template <bool threads, int inst>
+typename default_alloc_template<threads, inst>::lock_type
+	default_alloc_template<threads, inst>::mtx;
+template <bool threads, int inst>
 typename default_alloc_template<threads, inst>::Obj*
-	default_alloc_template<threads, inst>::free_list[NFREELISTS];
+	default_alloc_template<threads, inst>::free_list[NFREELISTS] = {0};
 template <bool threads, int inst>
 char* default_alloc_template<threads, inst>::start_free = nullptr;
 template <bool threads, int inst>
@@ -333,8 +372,9 @@ char* default_alloc_template<threads, inst>::chunk_alloc(size_type size,
 	}
 }
 
-using alloc = default_alloc_template<false, 0>;
+using alloc = default_alloc_template<true, 0>;
 
+} // namespace base
 } // namespace lynx
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef LYNX_TYPES_HPP
-#define LYNX_TYPES_HPP
+#ifndef LYNX_SQL_TYPES_HPP
+#define LYNX_SQL_TYPES_HPP
 
 #include <concepts>
 #include <cppconn/prepared_statement.h>
@@ -8,6 +8,8 @@
 #include <string_view>
 #include <variant>
 namespace lynx
+{
+namespace sql
 {
 template <typename T>
 concept SqlParamType = std::integral<T> || std::floating_point<T> ||
@@ -26,37 +28,38 @@ using DbValue = std::variant<int, int64_t, double, bool, std::string>;
 namespace internal
 {
 // 参数绑定辅助函数 (inline 防止多重定义)
-inline void bind_impl(sql::PreparedStatement* pstmt, unsigned int index,
+inline void bind_impl(::sql::PreparedStatement* pstmt, unsigned int index,
 					  const std::string& val)
 {
 	pstmt->setString(index, val);
 }
-inline void bind_impl(sql::PreparedStatement* pstmt, unsigned int index,
+inline void bind_impl(::sql::PreparedStatement* pstmt, unsigned int index,
 					  const char* val)
 {
 	pstmt->setString(index, val);
 }
-inline void bind_impl(sql::PreparedStatement* pstmt, unsigned int index,
+inline void bind_impl(::sql::PreparedStatement* pstmt, unsigned int index,
 					  int val)
 {
 	pstmt->setInt(index, val);
 }
-inline void bind_impl(sql::PreparedStatement* pstmt, unsigned int index,
+inline void bind_impl(::sql::PreparedStatement* pstmt, unsigned int index,
 					  int64_t val)
 {
 	pstmt->setInt64(index, val);
 }
-inline void bind_impl(sql::PreparedStatement* pstmt, unsigned int index,
+inline void bind_impl(::sql::PreparedStatement* pstmt, unsigned int index,
 					  double val)
 {
 	pstmt->setDouble(index, val);
 }
-inline void bind_impl(sql::PreparedStatement* pstmt, unsigned int index,
+inline void bind_impl(::sql::PreparedStatement* pstmt, unsigned int index,
 					  bool val)
 {
 	pstmt->setBoolean(index, val);
 }
 } // namespace internal
+} // namespace sql
 } // namespace lynx
 
 #endif

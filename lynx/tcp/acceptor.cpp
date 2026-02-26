@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 Acceptor::Acceptor(EventLoop* loop, const InetAddr& local_addr)
 	: loop_(loop), addr_(local_addr), listening_(false), idle_fd_(-1)

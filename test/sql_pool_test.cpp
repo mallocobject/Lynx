@@ -1,7 +1,8 @@
-#include "lynx/connection_pool.hpp"
 #include "lynx/lynx.hpp"
 
 using namespace lynx;
+using namespace lynx::sql;
+using namespace lynx::tcp;
 
 int main()
 {
@@ -34,7 +35,7 @@ int main()
 
 		table.remove().where("uid = 2").execute();
 	}
-	catch (sql::SQLException& e)
+	catch (::sql::SQLException& e)
 	{
 		std::cerr << "MySQL Error: " << e.what() << std::endl;
 	}

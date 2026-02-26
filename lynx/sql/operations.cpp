@@ -11,8 +11,9 @@
 #include <variant>
 
 using namespace lynx;
+using namespace lynx::sql;
 
-CreateTableOp::CreateTableOp(sql::Connection* conn, const std::string& name,
+CreateTableOp::CreateTableOp(::sql::Connection* conn, const std::string& name,
 							 bool if_not_exists)
 	: conn_(conn), first_col_(true)
 {
@@ -63,7 +64,7 @@ void CreateTableOp::execute()
 	}
 	std::format_to(out, ")");
 	LOG_INFO << "sql: " << sql_;
-	std::unique_ptr<sql::Statement> stmt(conn_->createStatement());
+	std::unique_ptr<::sql::Statement> stmt(conn_->createStatement());
 	stmt->execute(sql_);
 }
 
@@ -93,7 +94,7 @@ RowResult SelectOp::execute()
 	}
 
 	LOG_INFO << "sql: " << result;
-	std::unique_ptr<sql::Statement> stmt(conn_->createStatement());
+	std::unique_ptr<::sql::Statement> stmt(conn_->createStatement());
 	return RowResult(stmt->executeQuery(result));
 }
 
@@ -101,7 +102,7 @@ namespace
 {
 struct VariantBinder
 {
-	sql::PreparedStatement* pstmt;
+	::sql::PreparedStatement* pstmt;
 	unsigned int index;
 	void operator()(const std::string& v)
 	{
@@ -154,7 +155,7 @@ void UpdateOp::execute()
 	}
 
 	LOG_INFO << "sql: " << result;
-	std::unique_ptr<sql::PreparedStatement> pstmt(
+	std::unique_ptr<::sql::PreparedStatement> pstmt(
 		conn_->prepareStatement(result));
 
 	unsigned int idx = 1;
@@ -178,6 +179,6 @@ void RemoveOp::execute()
 	}
 
 	LOG_INFO << "sql: " << result;
-	std::unique_ptr<sql::Statement> stmt(conn_->createStatement());
+	std::unique_ptr<::sql::Statement> stmt(conn_->createStatement());
 	stmt->executeUpdate(result);
 }

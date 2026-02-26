@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 int Socket::socketErrno(int fd)
 {

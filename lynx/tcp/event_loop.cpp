@@ -10,12 +10,13 @@
 #include <sys/eventfd.h>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 EventLoop::EventLoop()
-	: epoller_(std::make_unique<Epoller>()), tid_(CurrentThread::tid()),
+	: epoller_(std::make_unique<Epoller>()), tid_(base::CurrentThread::tid()),
 	  quit_(true), calling_pending_funcs_(false)
 {
-	tq_ = std::make_unique<TimerQueue>(this);
+	tq_ = std::make_unique<time::TimerQueue>(this);
 
 	wakeup_fd_ = ::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
 	if (wakeup_fd_ == -1)
@@ -54,7 +55,7 @@ void EventLoop::run()
 	{
 		active_chs_.clear();
 		LOG_TRACE << "wait for tasks";
-		TimeStamp time_stamp = epoller_->poll(&active_chs_);
+		time::TimeStamp time_stamp = epoller_->poll(&active_chs_);
 		LOG_TRACE << "tasks is coming";
 		for (auto ch_ptr : active_chs_)
 		{
@@ -65,24 +66,27 @@ void EventLoop::run()
 	LOG_TRACE << "EventLoop " << this << " stop looping";
 }
 
-TimerId EventLoop::runAt(TimeStamp time_stamp, const std::function<void()>& cb)
+time::TimerId EventLoop::runAt(time::TimeStamp time_stamp,
+							   const std::function<void()>& cb)
 {
 	return tq_->addTimer(time_stamp, cb, -1);
 }
 
-TimerId EventLoop::runAfter(double delay, const std::function<void()>& cb)
+time::TimerId EventLoop::runAfter(double delay, const std::function<void()>& cb)
 {
-	return tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), delay), cb,
-						 -1);
+	return tq_->addTimer(
+		time::TimeStamp::addTime(time::TimeStamp::now(), delay), cb, -1);
 }
 
-TimerId EventLoop::runEvery(double interval, const std::function<void()>& cb)
+time::TimerId EventLoop::runEvery(double interval,
+								  const std::function<void()>& cb)
 {
-	return tq_->addTimer(TimeStamp::addTime(lynx::TimeStamp::now(), interval),
-						 cb, interval);
+	return tq_->addTimer(
+		time::TimeStamp::addTime(time::TimeStamp::now(), interval), cb,
+		interval);
 }
 
-void EventLoop::cancell(TimerId timer_id)
+void EventLoop::cancell(time::TimerId timer_id)
 {
 	tq_->cancell(timer_id);
 }

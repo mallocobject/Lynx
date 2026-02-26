@@ -1,5 +1,5 @@
-#ifndef LYNX_TIMER_QUEUE_HPP
-#define LYNX_TIMER_QUEUE_HPP
+#ifndef LYNX_TIME_TIMER_QUEUE_HPP
+#define LYNX_TIME_TIMER_QUEUE_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/time/time_stamp.hpp"
@@ -12,22 +12,28 @@
 #include <vector>
 namespace lynx
 {
-class Timer;
+namespace tcp
+{
 class EventLoop;
 class Channel;
-class TimerQueue : public noncopyable
+} // namespace tcp
+
+namespace time
+{
+class Timer;
+class TimerQueue : public base::noncopyable
 {
   private:
 	using Entry = std::pair<TimeStamp, Timer*>;
 
-	EventLoop* loop_;
-	std::unique_ptr<Channel> ch_;
+	tcp::EventLoop* loop_;
+	std::unique_ptr<tcp::Channel> ch_;
 
 	std::set<Entry> timers_;
 	std::vector<Entry> active_timers_;
 
   public:
-	TimerQueue(EventLoop* loop);
+	TimerQueue(tcp::EventLoop* loop);
 	~TimerQueue();
 
 	void TimerDestroy();
@@ -53,6 +59,7 @@ class TimerQueue : public noncopyable
 	void addTimerInLoop(Timer* timer);
 	void cancellInLoop(TimerId timer_id);
 };
+} // namespace time
 } // namespace lynx
 
 #endif

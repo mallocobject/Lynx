@@ -1,5 +1,5 @@
-#ifndef LYNX_CHANNEL_HPP
-#define LYNX_CHANNEL_HPP
+#ifndef LYNX_TCP_CHANNEL_HPP
+#define LYNX_TCP_CHANNEL_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/logger/logger.hpp"
@@ -12,8 +12,10 @@
 #include <sys/epoll.h>
 namespace lynx
 {
+namespace tcp
+{
 class EventLoop;
-class Channel : public noncopyable
+class Channel : public base::noncopyable
 {
   private:
 	int fd_;
@@ -168,7 +170,7 @@ class Channel : public noncopyable
 		error_callback_ = std::move(cb);
 	}
 
-	void handleEvent(TimeStamp time_stamp)
+	void handleEvent(time::TimeStamp time_stamp)
 	{
 		if (tied_)
 		{
@@ -188,8 +190,9 @@ class Channel : public noncopyable
 
   private:
 	void update();
-	void handleEventWithGuard(TimeStamp time_stamp);
+	void handleEventWithGuard(time::TimeStamp time_stamp);
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

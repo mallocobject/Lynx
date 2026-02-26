@@ -6,6 +6,7 @@
 #include <thread>
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 EventLoopThread::EventLoopThread() : loop_(nullptr), latch_down_(1)
 {

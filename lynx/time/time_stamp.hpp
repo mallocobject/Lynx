@@ -1,10 +1,12 @@
-#ifndef LYNX_TIME_STAMP_HPP
-#define LYNX_TIME_STAMP_HPP
+#ifndef LYNX_TIME_TIME_STAMP_HPP
+#define LYNX_TIME_TIME_STAMP_HPP
 
 #include <cstdint>
 #include <ostream>
 #include <string>
 namespace lynx
+{
+namespace time
 {
 extern const int kMicroSecond2Second;
 
@@ -38,7 +40,7 @@ class TimeStamp
 };
 
 std::ostream& operator<<(std::ostream& os, const TimeStamp& ts);
-
+} // namespace time
 } // namespace lynx
 
 #endif

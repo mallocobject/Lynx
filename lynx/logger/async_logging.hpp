@@ -1,5 +1,5 @@
-#ifndef LYNX_ASYNCLOGGING_HPP
-#define LYNX_ASYNCLOGGING_HPP
+#ifndef LYNX_LOGGER_ASYNCLOGGING_HPP
+#define LYNX_LOGGER_ASYNCLOGGING_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/logger/context.hpp"
@@ -13,13 +13,15 @@
 #include <vector>
 namespace lynx
 {
+namespace logger
+{
 enum
 {
 	kSmallBuffer = 4096,
 	kLargeBuffer = 65536
 };
 
-class AsyncLogging : public noncopyable
+class AsyncLogging : public base::noncopyable
 {
   private:
 	using Buffer = FixedBuffer<kLargeBuffer>;
@@ -55,6 +57,7 @@ class AsyncLogging : public noncopyable
 	void doDone();
 	void threadWorker();
 };
+} // namespace logger
 } // namespace lynx
 
 #endif

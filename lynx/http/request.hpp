@@ -1,13 +1,15 @@
-#ifndef LYNX_PUBLIC_HTTP_REQUEST_HPP
-#define LYNX_PUBLIC_HTTP_REQUEST_HPP
+#ifndef LYNX_HTTP_REQUEST_HPP
+#define LYNX_HTTP_REQUEST_HPP
 
-#include "noncopyable.hpp"
+#include "lynx/base/noncopyable.hpp"
 #include <cstddef>
 #include <map>
 #include <string>
 namespace lynx
 {
-struct HttpRequest : public noncopyable
+namespace http
+{
+struct Request : public base::noncopyable
 {
 	std::string method;
 	std::string path;
@@ -39,6 +41,7 @@ struct HttpRequest : public noncopyable
 		ctx_length = 0;
 	}
 };
+} // namespace http
 } // namespace lynx
 
 #endif

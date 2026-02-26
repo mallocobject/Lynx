@@ -1,12 +1,14 @@
-#ifndef LYNX_PUBLIC_HTTP_RESPONSE_HPP
-#define LYNX_PUBLIC_HTTP_RESPONSE_HPP
+#ifndef LYNX_HTTP_RESPONSE_HPP
+#define LYNX_HTTP_RESPONSE_HPP
 
-#include "noncopyable.hpp"
+#include "lynx/base/noncopyable.hpp"
 #include <map>
 #include <string>
 namespace lynx
 {
-class HttpResponse : public noncopyable
+namespace http
+{
+class Response : public base::noncopyable
 {
   private:
 	int status_code_;
@@ -16,8 +18,8 @@ class HttpResponse : public noncopyable
 	std::string body_;
 
   public:
-	HttpResponse();
-	~HttpResponse();
+	Response();
+	~Response();
 
 	void setStatusCode(int code)
 	{
@@ -68,6 +70,7 @@ class HttpResponse : public noncopyable
 		return (it != status_msgs.end()) ? it->second : "Unknown";
 	}
 };
+} // namespace http
 } // namespace lynx
 
 #endif

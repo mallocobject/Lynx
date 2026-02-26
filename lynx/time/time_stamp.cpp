@@ -6,10 +6,14 @@
 
 namespace lynx
 {
+namespace time
+{
 const int kMicroSecond2Second = 1e6;
 }
+} // namespace lynx
 
 using namespace lynx;
+using namespace lynx::time;
 
 TimeStamp TimeStamp::now()
 {

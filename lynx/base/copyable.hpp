@@ -1,7 +1,9 @@
-#ifndef LYNX_COPYABLE_HPP
-#define LYNX_COPYABLE_HPP
+#ifndef LYNX_BASE_COPYABLE_HPP
+#define LYNX_BASE_COPYABLE_HPP
 
 namespace lynx
+{
+namespace base
 {
 class copyable
 {
@@ -12,6 +14,7 @@ class copyable
 	copyable(const copyable&) = default;
 	copyable& operator=(const copyable&) = default;
 };
+} // namespace base
 } // namespace lynx
 
 #endif

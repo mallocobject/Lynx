@@ -15,6 +15,7 @@
 #include <vector>
 
 using namespace lynx;
+using namespace lynx::logger;
 
 AsyncLogging::AsyncLogging(const std::string& basename,
 						   const std::string& prefix, int roll_size,
@@ -125,9 +126,10 @@ void AsyncLogging::threadWorker()
 		if (buf2write.size() > 100)
 		{
 			// 保留两个
-			std::string err = std::format(
-				"Dropped log messages at {}, {} larger buffers\n",
-				TimeStamp::now().toFormattedString(), buf2write.size() - 2);
+			std::string err =
+				std::format("Dropped log messages at {}, {} larger buffers\n",
+							time::TimeStamp::now().toFormattedString(),
+							buf2write.size() - 2);
 			std::cerr << err;
 
 			out_file.append(err.c_str(), err.size());

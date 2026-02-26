@@ -1,5 +1,5 @@
-#ifndef LYNX_OPERATION_HPP
-#define LYNX_OPERATION_HPP
+#ifndef LYNX_SQL_OPERATION_HPP
+#define LYNX_SQL_OPERATION_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/logger/logger.hpp"
@@ -19,16 +19,18 @@
 #include <vector>
 namespace lynx
 {
-class CreateTableOp : public noncopyable
+namespace sql
+{
+class CreateTableOp : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string sql_;
 	std::vector<std::string> pks_; // primary key(s)
 	bool first_col_;
 
   public:
-	CreateTableOp(sql::Connection* conn, const std::string& name,
+	CreateTableOp(::sql::Connection* conn, const std::string& name,
 				  bool if_not_exists);
 	CreateTableOp& addColumn(const std::string& name, std::string_view type,
 							 int size = 0);
@@ -36,15 +38,15 @@ class CreateTableOp : public noncopyable
 	void execute();
 };
 
-class InsertOp : public noncopyable
+class InsertOp : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string table_name_;
 	std::vector<std::string> columns_;
 
   public:
-	InsertOp(sql::Connection* conn, const std::string& name,
+	InsertOp(::sql::Connection* conn, const std::string& name,
 			 std::vector<std::string> cols)
 		: conn_(conn), table_name_(name), columns_(std::move(cols))
 	{
@@ -88,7 +90,7 @@ class InsertOp : public noncopyable
 		std::format_to(out, ")");
 
 		LOG_INFO << "sql: " << result;
-		std::unique_ptr<sql::PreparedStatement> pstmt(
+		std::unique_ptr<::sql::PreparedStatement> pstmt(
 			conn_->prepareStatement(result));
 
 		unsigned int idx = 1;
@@ -104,16 +106,16 @@ class InsertOp : public noncopyable
 	}
 };
 
-class SelectOp : public noncopyable
+class SelectOp : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string table_name_;
 	std::vector<std::string> columns_;
 	std::string where_clause_;
 
   public:
-	SelectOp(sql::Connection* conn, const std::string& name,
+	SelectOp(::sql::Connection* conn, const std::string& name,
 			 std::vector<std::string> cols)
 		: conn_(conn), table_name_(name), columns_(std::move(cols))
 
@@ -129,16 +131,16 @@ class SelectOp : public noncopyable
 	RowResult execute();
 };
 
-class UpdateOp : public noncopyable
+class UpdateOp : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string table_name_;
 	std::string where_clause_;
 	std::map<std::string, DbValue> updates_;
 
   public:
-	UpdateOp(sql::Connection* conn, const std::string& name)
+	UpdateOp(::sql::Connection* conn, const std::string& name)
 		: conn_(conn), table_name_(name)
 	{
 	}
@@ -167,15 +169,15 @@ class UpdateOp : public noncopyable
 	void execute();
 };
 
-class RemoveOp : public noncopyable
+class RemoveOp : public base::noncopyable
 {
   private:
-	sql::Connection* conn_;
+	::sql::Connection* conn_;
 	std::string table_name_;
 	std::string where_clause_;
 
   public:
-	RemoveOp(sql::Connection* conn, const std::string& name)
+	RemoveOp(::sql::Connection* conn, const std::string& name)
 		: conn_(conn), table_name_(name)
 	{
 	}
@@ -188,6 +190,7 @@ class RemoveOp : public noncopyable
 
 	void execute();
 };
+} // namespace sql
 } // namespace lynx
 
 #endif

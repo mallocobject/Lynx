@@ -2,6 +2,7 @@
 #include "lynx/tcp/event_loop_thread.hpp"
 
 using namespace lynx;
+using namespace lynx::tcp;
 
 EventLoopThreadPool::EventLoopThreadPool(EventLoop* main_loop,
 										 size_t thread_num)

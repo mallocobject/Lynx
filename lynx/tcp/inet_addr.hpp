@@ -1,5 +1,5 @@
-#ifndef LYNX_INET_ADDR_HPP
-#define LYNX_INET_ADDR_HPP
+#ifndef LYNX_TCP_INET_ADDR_HPP
+#define LYNX_TCP_INET_ADDR_HPP
 
 #include "lynx/logger/logger.hpp"
 #include <arpa/inet.h>
@@ -10,6 +10,8 @@
 #include <strings.h>
 #include <sys/socket.h>
 namespace lynx
+{
+namespace tcp
 {
 class InetAddr
 {
@@ -83,6 +85,7 @@ class InetAddr
 		return std::format("{}:{}", ip(), port());
 	}
 };
+} // namespace tcp
 } // namespace lynx
 
 #endif

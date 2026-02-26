@@ -1,5 +1,5 @@
-#ifndef LYNX_OBJECT_HPP
-#define LYNX_OBJECT_HPP
+#ifndef LYNX_JSON_OBJECT_HPP
+#define LYNX_JSON_OBJECT_HPP
 
 #include "lynx/json/element.hpp"
 #include "lynx/json/value.hpp"
@@ -8,6 +8,8 @@
 #include <map>
 #include <string>
 namespace lynx
+{
+namespace json
 {
 using object_t = std::map<std::string, Element*>;
 
@@ -27,12 +29,12 @@ class Object : public Element
 
 	static void* operator new(size_t size)
 	{
-		return alloc::allocate(size);
+		return base::alloc::allocate(size);
 	}
 
 	static void operator delete(void* p, size_t size)
 	{
-		alloc::deallocate(p, size);
+		base::alloc::deallocate(p, size);
 	}
 
 	bool isObject() const noexcept override
@@ -122,6 +124,7 @@ class Object : public Element
 		obj_.clear();
 	}
 };
+} // namespace json
 } // namespace lynx
 
 #endif

@@ -5,16 +5,16 @@ using namespace lynx;
 int main(int argc, char* argv[])
 {
 	// 初始化日志
-	Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", argv[0]);
+	logger::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", argv[0]);
 
 	// 创建 TCP 服务器
-	EventLoop loop;
+	tcp::EventLoop loop;
 
-	TcpServer server(&loop, "0.0.0.0", 9999, "EchoServer", 8);
+	tcp::Server server(&loop, "0.0.0.0", 9999, "EchoServer", 8);
 
 	// 设置连接回调
 	server.setConnectionCallback(
-		[](const std::shared_ptr<TcpConnection>& conn)
+		[](const std::shared_ptr<tcp::Connection>& conn)
 		{
 			if (conn->connected())
 			{
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 
 	// 设置消息回调（Echo 逻辑）
 	server.setMessageCallback(
-		[](const std::shared_ptr<TcpConnection>& conn, Buffer* buf)
+		[](const std::shared_ptr<tcp::Connection>& conn, tcp::Buffer* buf)
 		{
 			std::string msg = buf->retrieveString(buf->readableBytes());
 			conn->send(msg); // 原样返回
@@ -41,5 +41,6 @@ int main(int argc, char* argv[])
 	server.run();
 	loop.run();
 
+	logger::Logger::shutdownAsyncLogging();
 	return 0;
 }

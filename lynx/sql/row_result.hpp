@@ -1,5 +1,5 @@
-#ifndef LYNX_ROW_RESULT_HPP
-#define LYNX_ROW_RESULT_HPP
+#ifndef LYNX_SQL_ROW_RESULT_HPP
+#define LYNX_SQL_ROW_RESULT_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cppconn/resultset.h>
@@ -9,13 +9,15 @@
 #include <ostream>
 namespace lynx
 {
-class RowResult : public noncopyable
+namespace sql
+{
+class RowResult : public base::noncopyable
 {
   private:
-	std::unique_ptr<sql::ResultSet> res_;
+	std::unique_ptr<::sql::ResultSet> res_;
 
   public:
-	explicit RowResult(sql::ResultSet* res) : res_(res)
+	explicit RowResult(::sql::ResultSet* res) : res_(res)
 	{
 	}
 
@@ -38,11 +40,12 @@ class RowResult : public noncopyable
 		}
 	}
 
-	sql::ResultSet* get()
+	::sql::ResultSet* get()
 	{
 		return res_.get();
 	}
 };
+} // namespace sql
 } // namespace lynx
 
 #endif

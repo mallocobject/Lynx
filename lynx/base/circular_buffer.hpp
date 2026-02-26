@@ -1,5 +1,5 @@
-#ifndef LYNX_CIRCULAR_BUFFER_HPP
-#define LYNX_CIRCULAR_BUFFER_HPP
+#ifndef LYNX_BASE_CIRCULAR_BUFFER_HPP
+#define LYNX_BASE_CIRCULAR_BUFFER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <cstddef>
@@ -8,6 +8,8 @@
 #include <utility>
 
 namespace lynx
+{
+namespace base
 {
 template <typename T, size_t N = 8> class CircularBuffer : public noncopyable
 {
@@ -45,6 +47,7 @@ template <typename T, size_t N = 8> class CircularBuffer : public noncopyable
 		return sum;
 	}
 };
+} // namespace base
 } // namespace lynx
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef LYNX_VALUE_HPP
-#define LYNX_VALUE_HPP
+#ifndef LYNX_JSON_VALUE_HPP
+#define LYNX_JSON_VALUE_HPP
 
 #include "lynx/base/alloc.hpp"
 #include "lynx/json/element.hpp"
@@ -13,6 +13,8 @@
 #include <utility>
 #include <variant>
 namespace lynx
+{
+namespace json
 {
 using value_t =
 	std::variant<std::nullptr_t, bool, int64_t, double, std::string>;
@@ -41,12 +43,12 @@ class Value : public Element
 
 	static void* operator new(size_t size)
 	{
-		return alloc::allocate(size);
+		return base::alloc::allocate(size);
 	}
 
 	static void operator delete(void* p, size_t size)
 	{
-		alloc::deallocate(p, size);
+		base::alloc::deallocate(p, size);
 	}
 
 	bool isValue() const noexcept override
@@ -178,6 +180,7 @@ class Value : public Element
 		return std::get<T>(val_);
 	}
 };
+} // namespace json
 } // namespace lynx
 
 #endif

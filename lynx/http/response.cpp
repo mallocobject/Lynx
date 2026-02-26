@@ -1,16 +1,17 @@
-#include "lynx/http/http_response.hpp"
+#include "lynx/http/response.hpp"
 #include <format>
 
 using namespace lynx;
+using namespace lynx::http;
 
-HttpResponse::HttpResponse() : version_("HTTP/1.1")
+Response::Response() : version_("HTTP/1.1")
 {
 }
-HttpResponse::~HttpResponse()
+Response::~Response()
 {
 }
 
-std::string HttpResponse::toFormattedString() const
+std::string Response::toFormattedString() const
 {
 	std::string result;
 

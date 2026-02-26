@@ -3,7 +3,9 @@
 #include "lynx/tcp/event_loop.hpp"
 #include "lynx/tcp/socket.hpp"
 #include <cassert>
+
 using namespace lynx;
+using namespace lynx::tcp;
 
 Channel::Channel(int fd, EventLoop* loop)
 	: fd_(fd), loop_(loop), events_(0), revents_(0), in_epoll_(false),
@@ -34,7 +36,7 @@ void Channel::update()
 	LOG_TRACE << "fd: " << fd_ << " has updated state";
 }
 
-void Channel::handleEventWithGuard(TimeStamp time_stamp)
+void Channel::handleEventWithGuard(time::TimeStamp time_stamp)
 {
 	// 如果有 HUP 但没有 IN，说明连接彻底断开且没有残留数据，直接触发关闭
 	if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN))

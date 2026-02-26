@@ -1,11 +1,13 @@
-#ifndef LYNX_ENTRY_HPP
-#define LYNX_ENTRY_HPP
+#ifndef LYNX_BASE_ENTRY_HPP
+#define LYNX_BASE_ENTRY_HPP
 
 #include "lynx/base/copyable.hpp"
 #include <functional>
 #include <memory>
 #include <utility>
 namespace lynx
+{
+namespace base
 {
 template <typename T> class Entry : public copyable
 {
@@ -29,6 +31,7 @@ template <typename T> class Entry : public copyable
 		}
 	}
 };
+} // namespace base
 } // namespace lynx
 
 #endif

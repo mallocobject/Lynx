@@ -1,10 +1,12 @@
-#ifndef LYNX_CURRENT_THREAD_HPP
-#define LYNX_CURRENT_THREAD_HPP
+#ifndef LYNX_BASE_CURRENT_THREAD_HPP
+#define LYNX_BASE_CURRENT_THREAD_HPP
 
 #include <cstdint>
 #include <functional>
 #include <thread>
 namespace lynx
+{
+namespace base
 {
 namespace CurrentThread
 {
@@ -27,6 +29,7 @@ inline std::string& str()
 	return str;
 }
 } // namespace CurrentThread
+} // namespace base
 } // namespace lynx
 
 #endif

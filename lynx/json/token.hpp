@@ -1,8 +1,10 @@
-#ifndef LYNX_TOKEN_HPP
-#define LYNX_TOKEN_HPP
+#ifndef LYNX_JSON_TOKEN_HPP
+#define LYNX_JSON_TOKEN_HPP
 
 #include <string>
 namespace lynx
+{
+namespace json
 {
 enum class TokenType
 {
@@ -25,6 +27,7 @@ struct Token
 	TokenType type;
 	std::string value;
 };
+} // namespace json
 } // namespace lynx
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef LYNX_REF_HPP
-#define LYNX_REF_HPP
+#ifndef LYNX_JSON_REF_HPP
+#define LYNX_JSON_REF_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/json/array.hpp"
@@ -15,7 +15,9 @@
 #include <utility>
 namespace lynx
 {
-class Ref : public noncopyable
+namespace json
+{
+class Ref : public base::noncopyable
 {
   private:
 	Element* ptr_;
@@ -234,6 +236,7 @@ inline std::ostream& operator<<(std::ostream& os, const Ref& ref)
 
 	return os;
 }
+} // namespace json
 } // namespace lynx
 
 #endif

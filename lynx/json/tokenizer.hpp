@@ -1,5 +1,5 @@
-#ifndef LYNX_TOKENIZER_HPP
-#define LYNX_TOKENIZER_HPP
+#ifndef LYNX_JSON_TOKENIZER_HPP
+#define LYNX_JSON_TOKENIZER_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include "lynx/json/token.hpp"
@@ -12,7 +12,9 @@
 #include <utility>
 namespace lynx
 {
-class InputStream : public noncopyable
+namespace json
+{
+class InputStream : public base::noncopyable
 {
   private:
 	std::string context_;
@@ -48,7 +50,7 @@ class InputStream : public noncopyable
 	}
 };
 
-class Tokenizer : public noncopyable
+class Tokenizer : public base::noncopyable
 {
   private:
 	InputStream stream_;
@@ -242,6 +244,7 @@ class Tokenizer : public noncopyable
 		}
 	}
 };
+} // namespace json
 } // namespace lynx
 
 #endif

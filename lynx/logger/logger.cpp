@@ -5,11 +5,13 @@
 #include "lynx/time/time_stamp.hpp"
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <pthread.h>
 
 using namespace lynx;
+using namespace lynx::logger;
 
 std::unique_ptr<AsyncLogging> Logger::async_logging_ = nullptr;
 std::atomic<bool> Logger::async_enabled_(false);
@@ -69,10 +71,10 @@ void Logger::appendAsyncLog(LogLevel level, const std::string& message,
 		return;
 	}
 
-	thread_local Context ctx(CurrentThread::tid());
+	thread_local Context ctx(base::CurrentThread::tid());
 
-	ctx.withTimeStamp(TimeStamp::now())
-		.withLevel(level)
+	ctx.withTimeStamp(time::TimeStamp::now())
+		.withLevel(static_cast<uint8_t>(level))
 		.WithData(Context::Data{.line = line,
 								.full_name = file,
 								.short_name = LogStream::getShortName(file),
