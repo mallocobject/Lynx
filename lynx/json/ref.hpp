@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -238,5 +239,16 @@ inline std::ostream& operator<<(std::ostream& os, const Ref& ref)
 }
 } // namespace json
 } // namespace lynx
+
+template <>
+struct std::formatter<lynx::json::Ref> : std::formatter<std::string_view>
+{
+	auto format(const lynx::json::Ref& ref, std::format_context& ctx) const
+	{
+		std::ostringstream oss;
+		oss << ref;
+		return std::formatter<std::string_view>::format(oss.str(), ctx);
+	}
+};
 
 #endif

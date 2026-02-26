@@ -163,45 +163,6 @@ nc 127.0.0.1 9999
 
 using namespace lynx;
 
-void handleCalculate(const http::Request& req, http ::Response* res,
-					 const std::shared_ptr<tcp::Connection>& conn)
-{
-	double a = 0.0;
-	double b = 0.0;
-
-	try
-	{
-		const std::string& body = req.body;
-
-		auto a_pos = req.body.find("\"a\"");
-		auto b_pos = req.body.find("\"b\"");
-
-		if (a_pos == std::string::npos || b_pos == std::string::npos)
-		{
-			throw std::runtime_error("Invalid data");
-		}
-
-		a = std::stod(req.body.substr(a_pos + 4));
-		b = std::stod(req.body.substr(b_pos + 4));
-
-		double sum = a + b;
-
-		res->setStatusCode(200);
-		res->setContentType("application/json");
-		res->setBody(std::format("{{\"sum\": {0}}}", sum));
-
-		conn->send(res->toFormattedString());
-	}
-	catch (const std::exception& e)
-	{
-		res->setStatusCode(400);
-		res->setContentType("application/json");
-		res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
-
-		conn->send(res->toFormattedString());
-	}
-}
-
 int main(int argc, char* argv[])
 {
 	// 初始化日志
@@ -240,7 +201,64 @@ int main(int argc, char* argv[])
 							conn, res, LYNX_WEB_SRC_DIR "/static/js/script.js");
 					});
 
-	router.addRoute("POST", "/calculate", &handleCalculate);
+	router.addRoute(
+		"POST", "/calculate",
+		[](const auto& req, auto* res, const auto& conn)
+		{
+			try
+			{
+				json::Tokenizer tokenizer(req.body);
+				json::Ref root = json::Parser(&tokenizer).parse();
+
+				LOG_INFO << "root: " << root;
+
+				double sum = 0.0;
+
+				if (root["a"].get()->isValue() &&
+					root["a"].get()->asValue()->isFloat())
+				{
+					sum += root["a"].asFloat();
+				}
+				else if (root["a"].get()->isValue() &&
+						 root["a"].get()->asValue()->isInt())
+				{
+					sum += root["a"].asInt();
+				}
+
+				if (root["b"].get()->isValue() &&
+					root["b"].get()->asValue()->isFloat())
+				{
+					sum += root["b"].asFloat();
+				}
+				else if (root["b"].get()->isValue() &&
+						 root["b"].get()->asValue()->isInt())
+				{
+					sum += root["b"].asInt();
+				}
+
+				json::Ref result =
+					json::make_object({{"sum", json::make_value(sum)}});
+
+				res->setStatusCode(200);
+				res->setContentType("application/json");
+
+				LOG_INFO << "result: " << result.serialize();
+				res->setBody(result.serialize());
+
+				conn->send(res->toFormattedString());
+
+				delete root.get();
+			}
+
+			catch (const std::exception& e)
+			{
+				res->setStatusCode(400);
+				res->setContentType("application/json");
+				res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
+
+				conn->send(res->toFormattedString());
+			}
+		});
 
 	// 设置连接回调
 	server.setConnectionCallback(
