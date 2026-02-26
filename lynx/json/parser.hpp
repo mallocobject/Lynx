@@ -12,8 +12,10 @@
 #include "lynx/logger/logger.hpp"
 #include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 namespace lynx
 {
 namespace json
@@ -44,7 +46,7 @@ class Parser : public base::noncopyable
 		tokenizer_->consume();
 	}
 
-	Element* parseValue()
+	std::shared_ptr<Element> parseValue()
 	{
 		const Token& token = peek();
 
@@ -58,29 +60,29 @@ class Parser : public base::noncopyable
 		{
 			std::string val = token.value;
 			consume();
-			return new Value(val);
+			return std::make_shared<Value>(std::move(val));
 		}
 		case TokenType::kInteger:
 		{
 			int64_t val = std::stoll(token.value);
 			consume();
-			return new Value(val);
+			return std::make_shared<Value>(std::move(val));
 		}
 		case TokenType::kFloat:
 		{
 			double val = std::stod(token.value);
 			consume();
-			return new Value(val);
+			return std::make_shared<Value>(std::move(val));
 		}
 		case TokenType::kBool:
 		{
 			bool val = token.value == "true";
 			consume();
-			return new Value(val);
+			return std::make_shared<Value>(std::move(val));
 		}
 		case TokenType::kNull:
 			consume();
-			return new Value;
+			return std::make_shared<Value>();
 		case TokenType::End:
 			consume();
 			return nullptr;
@@ -91,11 +93,11 @@ class Parser : public base::noncopyable
 		}
 	}
 
-	Object* parseObject()
+	std::shared_ptr<Object> parseObject()
 	{
 		consume(); // for '{'
 
-		Object* obj = new Object;
+		auto obj = std::make_shared<Object>();
 
 		if (peek().type == TokenType::kObjectEnd)
 		{
@@ -123,7 +125,7 @@ class Parser : public base::noncopyable
 			consume();
 
 			// 递归解析
-			obj->insertRawPtr(key, parseValue());
+			obj->insert(key, parseValue());
 
 			const Token& next_token = peek();
 			if (next_token.type == TokenType::kObjectEnd)
@@ -145,11 +147,11 @@ class Parser : public base::noncopyable
 		return obj;
 	}
 
-	Array* parseArray()
+	std::shared_ptr<Array> parseArray()
 	{
 		consume(); // for '{'
 
-		Array* arr = new Array;
+		auto arr = std::make_shared<Array>();
 
 		if (peek().type == TokenType::kArrayEnd)
 		{
@@ -160,7 +162,7 @@ class Parser : public base::noncopyable
 		while (true)
 		{
 			// 递归解析
-			arr->appendRawPtr(parseValue());
+			arr->append(parseValue());
 
 			const Token& next_token = peek();
 			if (next_token.type == TokenType::kArrayEnd)

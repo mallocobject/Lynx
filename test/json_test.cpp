@@ -251,17 +251,15 @@ int main()
 }
 })JSON";
 
-	Tokenizer tokenizer(json_str);
-	Ref root = Parser(&tokenizer).parse();
-	// Ref root = make_object(
-	// 	{{"name", make_value("John")},
-	// 	 {"age", make_value(30)},
-	// 	 {"courses", make_array({make_value("C++"), make_value("Python")})},
-	// 	 {"address", make_value(nullptr)}});
+	json::Tokenizer tokenizer(json_str);
+	json::Ref root = json::Parser(&tokenizer).parse();
+	json::Ref result = json::make_object(
+		{{"name", json::make_value("John")},
+		 {"age", json::make_value(30)},
+		 {"courses", json::make_array({json::make_value("C++"),
+									   json::make_value("Python")})},
+		 {"address", json::make_value(nullptr)}});
 
 	std::cout << root << std::endl;
-
-	std::cout << root.serialize() << std::endl;
-
-	delete root.get();
+	std::cout << result << std::endl;
 }

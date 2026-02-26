@@ -6,12 +6,14 @@
 #include <cstddef>
 #include <format>
 #include <map>
+#include <memory>
 #include <string>
+#include <utility>
 namespace lynx
 {
 namespace json
 {
-using object_t = std::map<std::string, Element*>;
+using object_t = std::map<std::string, std::shared_ptr<Element>>;
 
 class Object : public Element
 {
@@ -24,27 +26,26 @@ class Object : public Element
 	}
 	~Object() override
 	{
-		clear();
 	}
 
-	static void* operator new(size_t size)
-	{
-		return base::alloc::allocate(size);
-	}
+	// static void* operator new(size_t size)
+	// {
+	// 	return base::alloc::allocate(size);
+	// }
 
-	static void operator delete(void* p, size_t size)
-	{
-		base::alloc::deallocate(p, size);
-	}
+	// static void operator delete(void* p, size_t size)
+	// {
+	// 	base::alloc::deallocate(p, size);
+	// }
 
 	bool isObject() const noexcept override
 	{
 		return true;
 	}
 
-	Object* asObject() override
+	std::shared_ptr<Object> asObject() override
 	{
-		return this;
+		return std::dynamic_pointer_cast<Object>(shared_from_this());
 	}
 
 	std::string serialize() const override
@@ -65,12 +66,12 @@ class Object : public Element
 		return result;
 	}
 
-	Element* copy() const override
+	std::shared_ptr<Element> copy() const override
 	{
-		Object* new_obj = new Object;
+		auto new_obj = std::make_shared<Object>();
 		for (const auto& [key, val] : obj_)
 		{
-			new_obj->insertRawPtr(key, val);
+			new_obj->insert(key, val->copy());
 		}
 
 		return new_obj;
@@ -78,20 +79,25 @@ class Object : public Element
 
 	template <JsonValueType T> void insert(const std::string& key, T&& val)
 	{
-		insertRawPtr(key, new Value(val));
+		insert(key, std::make_shared<Element>(std::forward<T>(val)));
 	}
 
-	void insertRawPtr(const std::string& key, Element* val)
+	void insert(const std::string& key, std::shared_ptr<Element> val)
 	{
-		obj_[key] = val;
+		obj_[key] = std::move(val);
 	}
 
-	Element*& at(const std::string& key)
+	std::shared_ptr<Element>& at(const std::string& key)
 	{
 		return obj_.at(key);
 	}
 
-	Element*& operator[](const std::string& key)
+	const std::shared_ptr<Element>& operator[](const std::string& key) const
+	{
+		return obj_.at(key);
+	}
+
+	std::shared_ptr<Element>& operator[](const std::string& key)
 	{
 		return obj_[key];
 	}
@@ -109,19 +115,6 @@ class Object : public Element
 	object_t::const_iterator end() const
 	{
 		return obj_.end();
-	}
-
-  private:
-	void clear() override
-	{
-		for (const auto& [key, val] : obj_)
-		{
-			if (val)
-			{
-				delete val;
-			}
-		}
-		obj_.clear();
 	}
 };
 } // namespace json

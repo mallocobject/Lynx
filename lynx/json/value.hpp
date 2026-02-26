@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -41,29 +42,29 @@ class Value : public Element
 	{
 	}
 
-	static void* operator new(size_t size)
-	{
-		return base::alloc::allocate(size);
-	}
+	// static void* operator new(size_t size)
+	// {
+	// 	return base::alloc::allocate(size);
+	// }
 
-	static void operator delete(void* p, size_t size)
-	{
-		base::alloc::deallocate(p, size);
-	}
+	// static void operator delete(void* p, size_t size)
+	// {
+	// 	base::alloc::deallocate(p, size);
+	// }
 
 	bool isValue() const noexcept override
 	{
 		return true;
 	}
 
-	Value* asValue() override
+	std::shared_ptr<Value> asValue() override
 	{
-		return this;
+		return std::dynamic_pointer_cast<Value>(shared_from_this());
 	}
 
-	Element* copy() const override
+	std::shared_ptr<Element> copy() const override
 	{
-		return new Value(*this); // copy construction
+		return std::make_shared<Value>(*this);
 	}
 
 	std::string serialize() const override
@@ -82,7 +83,7 @@ class Value : public Element
 		}
 		else if (isStr())
 		{
-			return std::format("\"{}\"", asStr()); // 字符串需要加引号
+			return '\"' + asStr() + '\"'; // 字符串需要加引号
 		}
 		else if (isNull())
 		{

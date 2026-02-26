@@ -3,6 +3,7 @@
 
 #include "lynx/base/copyable.hpp"
 #include "lynx/logger/logger.hpp"
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -10,10 +11,12 @@ namespace lynx
 {
 namespace json
 {
+
 class Value;
 class Array;
 class Object;
-class Element : public base::copyable
+class Element : public base::copyable,
+				public std::enable_shared_from_this<Element>
 {
   public:
 	virtual ~Element()
@@ -36,25 +39,25 @@ class Element : public base::copyable
 	}
 
 	// fail-fast
-	virtual Value* asValue()
+	virtual std::shared_ptr<Value> asValue()
 	{
 		LOG_FATAL << "Invalid value type";
 		throw std::runtime_error("Invalid value type");
 	}
 
-	virtual Array* asArray()
+	virtual std::shared_ptr<Array> asArray()
 	{
 		LOG_FATAL << "Invalid array type";
 		throw std::runtime_error("Invalid array type");
 	}
 
-	virtual Object* asObject()
+	virtual std::shared_ptr<Object> asObject()
 	{
 		LOG_FATAL << "Invalid object type";
 		throw std::runtime_error("Invalid object type");
 	}
 
-	virtual Element* copy() const = 0;
+	virtual std::shared_ptr<Element> copy() const = 0;
 
 	virtual std::string serialize() const
 	{

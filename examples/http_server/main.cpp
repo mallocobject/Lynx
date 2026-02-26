@@ -1,3 +1,4 @@
+#include "lynx/logger/logger.hpp"
 #include <lynx/lynx.hpp>
 
 using namespace lynx;
@@ -49,30 +50,33 @@ int main(int argc, char* argv[])
 				json::Tokenizer tokenizer(req.body);
 				json::Ref root = json::Parser(&tokenizer).parse();
 
-				LOG_INFO << "root: " << root;
+				LOG_TRACE << "root: " << root;
 
 				double sum = 0.0;
 
-				if (root["a"].get()->isValue() &&
-					root["a"].get()->asValue()->isFloat())
+				auto a = root["a"];
+				auto b = root["b"];
+
+				if (a.getShared()->isValue() &&
+					a.getShared()->asValue()->isFloat())
 				{
-					sum += root["a"].asFloat();
+					sum += a.asFloat();
 				}
-				else if (root["a"].get()->isValue() &&
-						 root["a"].get()->asValue()->isInt())
+				else if (a.getShared()->isValue() &&
+						 a.getShared()->asValue()->isInt())
 				{
-					sum += root["a"].asInt();
+					sum += a.asInt();
 				}
 
-				if (root["b"].get()->isValue() &&
-					root["b"].get()->asValue()->isFloat())
+				if (b.getShared()->isValue() &&
+					b.getShared()->asValue()->isFloat())
 				{
-					sum += root["b"].asFloat();
+					sum += b.asFloat();
 				}
-				else if (root["b"].get()->isValue() &&
-						 root["b"].get()->asValue()->isInt())
+				else if (b.getShared()->isValue() &&
+						 b.getShared()->asValue()->isInt())
 				{
-					sum += root["b"].asInt();
+					sum += b.asInt();
 				}
 
 				json::Ref result =
@@ -81,12 +85,10 @@ int main(int argc, char* argv[])
 				res->setStatusCode(200);
 				res->setContentType("application/json");
 
-				LOG_INFO << "result: " << result.serialize();
+				LOG_TRACE << "result: " << result.serialize();
 				res->setBody(result.serialize());
 
 				conn->send(res->toFormattedString());
-
-				delete root.get();
 			}
 
 			catch (const std::exception& e)

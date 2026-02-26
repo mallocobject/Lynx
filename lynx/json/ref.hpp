@@ -1,7 +1,7 @@
 #ifndef LYNX_JSON_REF_HPP
 #define LYNX_JSON_REF_HPP
 
-#include "lynx/base/noncopyable.hpp"
+#include "lynx/base/copyable.hpp"
 #include "lynx/json/array.hpp"
 #include "lynx/json/element.hpp"
 #include "lynx/json/object.hpp"
@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -18,19 +19,36 @@ namespace lynx
 {
 namespace json
 {
-class Ref : public base::noncopyable
+class Ref : public base::copyable
 {
   private:
-	Element* ptr_;
+	std::shared_ptr<Element> ptr_;
 
   public:
-	Ref(Element* ptr = nullptr) : ptr_(ptr)
+	// Ref(Element* ptr = nullptr) : ptr_(ptr)
+	// {
+	// }
+
+	explicit Ref(std::shared_ptr<Element> ptr) : ptr_(std::move(ptr))
 	{
 	}
 
 	Ref(Ref&& rhs) : ptr_(std::move(rhs.ptr_))
 	{
 		rhs.ptr_ = nullptr;
+	}
+
+	Ref& operator=(Ref&& rhs) noexcept
+	{
+		if (this == &rhs)
+		{
+			return *this;
+		}
+
+		ptr_ = std::move(rhs.ptr_);
+		rhs.ptr_ = nullptr;
+
+		return *this;
 	}
 
 	Ref operator[](const std::string& key)
@@ -40,7 +58,7 @@ class Ref : public base::noncopyable
 			LOG_FATAL << "Null reference";
 			throw std::runtime_error("Null reference");
 		}
-		if (auto obj = dynamic_cast<Object*>(ptr_))
+		if (auto obj = std::dynamic_pointer_cast<Object>(ptr_))
 		{
 			return Ref(obj->at(key));
 		}
@@ -55,7 +73,7 @@ class Ref : public base::noncopyable
 			LOG_FATAL << "Null reference";
 			throw std::runtime_error("Null reference");
 		}
-		if (auto arr = dynamic_cast<Array*>(ptr_))
+		if (auto arr = std::dynamic_pointer_cast<Array>(ptr_))
 		{
 			return Ref(arr->at(index));
 		}
@@ -120,6 +138,11 @@ class Ref : public base::noncopyable
 
 	Element* get() const
 	{
+		return ptr_.get();
+	}
+
+	std::shared_ptr<Element> getShared() const
+	{
 		return ptr_;
 	}
 
@@ -131,15 +154,15 @@ class Ref : public base::noncopyable
 
 template <JsonValueType T> Ref make_value(T&& val)
 {
-	return Ref(new Value(std::forward<T>(val)));
+	return Ref(std::make_shared<Value>(std::forward<T>(val)));
 }
 
 inline Ref make_array(std::initializer_list<Ref> ref_list)
 {
-	Array* arr = new Array;
+	auto arr = std::make_shared<Array>();
 	for (auto& v : ref_list)
 	{
-		arr->appendRawPtr(v.get());
+		arr->append(v.getShared());
 	}
 	return Ref(arr);
 }
@@ -160,10 +183,10 @@ struct Pair
 
 inline Ref make_object(std::initializer_list<Pair> ref_dict)
 {
-	Object* obj = new Object;
+	auto obj = std::make_shared<Object>();
 	for (auto& kv : ref_dict)
 	{
-		obj->insertRawPtr(kv.key, kv.value.get());
+		obj->insert(kv.key, kv.value.getShared());
 	}
 	return Ref(obj);
 }
@@ -173,7 +196,7 @@ inline std::ostream& operator<<(std::ostream& os, const Ref& ref)
 	Element* e = ref.get();
 	if (e->isArray())
 	{
-		Array* arr = e->asArray();
+		auto arr = e->asArray();
 		os << '[';
 		bool first = true;
 
@@ -191,7 +214,7 @@ inline std::ostream& operator<<(std::ostream& os, const Ref& ref)
 	}
 	else if (e->isObject())
 	{
-		Object* obj = e->asObject();
+		auto obj = e->asObject();
 		os << '{';
 		bool first = true;
 
@@ -208,7 +231,7 @@ inline std::ostream& operator<<(std::ostream& os, const Ref& ref)
 		return os;
 	}
 
-	Value* val = e->asValue();
+	auto val = e->asValue();
 	if (val->isBool())
 	{
 		os << (val->asBool() ? "true" : "false");
