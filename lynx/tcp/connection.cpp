@@ -18,6 +18,8 @@
 using namespace lynx;
 using namespace lynx::tcp;
 
+const size_t Connection::kMaxSendBytes = 16 * 1024; // 16 kB
+
 Connection::Connection(int fd, EventLoop* loop, const InetAddr& addr,
 					   uint64_t seq)
 	: loop_(loop), addr_(addr), seq_(seq), state_(State::kConnecting),
@@ -245,7 +247,9 @@ void Connection::trySendFile()
 	while (file_bytes_to_send_ > 0)
 	{
 		ssize_t n =
-			::sendfile(ch_->fd(), file_fd_, &file_offset_, file_bytes_to_send_);
+			::sendfile(ch_->fd(), file_fd_, &file_offset_,
+					   file_bytes_to_send_ < kMaxSendBytes ? file_bytes_to_send_
+														   : kMaxSendBytes);
 		if (n >= 0)
 		{
 			file_bytes_to_send_ -= n;

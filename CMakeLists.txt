@@ -23,6 +23,8 @@ message(STATUS "Current logger level: ${LOG_LEVEL}")
 add_definitions(-DLOGGER_LEVEL_SETTING=LYNX_${LOG_LEVEL})
 message(STATUS "cmake build mode: ${CMAKE_BUILD_TYPE}")
 
+set(LYNX_SUBDIRS base http json logger sql tcp time)
+
 add_subdirectory(lynx)
 # add_subdirectory(test)
 
@@ -34,7 +36,6 @@ install(TARGETS lynx_lib
 
 # 安装公开头文件到 /usr/local/include/lynx
 set(LYNX_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lynx)
-set(LYNX_SUBDIRS base http json logger sql tcp time)
 
 foreach(subdir ${LYNX_SUBDIRS})
     file(GLOB_RECURSE SUBDIR_HPP_FILES "${LYNX_INCLUDE_DIR}/${subdir}/*.hpp")

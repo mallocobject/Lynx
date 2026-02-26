@@ -19,6 +19,7 @@ class Connection : public base::noncopyable,
 				   public std::enable_shared_from_this<Connection>
 {
   private:
+	static const size_t kMaxSendBytes;
 	enum class State
 	{
 		kDisconnected,
