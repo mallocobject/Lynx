@@ -43,7 +43,7 @@ void Router::dispatch(const Request& req, Response* res,
 void Router::sendFile(const std::shared_ptr<tcp::Connection>& conn,
 					  Response* res, const std::string& file_path)
 {
-	std::string path = file_path;
+	const std::string& path = file_path;
 
 	struct stat st;
 	if (::stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode))
