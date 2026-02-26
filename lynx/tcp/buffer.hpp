@@ -19,8 +19,9 @@ class Buffer : base::noncopyable
 	std::vector<char> data_;
 	size_t ridx_;
 	size_t widx_;
-	static const int kDataSize;
-	static const int kPrependSize;
+	static const size_t kMaxBufferSize;
+	static const size_t kDataSize;
+	static const size_t kPrependSize;
 	bool enabled_read_;
 
   public:
@@ -107,6 +108,14 @@ class Buffer : base::noncopyable
 		other.ensureWritableBytes(readableBytes() + reserve);
 		other.append(peek(), readableBytes());
 		swap(other);
+	}
+
+	void tryShrink()
+	{
+		if (readableBytes() == 0 && data_.size() > kMaxBufferSize)
+		{
+			shrink(0);
+		}
 	}
 
 	void swap(Buffer& rhs)

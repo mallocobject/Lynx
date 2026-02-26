@@ -332,6 +332,7 @@ void Connection::handleRead()
 	if (n > 0)
 	{
 		message_callback_(shared_from_this(), inbuf_.get());
+		inbuf_->tryShrink();
 	}
 	else if (n == 0)
 	{
@@ -380,6 +381,7 @@ void Connection::handleWrite()
 				loop_->queueInLoop(
 					std::bind(write_complete_callback_, shared_from_this()));
 			}
+			outbuf_->tryShrink();
 
 			if (state_ == State::kDisconnecting)
 			{

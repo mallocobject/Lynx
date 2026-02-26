@@ -5,8 +5,9 @@
 using namespace lynx;
 using namespace lynx::tcp;
 
-const int Buffer::kDataSize = 1024;
-const int Buffer::kPrependSize = 8;
+const size_t Buffer::kMaxBufferSize = 16 * 1024;
+const size_t Buffer::kDataSize = 1024;
+const size_t Buffer::kPrependSize = 8;
 static const char CRLF[] = "\r\n";
 
 Buffer::Buffer()
