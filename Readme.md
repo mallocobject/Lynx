@@ -87,6 +87,38 @@ cmake -B build -DLOG_LEVEL=OFF
 在应用程序启动时初始化异步日志系统：
 
 ```cpp
+#include "lynx/logger.hpp"
+
+int main() {
+    // 1. 初始化异步日志系统
+    lynx::Logger::initAsyncLogging(
+        "logs/",             // 日志文件存放目录（需提前创建）
+        "my_server",         // 日志文件名前缀
+        100 * 1024 * 1024,   // 单个日志文件滚动大小 (100MB)
+        3                    // 后端定期刷盘间隔 (3秒)
+    );
+
+    LOG_INFO("Lynx Server Started");
+
+    // 业务逻辑代码
+    // ...
+
+    // 2. 程序退出前关闭日志系统
+    lynx::Logger::shutdownAsyncLogging();
+    
+    return 0;
+}
+```
+
+## 📚 使用示例
+
+### 示例 1: Echo 服务器
+
+简单的 Echo 服务器，接收客户端消息并原样返回。
+
+**文件：** `examples/echo_server/main.cpp`
+
+```cpp
 #include <lynx/lynx.hpp>
 
 using namespace lynx;
