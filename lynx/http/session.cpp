@@ -1,4 +1,4 @@
-#include "lynx/http/context.hpp"
+#include "lynx/http/session.hpp"
 #include "lynx/http/parser.hpp"
 #include "lynx/tcp/buffer.hpp"
 #include <memory>
@@ -6,31 +6,31 @@
 using namespace lynx;
 using namespace lynx::http;
 
-Context::Context()
+Session::Session()
 {
 	parser_ = std::make_unique<Parser>();
 }
 
-Context::~Context()
+Session::~Session()
 {
 }
 
-bool Context::completed() const
+bool Session::completed() const
 {
 	return parser_->completed();
 }
 
-const Request& Context::req() const
+const Request& Session::req() const
 {
 	return parser_->req();
 }
 
-void Context::clear()
+void Session::clear()
 {
 	parser_->clear();
 }
 
-bool Context::parser(tcp::Buffer* buf)
+bool Session::parser(tcp::Buffer* buf)
 {
 	while (buf->readableBytes() > 0)
 	{

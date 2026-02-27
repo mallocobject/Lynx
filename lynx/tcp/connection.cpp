@@ -140,6 +140,7 @@ void Connection::shutdownInLoop()
 	if (!ch_->writing())
 	{
 		Socket::shutdown(ch_->fd());
+		LOG_INFO << "Server close write endside: " << addr_.toFormattedString();
 	}
 }
 

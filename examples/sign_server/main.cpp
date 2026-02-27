@@ -1,16 +1,24 @@
 #include <format>
 #include <lynx/lynx.hpp>
+#include <memory>
 #include <string>
 
 using namespace lynx;
+using entry_type = base::Entry<tcp::Connection>;
+using cc_type = base::CircularBuffer<entry_type>;
 
 int main(int argc, char* argv[])
 {
 	// 初始化日志
 	logger::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "sql");
 
-	// 创建 HTTP 服务器
 	tcp::EventLoop loop;
+
+	cc_type conn_buckets_;
+	loop.runEvery(1.0, [&conn_buckets_]()
+				  { conn_buckets_.push_back(cc_type::Bucket()); });
+
+	// 创建 HTTP 服务器
 	tcp::Server server(&loop, "0.0.0.0", 8080, "Lynx-sql", 8);
 
 	// 启动 MySql 连接池，并确保表存在
@@ -165,14 +173,24 @@ int main(int argc, char* argv[])
 
 	// 设置连接回调
 	server.setConnectionCallback(
-		[](const std::shared_ptr<tcp::Connection>& conn)
+		[&conn_buckets_](const std::shared_ptr<tcp::Connection>& conn)
 		{
 			if (conn->connected())
 			{
 				LOG_INFO << "Client connected: "
 						 << conn->addr().toFormattedString();
-				// 每个连接绑定一个 HttpContext 实例 (基于 std::any)
-				conn->setContext(std::make_shared<http::Context>());
+
+				std::shared_ptr<entry_type> entry =
+					std::make_shared<entry_type>(
+						conn,
+						std::bind(&tcp::Connection::shutdown, conn.get()));
+				conn_buckets_.push_back(entry);
+
+				tcp::Context ctx;
+				ctx.session_ = std::make_shared<http::Session>();
+				ctx.entry_ = entry;
+
+				conn->setContext(ctx);
 			}
 			else if (conn->disconnected())
 			{
@@ -183,22 +201,26 @@ int main(int argc, char* argv[])
 
 	// 设置 HTTP 处理回调
 	server.setMessageCallback(
-		[&router](const std::shared_ptr<tcp::Connection>& conn,
-				  tcp::Buffer* buf)
+		[&router, &conn_buckets_](const std::shared_ptr<tcp::Connection>& conn,
+								  tcp::Buffer* buf)
 		{
-			auto context =
-				std::any_cast<std::shared_ptr<http::Context>>(conn->context());
+			auto session = conn->context<tcp::Context>().session_;
+			auto entry = conn->context<tcp::Context>().entry_.lock();
+			if (entry)
+			{
+				conn_buckets_.push_back(entry);
+			}
 
-			if (!context->parser(buf))
+			if (!session->parser(buf))
 			{
 				conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
 				conn->shutdown();
 				return;
 			}
 
-			if (context->completed())
+			if (session->completed())
 			{
-				const http::Request& req = context->req();
+				const http::Request& req = session->req();
 				http::Response res;
 
 				router.dispatch(req, &res, conn);
@@ -211,7 +233,7 @@ int main(int argc, char* argv[])
 				}
 				else
 				{
-					context->clear();
+					session->clear();
 				}
 			}
 		});

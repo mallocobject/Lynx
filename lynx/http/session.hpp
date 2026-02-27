@@ -1,5 +1,5 @@
-#ifndef LYNX_HTTP_CONTEXT_HPP
-#define LYNX_HTTP_CONTEXT_HPP
+#ifndef LYNX_HTTP_SESSION_HPP
+#define LYNX_HTTP_SESSION_HPP
 
 #include "lynx/base/noncopyable.hpp"
 #include <memory>
@@ -14,14 +14,14 @@ namespace http
 {
 class Request;
 class Parser;
-class Context : public base::noncopyable
+class Session : public base::noncopyable
 {
   private:
 	std::unique_ptr<Parser> parser_;
 
   public:
-	Context();
-	~Context();
+	Session();
+	~Session();
 
 	bool completed() const;
 	const Request& req() const;

@@ -152,14 +152,14 @@ class Connection : public base::noncopyable,
 		ctx_ = ctx;
 	}
 
-	std::any context() const
+	template <typename T> const T& context() const
 	{
-		return ctx_;
+		return std::any_cast<const T&>(ctx_);
 	}
 
-	std::any* contextPtr()
+	template <typename T> T& context()
 	{
-		return &ctx_;
+		return std::any_cast<T&>(ctx_);
 	}
 
 	void connEstablish();
