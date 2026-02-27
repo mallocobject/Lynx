@@ -28,7 +28,8 @@ CreateTableOp::CreateTableOp(::sql::Connection* conn, const std::string& name,
 }
 
 CreateTableOp& CreateTableOp::addColumn(const std::string& name,
-										std::string_view type, int size)
+										std::string_view type, int size,
+										bool is_auto_increment)
 {
 	auto out = std::back_inserter(sql_);
 	if (!first_col_)
@@ -39,6 +40,10 @@ CreateTableOp& CreateTableOp::addColumn(const std::string& name,
 	if (type == Type::STRING && size > 0)
 	{
 		std::format_to(out, "({})", size);
+	}
+	if (is_auto_increment)
+	{
+		std::format_to(out, " AUTO_INCREMENT");
 	}
 	first_col_ = false;
 	return *this;
@@ -63,7 +68,7 @@ void CreateTableOp::execute()
 		std::format_to(out, ")");
 	}
 	std::format_to(out, ")");
-	LOG_INFO << "sql: " << sql_;
+	LOG_TRACE << "sql: " << sql_;
 	std::unique_ptr<::sql::Statement> stmt(conn_->createStatement());
 	stmt->execute(sql_);
 }
@@ -93,7 +98,7 @@ RowResult SelectOp::execute()
 		std::format_to(out, " WHERE {}", where_clause_);
 	}
 
-	LOG_INFO << "sql: " << result;
+	LOG_TRACE << "sql: " << result;
 	std::unique_ptr<::sql::Statement> stmt(conn_->createStatement());
 	return RowResult(stmt->executeQuery(result));
 }
@@ -154,7 +159,7 @@ void UpdateOp::execute()
 		std::format_to(out, " WHERE {}", where_clause_);
 	}
 
-	LOG_INFO << "sql: " << result;
+	LOG_TRACE << "sql: " << result;
 	std::unique_ptr<::sql::PreparedStatement> pstmt(
 		conn_->prepareStatement(result));
 
@@ -178,7 +183,7 @@ void RemoveOp::execute()
 		std::format_to(out, " WHERE {}", where_clause_);
 	}
 
-	LOG_INFO << "sql: " << result;
+	LOG_TRACE << "sql: " << result;
 	std::unique_ptr<::sql::Statement> stmt(conn_->createStatement());
 	stmt->executeUpdate(result);
 }

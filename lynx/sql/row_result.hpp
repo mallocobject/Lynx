@@ -3,6 +3,7 @@
 
 #include "lynx/base/noncopyable.hpp"
 #include <cppconn/resultset.h>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -19,6 +20,11 @@ class RowResult : public base::noncopyable
   public:
 	explicit RowResult(::sql::ResultSet* res) : res_(res)
 	{
+	}
+
+	size_t size() const
+	{
+		return res_ ? res_->rowsCount() : 0;
 	}
 
 	void printAll()

@@ -26,7 +26,8 @@ message(STATUS "cmake build mode: ${CMAKE_BUILD_TYPE}")
 set(LYNX_SUBDIRS base http json logger sql tcp time)
 
 add_subdirectory(lynx)
-# add_subdirectory(test)
+# add_subdirectory(examples/sign_server)
+
 
 # 安装库文件到 /usr/local/lib
 install(TARGETS lynx_lib

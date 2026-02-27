@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MySQL Web</title>
+    <!-- 引入 Font Awesome 图标库 (可选，为了更好看) -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <div class="container" id="container">
+
+        <!-- 注册表单区域 -->
+        <div class="form-container sign-up-container">
+            <form id="registerForm">
+                <div class="lynx-logo">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 山猫耳朵和脸部轮廓 -->
+                        <path
+                            d="M20 30 L30 10 L40 30 L60 30 L70 10 L80 30 C90 40 90 70 80 85 L50 95 L20 85 C10 70 10 40 20 30 Z"
+                            stroke="#4A90E2" stroke-width="3" fill="none" />
+                        <!-- 眼睛 -->
+                        <path d="M35 55 L45 60 L35 65 Z" fill="#4A90E2" />
+                        <path d="M65 55 L55 60 L65 65 Z" fill="#4A90E2" />
+                        <!-- 鼻子 -->
+                        <path d="M50 70 L45 60 L55 60 Z" fill="#4A90E2" />
+                        <!-- 耳朵尖毛 (Lynx 特征) -->
+                        <path d="M30 10 L25 0" stroke="#4A90E2" stroke-width="2" />
+                        <path d="M70 10 L75 0" stroke="#4A90E2" stroke-width="2" />
+                    </svg>
+                </div>
+                <h1>创建账户</h1>
+                <!-- <div class="social-container">
+                    <a href="#" class="social"><i class="fab fa-weixin"></i></a>
+                    <a href="#" class="social"><i class="fab fa-qq"></i></a>
+                </div>
+                <span>或使用邮箱注册</span> -->
+                <input type="text" id="reg-username" placeholder="用户名" required />
+                <input type="email" id="reg-email" placeholder="邮箱" required />
+                <input type="password" id="reg-password" placeholder="密码" required />
+                <input type="password" id="reg-password-again" placeholder="确认密码" required />
+                <button type="submit">注册</button>
+            </form>
+        </div>
+
+        <!-- 登录表单区域 -->
+        <div class="form-container sign-in-container">
+            <form id="loginForm">
+                <div class="lynx-logo">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 山猫耳朵和脸部轮廓 -->
+                        <path
+                            d="M20 30 L30 10 L40 30 L60 30 L70 10 L80 30 C90 40 90 70 80 85 L50 95 L20 85 C10 70 10 40 20 30 Z"
+                            stroke="#4A90E2" stroke-width="3" fill="none" />
+                        <!-- 眼睛 -->
+                        <path d="M35 55 L45 60 L35 65 Z" fill="#4A90E2" />
+                        <path d="M65 55 L55 60 L65 65 Z" fill="#4A90E2" />
+                        <!-- 鼻子 -->
+                        <path d="M50 70 L45 60 L55 60 Z" fill="#4A90E2" />
+                        <!-- 耳朵尖毛 (Lynx 特征) -->
+                        <path d="M30 10 L25 0" stroke="#4A90E2" stroke-width="2" />
+                        <path d="M70 10 L75 0" stroke="#4A90E2" stroke-width="2" />
+                    </svg>
+                </div>
+                <h1>欢迎回来</h1>
+                <!-- <div class="social-container">
+                    <a href="#" class="social"><i class="fab fa-weixin"></i></a>
+                    <a href="#" class="social"><i class="fab fa-qq"></i></a>
+                </div>
+                <span>使用您的账户登录</span> -->
+                <input type="text" id="login-username" placeholder="用户名" required />
+                <input type="password" id="login-password" placeholder="密码" required />
+                <a href="#">忘记密码？</a>
+                <button type="submit">登录</button>
+            </form>
+        </div>
+
+        <!-- 覆盖层（蓝色背景 + 切换按钮） -->
+        <div class="overlay-container">
+            <div class="overlay">
+                <!-- 左侧覆盖面板（点击去登录） -->
+                <div class="overlay-panel overlay-left">
+                    <h1>已有账号？</h1>
+                    <p>请使用您的个人信息登录，保持与我们的连接</p>
+                    <button class="ghost" id="signIn">去登录</button>
+                </div>
+                <!-- 右侧覆盖面板（点击去注册） -->
+                <div class="overlay-panel overlay-right">
+                    <h1>你好，朋友！</h1>
+                    <p>输入您的个人详细信息，开始咱们的旅程</p>
+                    <button class="ghost" id="signUp">去注册</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>

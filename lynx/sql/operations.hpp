@@ -33,7 +33,7 @@ class CreateTableOp : public base::noncopyable
 	CreateTableOp(::sql::Connection* conn, const std::string& name,
 				  bool if_not_exists);
 	CreateTableOp& addColumn(const std::string& name, std::string_view type,
-							 int size = 0);
+							 int size = 0, bool is_auto_increment = false);
 	CreateTableOp& primaryKey(const std::string& col_name);
 	void execute();
 };
@@ -89,7 +89,7 @@ class InsertOp : public base::noncopyable
 
 		std::format_to(out, ")");
 
-		LOG_INFO << "sql: " << result;
+		LOG_TRACE << "sql: " << result;
 		std::unique_ptr<::sql::PreparedStatement> pstmt(
 			conn_->prepareStatement(result));
 
