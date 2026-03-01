@@ -1,3 +1,8 @@
+#include "email.hpp"
+#include "lynx/logger/logger.hpp"
+#include "lynx/time/time_stamp.hpp"
+#include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <lynx/lynx.hpp>
 #include <memory>
@@ -7,8 +12,17 @@ using namespace lynx;
 using entry_type = base::Entry<tcp::Connection>;
 using cc_type = base::CircularBuffer<entry_type>;
 
+std::string password;
+
 int main(int argc, char* argv[])
 {
+	if (argc < 2)
+	{
+		exit(EXIT_FAILURE);
+	}
+
+	password = std::string(argv[1]);
+
 	// 初始化日志
 	logger::Logger::initAsyncLogging(LYNX_WEB_SRC_DIR "/logs/", "sql");
 
@@ -22,22 +36,49 @@ int main(int argc, char* argv[])
 	tcp::Server server(&loop, "0.0.0.0", 8080, "Lynx-sql", 8);
 
 	// 启动 MySql 连接池，并确保表存在
-	auto& connection_pool = []() -> lynx::sql::ConnectionPool&
+	auto& connection_pool = [&loop]() -> lynx::sql::ConnectionPool&
 	{
-		static lynx::sql::ConnectionPool cp(tcp::InetAddr(3306, true), "liudan",
-											"liudan", 8, 16);
+		static lynx::sql::ConnectionPool cp(tcp::InetAddr(3306, true), "lynx",
+											"lynx7.cc", 8, 16);
 		auto sess = cp.connection();
-		lynx::sql::Schema db = sess->schema("mysql");
-		// 如果表不存在则创建
+		lynx::sql::Schema db = sess->schema("lynx");
+		// 创建 users 表
 		db.createTable("users", true)
-			.addColumn("uid", lynx::sql::Type::INT, 0, true)
-			.addColumn("username", lynx::sql::Type::STRING, 50)
-			.addColumn("password", lynx::sql::Type::STRING, 255)
-			.addColumn("email", lynx::sql::Type::STRING, 100)
+			.addColumn("uid", lynx::sql::Type::BIGINT, 0, true)
+			.addColumn("username", lynx::sql::Type::STRING, 16)
+			.addColumn("password", lynx::sql::Type::STRING, 20)
+			.addColumn("email", lynx::sql::Type::STRING, 255)
 			.primaryKey("uid")
 			.execute();
+
+		// 创建 verification_codes 表
+		db.createTable("verification_codes", true)
+			.addColumn("uid", lynx::sql::Type::BIGINT, 0, true)
+			.addColumn("email", lynx::sql::Type::STRING, 255)
+			.addColumn("code", lynx::sql::Type::STRING, 6)
+			.addColumn("expires_at", lynx::sql::Type::BIGINT, 0)
+			.addColumn("created_at", lynx::sql::Type::BIGINT, 0)
+			.addColumn("used", lynx::sql::Type::BOOL, 0)
+			.primaryKey("uid")
+			.execute();
+
 		return cp;
 	}();
+
+	// 每天定时删除已使用和过期验证码
+	loop.runEvery(
+		24 * 60 * 60,
+		[&connection_pool]
+		{
+			auto sess = connection_pool.connection();
+			lynx::sql::Schema db = sess->schema("lynx");
+			lynx::sql::Table verification_codes_table =
+				db.table("verification_codes");
+			verification_codes_table.remove()
+				.where(std::format("used = 1 OR expires_at < {}",
+								   time::TimeStamp::now().toFormattedString()))
+				.execute();
+		});
 
 	// 创建路由器
 	auto router = http::Router();
@@ -69,7 +110,75 @@ int main(int argc, char* argv[])
 					});
 
 	router.addRoute(
-		"POST", "/posts",
+		"POST", "/verify",
+		[&connection_pool](const auto& req, auto* res, const auto& conn)
+		{
+			try
+			{
+				json::Tokenizer tokenizer(req.body);
+				json::Ref root = json::Parser(&tokenizer).parse();
+
+				std::string target_email = root["email"].asStr();
+
+				auto sess = connection_pool.connection();
+				lynx::sql::Schema db = sess->schema("lynx");
+
+				lynx::sql::Table verification_codes_table =
+					db.table("verification_codes");
+				std::string verify_code = generateVerificationCode();
+
+				CURLcode mail_ok = mail(target_email, verify_code);
+
+				if (mail_ok != CURLE_OK)
+				{
+					LOG_ERROR << "curl_easy_perform() failed: "
+							  << curl_easy_strerror(mail_ok);
+					res->setStatusCode(503);
+					res->setBody(
+						R"({"status":"fail","message":"验证码发送失败"})");
+				}
+				else
+				{
+					auto now_time_stamp = time::TimeStamp::now();
+
+					verification_codes_table
+						.insert("email", "code", "expires_at", "created_at",
+								"used")
+						.values(target_email, verify_code,
+								time::TimeStamp::addTime(now_time_stamp, 5 * 60)
+									.microseconds(),
+								now_time_stamp.microseconds(), 0)
+						.execute();
+
+					res->setStatusCode(200);
+					res->setBody(
+						R"({"status":"success","message":"验证码已发送"})");
+				}
+
+				res->setContentType("application/json");
+				conn->send(res->toFormattedString());
+			}
+			catch (const ::sql::SQLException& e)
+			{
+				res->setStatusCode(500);
+				res->setContentType("application/json");
+				res->setBody(std::format(
+					"{{\"error\": \"Database error: {}\"}}", e.what()));
+
+				conn->send(res->toFormattedString());
+			}
+			catch (const std::exception& e)
+			{
+				res->setStatusCode(400);
+				res->setContentType("application/json");
+				res->setBody(std::format("{{\"error\": \"{}\"}}", e.what()));
+
+				conn->send(res->toFormattedString());
+			}
+		});
+
+	router.addRoute(
+		"POST", "/post",
 		[&connection_pool](const auto& req, auto* res, const auto& conn)
 		{
 			try
@@ -78,18 +187,23 @@ int main(int argc, char* argv[])
 				json::Ref root = json::Parser(&tokenizer).parse();
 
 				std::string action = root["action"].asStr();
-				std::string username = root["username"].asStr();
-				std::string password = root["password"].asStr();
 
 				auto sess = connection_pool.connection();
-				lynx::sql::Schema db = sess->schema("mysql");
+				lynx::sql::Schema db = sess->schema("lynx");
 				lynx::sql::Table users_table = db.table("users");
 
 				if (action == "register")
 				{
+					std::string username = root["username"].asStr();
+					std::string password = root["password"].asStr();
+					std::string email = root["email"].asStr();
+					std::string code = root["code"].asStr();
+
 					lynx::sql::RowResult result =
-						users_table.select("password")
-							.where(std::format("username = '{}'", username))
+						users_table.select("uid")
+							.where(
+								std::format("username = '{}' OR email = '{}'",
+											username, email))
 							.execute();
 
 					if (result.size() > 0)
@@ -100,19 +214,61 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						std::string email = root["email"].asStr();
+						lynx::sql::Table verification_codes_table =
+							db.table("verification_codes");
 
-						users_table.insert("username", "password", "email")
-							.values(username, password, email)
-							.execute();
+						lynx::sql::RowResult result_code =
+							verification_codes_table.select("expires_at")
+								.where(
+									std::format("email = '{}' AND code = '{}'",
+												email, code))
+								.execute();
 
-						res->setStatusCode(200);
-						res->setBody(
-							R"({"status":"success","message":"注册成功"})");
+						if (result_code.size() == 1 &&
+							result_code.get()->next())
+						{
+							int64_t stored_expires_at =
+								result_code.get()->getInt64("expires_at");
+
+							verification_codes_table.update()
+								.set("used", 1)
+								.where(
+									std::format("email = '{}' AND code = '{}'",
+												email, code))
+								.execute();
+
+							if (time::TimeStamp::now().microseconds() <=
+								stored_expires_at)
+							{
+								users_table
+									.insert("username", "password", "email")
+									.values(username, password, email)
+									.execute();
+
+								res->setStatusCode(200);
+								res->setBody(
+									R"({"status":"success","message":"注册成功"})");
+							}
+							else
+							{
+								res->setStatusCode(200);
+								res->setBody(
+									R"({"status":"fail","message":"验证码已过期"})");
+							}
+						}
+						else
+						{
+							res->setStatusCode(401);
+							res->setBody(
+								R"({"status":"fail","message":"验证码错误"})");
+						}
 					}
 				}
 				else if (action == "login")
 				{
+					std::string username = root["username"].asStr();
+					std::string password = root["password"].asStr();
+
 					lynx::sql::RowResult result =
 						users_table.select("password")
 							.where(std::format("username = '{}'", username))
@@ -133,6 +289,75 @@ int main(int argc, char* argv[])
 							res->setStatusCode(401);
 							res->setBody(
 								R"({"status":"fail","message":"密码错误"})");
+						}
+					}
+					else
+					{
+						res->setStatusCode(401);
+						res->setBody(
+							R"({"status":"fail","message":"用户不存在"})");
+					}
+				}
+				else if (action == "reset")
+				{
+					std::string new_password = root["new_password"].asStr();
+					std::string email = root["email"].asStr();
+					std::string code = root["code"].asStr();
+
+					lynx::sql::RowResult result =
+						users_table.select("email")
+							.where(std::format("email = '{}'", email))
+							.execute();
+
+					if (result.size() == 1 && result.get()->next())
+					{
+						lynx::sql::Table verification_codes_table =
+							db.table("verification_codes");
+
+						lynx::sql::RowResult result_code =
+							verification_codes_table.select("expires_at")
+								.where(std::format(
+									"email = '{}' AND code = '{}' AND used = 0",
+									email, code))
+								.execute();
+
+						if (result_code.size() == 1 &&
+							result_code.get()->next())
+						{
+							int64_t stored_expires_at =
+								result_code.get()->getInt64("expires_at");
+
+							verification_codes_table.update()
+								.set("used", 1)
+								.where(
+									std::format("email = '{}' AND code = '{}'",
+												email, code))
+								.execute();
+
+							if (time::TimeStamp::now().microseconds() <=
+								stored_expires_at)
+							{
+								users_table.update()
+									.set("password", new_password)
+									.where(std::format("email = '{}'", email))
+									.execute();
+
+								res->setStatusCode(200);
+								res->setBody(
+									R"({"status":"success","message":"密码修改成功"})");
+							}
+							else
+							{
+								res->setStatusCode(200);
+								res->setBody(
+									R"({"status":"fail","message":"验证码已过期"})");
+							}
+						}
+						else
+						{
+							res->setStatusCode(401);
+							res->setBody(
+								R"({"status":"fail","message":"验证码错误"})");
 						}
 					}
 					else

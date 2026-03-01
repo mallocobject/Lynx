@@ -1,3 +1,6 @@
+/* =========================================
+   1. 全局配置与基础样式
+   ========================================= */
 @import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
 
 * {
@@ -39,7 +42,11 @@ a {
     margin: 15px 0;
 }
 
-/* 按钮样式 */
+/* =========================================
+   2. 组件样式 (按钮、表单、Logo)
+   ========================================= */
+
+/* 按钮基础样式 */
 button {
     border-radius: 20px;
     border: 1px solid #4A90E2;
@@ -65,13 +72,13 @@ button:focus {
     outline: none;
 }
 
-/* 幽灵按钮（透明背景） */
+/* 幽灵按钮（透明背景，用于切换面板） */
 button.ghost {
     background-color: transparent;
     border-color: #FFFFFF;
 }
 
-/* 表单样式 */
+/* 表单通用样式 */
 form {
     background-color: #FFFFFF;
     display: flex;
@@ -93,7 +100,40 @@ input {
     outline: none;
 }
 
-/* 主容器 */
+/* 社交图标容器 */
+.social-container {
+    margin: 20px 0;
+}
+
+.social-container a {
+    border: 1px solid #DDDDDD;
+    border-radius: 50%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 5px;
+    height: 40px;
+    width: 40px;
+}
+
+/* 山猫 Logo 样式 */
+.lynx-logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 10px;
+}
+
+.lynx-logo svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0px 2px 3px rgba(74, 144, 226, 0.3));
+}
+
+/* =========================================
+   3. 布局与容器 (核心结构)
+   ========================================= */
+
+/* 主卡片容器 */
 .container {
     background-color: #fff;
     border-radius: 10px;
@@ -106,6 +146,7 @@ input {
     min-height: 480px;
 }
 
+/* 表单容器基础属性 */
 .form-container {
     position: absolute;
     top: 0;
@@ -113,14 +154,16 @@ input {
     transition: all 0.6s ease-in-out;
 }
 
-/* 登录框默认位置 */
+/* --- 各个面板的默认状态 --- */
+
+/* 1. 登录框 (默认显示在左侧) */
 .sign-in-container {
     left: 0;
     width: 50%;
     z-index: 2;
 }
 
-/* 注册框默认位置（隐藏） */
+/* 2. 注册框 (默认隐藏在左侧) */
 .sign-up-container {
     left: 0;
     width: 50%;
@@ -128,34 +171,19 @@ input {
     z-index: 1;
 }
 
-/* 切换状态：激活面板向右移动 */
-.container.right-panel-active .sign-in-container {
-    transform: translateX(100%);
+/* 3. 忘记密码框 (默认隐藏在左侧，用于向右滑动) */
+.forgot-container {
+    left: 0;
+    width: 50%;
+    opacity: 0;
+    z-index: 1;
+    transition: all 0.6s ease-in-out;
 }
 
-.container.right-panel-active .sign-up-container {
-    transform: translateX(100%);
-    opacity: 1;
-    z-index: 5;
-    animation: show 0.6s;
-}
+/* =========================================
+   4. 覆盖层 (Overlay) 样式
+   ========================================= */
 
-@keyframes show {
-
-    0%,
-    49.99% {
-        opacity: 0;
-        z-index: 1;
-    }
-
-    50%,
-    100% {
-        opacity: 1;
-        z-index: 5;
-    }
-}
-
-/* 覆盖层容器 */
 .overlay-container {
     position: absolute;
     top: 0;
@@ -165,10 +193,6 @@ input {
     overflow: hidden;
     transition: transform 0.6s ease-in-out;
     z-index: 100;
-}
-
-.container.right-panel-active .overlay-container {
-    transform: translateX(-100%);
 }
 
 /* 覆盖层背景（蓝白渐变） */
@@ -188,11 +212,7 @@ input {
     transition: transform 0.6s ease-in-out;
 }
 
-.container.right-panel-active .overlay {
-    transform: translateX(50%);
-}
-
-/* 覆盖层内的面板 */
+/* 覆盖层内的文字面板 */
 .overlay-panel {
     position: absolute;
     display: flex;
@@ -208,16 +228,43 @@ input {
     transition: transform 0.6s ease-in-out;
 }
 
+/* 左侧面板（用于去登录） */
 .overlay-left {
     transform: translateX(-20%);
 }
 
-.container.right-panel-active .overlay-left {
+/* 右侧面板（用于去注册） */
+.overlay-right {
+    right: 0;
     transform: translateX(0);
 }
 
-.overlay-right {
-    right: 0;
+/* =========================================
+   5. 状态切换逻辑 (Animation Logic)
+   ========================================= */
+
+/* --- 状态 A: 激活注册面板 (right-panel-active) --- */
+
+.container.right-panel-active .sign-in-container {
+    transform: translateX(100%);
+}
+
+.container.right-panel-active .sign-up-container {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+    animation: show 0.6s;
+}
+
+.container.right-panel-active .overlay-container {
+    transform: translateX(-100%);
+}
+
+.container.right-panel-active .overlay {
+    transform: translateX(50%);
+}
+
+.container.right-panel-active .overlay-left {
     transform: translateX(0);
 }
 
@@ -225,44 +272,66 @@ input {
     transform: translateX(20%);
 }
 
-/* for icon */
-.social-container {
-    margin: 20px 0;
+/* --- 状态 B: 激活忘记密码面板 (forgot-active) --- */
+/* 逻辑与注册面板类似，都在右侧显示 */
+
+.container.forgot-active .forgot-container {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+    animation: show 0.6s;
 }
 
-.social-container a {
-    border: 1px solid #DDDDDD;
-    border-radius: 50%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 5px;
-    height: 40px;
-    width: 40px;
+.container.forgot-active .overlay-container {
+    transform: translateX(-100%);
 }
 
-.lynx-logo {
-    width: 60px;
-    /* Logo 宽度 */
-    height: 60px;
-    /* Logo 高度 */
-    margin-bottom: 10px;
-    /* 与下方标题的距离 */
+.container.forgot-active .overlay {
+    transform: translateX(50%);
 }
 
-.lynx-logo svg {
-    width: 100%;
-    height: 100%;
-    /* 这里的 drop-shadow 是为了增加一点点高级感 */
-    filter: drop-shadow(0px 2px 3px rgba(74, 144, 226, 0.3));
+.container.forgot-active .overlay-left {
+    transform: translateX(0);
+    /* 显示左侧文字（已有账号?） */
 }
 
+.container.forgot-active .overlay-right {
+    transform: translateX(20%);
+    /* 隐藏右侧文字 */
+}
 
-/* ====================
-   右上角 Toast 通知样式
-   ==================== */
+/* 当忘记密码激活时，移动原本的登录框和注册框，防止重叠 */
+.container.forgot-active .sign-in-container {
+    transform: translateX(100%);
+    opacity: 0;
+}
 
-/* 1. 通知容器：固定在右上角，不阻挡点击（pointer-events: none） */
+.container.forgot-active .sign-up-container {
+    transform: translateX(100%);
+    opacity: 0;
+    z-index: 1;
+}
+
+/* 关键帧动画：淡入效果 */
+@keyframes show {
+
+    0%,
+    49.99% {
+        opacity: 0;
+        z-index: 1;
+    }
+
+    50%,
+    100% {
+        opacity: 1;
+        z-index: 5;
+    }
+}
+
+/* =========================================
+   6. 右上角 Toast 通知样式
+   ========================================= */
+
 #toast-container {
     position: fixed;
     top: 20px;
@@ -271,19 +340,16 @@ input {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    /* 通知之间的间距 */
     pointer-events: none;
     /* 让容器下方的内容可点击 */
 }
 
-/* 2. 单个通知卡片 */
 .toast {
     background: #fff;
     min-width: 300px;
     max-width: 400px;
     padding: 15px 20px;
     border-radius: 8px;
-    /* 圆角 */
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
@@ -292,7 +358,6 @@ input {
     /* 恢复卡片本身的点击 */
     overflow: hidden;
     position: relative;
-
     /* 动画：从右侧滑入 */
     animation: slideInRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     transition: all 0.5s ease;
@@ -308,7 +373,7 @@ input {
     width: 5px;
 }
 
-/* 3. 成功状态 (蓝色) */
+/* 成功状态 (蓝色) */
 .toast.success::before {
     background-color: #4A90E2;
 }
@@ -317,7 +382,7 @@ input {
     stroke: #4A90E2;
 }
 
-/* 4. 失败状态 (红色) */
+/* 失败状态 (红色) */
 .toast.error::before {
     background-color: #ff4d4f;
 }
@@ -331,7 +396,7 @@ input {
     animation: slideOutRight 0.5s forwards;
 }
 
-/* 5. 内部元素布局 */
+/* 内部元素布局 */
 .toast-content {
     display: flex;
     align-items: center;
@@ -370,7 +435,7 @@ input {
     color: #333;
 }
 
-/* 动画定义 */
+/* Toast 动画定义 */
 @keyframes slideInRight {
     from {
         opacity: 0;
@@ -393,4 +458,47 @@ input {
         opacity: 0;
         transform: translateX(120%);
     }
+}
+
+
+.code-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    /* 输入框和按钮之间的间距 */
+}
+
+/* 调整验证码输入框的宽度 */
+.code-group input {
+    width: 65%;
+    /* 占据大部分宽度 */
+    margin: 8px 0;
+    /* 保持和其他input一致的margin */
+}
+
+/* 调整发送按钮的样式 */
+.code-group .code-btn {
+    width: 35%;
+    /* 占据剩余宽度 */
+    padding: 12px 0;
+    /* 高度与input尽量对齐 */
+    margin: 8px 0;
+    font-size: 11px;
+    /* 字体稍微改小一点以防换行 */
+    white-space: nowrap;
+    /* 防止文字换行 */
+    background-color: #4A90E2;
+    border: 1px solid #4A90E2;
+}
+
+/* 发送按钮禁用状态 (倒计时中) */
+.code-group .code-btn:disabled {
+    background-color: #a0cfff;
+    /* 变淡 */
+    border-color: #a0cfff;
+    cursor: not-allowed;
+    transform: none;
+    /* 禁用点击缩放效果 */
 }

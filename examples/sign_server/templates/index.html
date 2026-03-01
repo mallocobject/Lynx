@@ -41,6 +41,11 @@
                 <span>或使用邮箱注册</span> -->
                 <input type="text" id="reg-username" placeholder="用户名" required />
                 <input type="email" id="reg-email" placeholder="邮箱" required />
+                <div class="code-group">
+                    <input type="text" id="reg-code" maxlength="6" inputmode="numeric" pattern="\d*" placeholder="邮箱验证码"
+                        autocomplete="off" required />
+                    <button type="button" class="code-btn" id="reg-send-btn">获取验证码</button>
+                </div>
                 <input type="password" id="reg-password" placeholder="密码" required />
                 <input type="password" id="reg-password-again" placeholder="确认密码" required />
                 <button type="submit">注册</button>
@@ -74,8 +79,37 @@
                 <span>使用您的账户登录</span> -->
                 <input type="text" id="login-username" placeholder="用户名" required />
                 <input type="password" id="login-password" placeholder="密码" required />
-                <a href="#">忘记密码？</a>
+                <a id="forgotLink">忘记密码？</a>
                 <button type="submit">登录</button>
+            </form>
+        </div>
+
+        <div class="form-container forgot-container">
+            <form id="forgotForm">
+                <div class="lynx-logo">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M20 30 L30 10 L40 30 L60 30 L70 10 L80 30 C90 40 90 70 80 85 L50 95 L20 85 C10 70 10 40 20 30 Z"
+                            stroke="#4A90E2" stroke-width="3" fill="none" />
+                        <path d="M35 55 L45 60 L35 65 Z" fill="#4A90E2" />
+                        <path d="M65 55 L55 60 L65 65 Z" fill="#4A90E2" />
+                        <path d="M50 70 L45 60 L55 60 Z" fill="#4A90E2" />
+                        <path d="M30 10 L25 0" stroke="#4A90E2" stroke-width="2" />
+                        <path d="M70 10 L75 0" stroke="#4A90E2" stroke-width="2" />
+                    </svg>
+                </div>
+                <h1>重置密码</h1>
+
+                <input type="email" id="forgot-email" placeholder="注册邮箱" required />
+                <div class="code-group">
+                    <input type="text" id="forgot-code" maxlength="6" inputmode="numeric" pattern="\d*"
+                        placeholder="邮箱验证码" autocomplete="off" required />
+                    <button type="button" class="code-btn" id="forgot-send-btn">获取验证码</button>
+                </div>
+                <input type="password" id="forgot-new-password" placeholder="新密码" required />
+                <input type="password" id="forgot-new-password-confirm" placeholder="确认新密码" required />
+
+                <button type="submit">确认重置</button>
             </form>
         </div>
 

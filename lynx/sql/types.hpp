@@ -20,7 +20,8 @@ struct Type
 	static constexpr std::string_view INT = "INT";
 	static constexpr std::string_view STRING = "VARCHAR";
 	static constexpr std::string_view DOUBLE = "DOUBLE";
-	static constexpr std::string_view BOOL = "TYNYINT";
+	static constexpr std::string_view BOOL = "TINYINT";
+	static constexpr std::string_view BIGINT = "BIGINT";
 };
 
 using DbValue = std::variant<int, int64_t, double, bool, std::string>;

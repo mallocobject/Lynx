@@ -5,13 +5,102 @@ const container = document.getElementById('container');
 const registerForm = document.getElementById('registerForm');
 const loginForm = document.getElementById('loginForm');
 
-signUpButton.addEventListener('click', () => {
-    container.classList.add("right-panel-active");
+const forgotLink = document.getElementById('forgotLink');
+const forgotForm = document.getElementById('forgotForm');
+
+const regSendBtn = document.getElementById('reg-send-btn');
+const forgotSendBtn = document.getElementById('forgot-send-btn');
+
+const TimerManager = {
+    // 存储的键名前缀
+    keyPrefix: 'lynx_timer_',
+
+    /**
+     * 启动倒计时
+     * @param {HTMLElement} btn - 按钮元素
+     * @param {string} type - 类型标识 (register 或 reset)
+     */
+    start: function(btn, type) {
+        // 1. 计算结束时间 (当前时间 + 60秒)
+        const endTime = Date.now() + 60 * 1000;
+        
+        // 2. 存入本地存储
+        localStorage.setItem(this.keyPrefix + type, endTime);
+        
+        // 3. 开始视觉倒计时
+        this.updateView(btn, endTime, type);
+    },
+
+    /**
+     * 恢复倒计时 (页面刷新或重新打开时调用)
+     */
+    restore: function() {
+        // 检查注册按钮
+        if(regSendBtn) this.checkAndResume(regSendBtn, 'register');
+        // 检查重置按钮
+        if(forgotSendBtn) this.checkAndResume(forgotSendBtn, 'reset');
+    },
+
+    /**
+     * 检查并恢复单个按钮的状态
+     */
+    checkAndResume: function(btn, type) {
+        const endTime = localStorage.getItem(this.keyPrefix + type);
+        if (endTime && Date.now() < parseInt(endTime)) {
+            // 时间还没到，继续倒计时
+            this.updateView(btn, parseInt(endTime), type);
+        } else {
+            // 时间已过或没有记录，确保按钮可用
+            localStorage.removeItem(this.keyPrefix + type);
+            btn.disabled = false;
+            btn.innerText = "获取验证码";
+        }
+    },
+
+    /**
+     * 更新按钮视图 (递归调用实现倒计时)
+     */
+    updateView: function(btn, endTime, type) {
+        const now = Date.now();
+        const remaining = Math.ceil((endTime - now) / 1000);
+
+        if (remaining > 0) {
+            // 倒计时进行中
+            btn.disabled = true;
+            btn.innerText = `${remaining}s后重试`;
+            
+            // 1秒后再次更新
+            setTimeout(() => {
+                // 递归调用前先检查按钮是否存在，防止报错
+                if(btn) this.updateView(btn, endTime, type);
+            }, 1000);
+        } else {
+            // 倒计时结束
+            btn.disabled = false;
+            btn.innerText = "获取验证码";
+            localStorage.removeItem(this.keyPrefix + type);
+        }
+    }
+};
+
+// 点击“忘记密码” -> 隐藏登录，显示重置
+forgotLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    container.classList.add("forgot-active");
 });
 
+// 点击“去注册”时，也要确保退出忘记密码模式
+signUpButton.addEventListener('click', () => {
+    container.classList.add("right-panel-active");
+    container.classList.remove("forgot-active"); // 确保重置层消失
+});
+
+// 点击“去登录”时，确保退出忘记密码模式
 signInButton.addEventListener('click', () => {
     container.classList.remove("right-panel-active");
+    container.classList.remove("forgot-active");
 });
+
 
 
 function getToastContainer() {
@@ -80,44 +169,84 @@ function showMessage(msg, isError = false, duration = 3000) {
     };
 }
 
-/**
- * 倒计时逻辑适配 Toast 版本
- */
-function startCountdown(baseMsg, callback) {
-    let seconds = 3;
-    
-    // 1. 显示通知，设置为 0 不自动关闭（我们要自己控制）
-    const toastInstance = showMessage(`${baseMsg} (${seconds}s)`, false, 0);
+async function handleSendCode(btnElement, emailInputId, type) {
+    const email = document.getElementById(emailInputId).value;
 
-    // 2. 启动定时器
-    const timer = setInterval(() => {
-        seconds--;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('请输入有效的邮箱地址', true);
+        return;
+    }
+
+    // 暂时禁用按钮，防止连点
+    btnElement.disabled = true;
+
+    try {
+        const data = {
+            action: "verify",
+            email: email,
+            type: type // 'register' 或 'reset'
+        };
+
+        const response = await fetch('/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
         
-        // 更新 Toast 上的文字
-        toastInstance.updateText(`${baseMsg} (${seconds}s)`);
+        const result = await response.json();
 
-        if (seconds <= 0) {
-            clearInterval(timer);
-            // 倒计时结束，手动关闭 Toast
-            toastInstance.close(); 
-            // 执行跳转/切换
-            if (callback) callback();
+        if (!response.ok || (result.status && result.status === 'fail')) {
+            throw new Error(result.message || result.error || '发送失败');
         }
-    }, 1000);
+
+        showMessage('验证码已发送，请查收邮件', false);
+        
+        // 发送成功，启动倒计时
+        TimerManager.start(btnElement, type);
+
+    } catch (error) {
+        showMessage(`发送失败：${error.message}`, true);
+        const endTime = localStorage.getItem(TimerManager.keyPrefix + type);
+        if(!endTime || Date.now() > parseInt(endTime)) {
+            btnElement.disabled = false;
+        }
+    }
+}
+
+// 绑定发送验证码事件
+if(regSendBtn) {
+    regSendBtn.addEventListener('click', () => {
+        handleSendCode(regSendBtn, 'reg-email', 'register');
+    });
+}
+
+if(forgotSendBtn) {
+    forgotSendBtn.addEventListener('click', () => {
+        handleSendCode(forgotSendBtn, 'forgot-email', 'reset');
+    });
 }
 
 async function sendDataToBackend(data, type) {
-    const submitBtn = document.querySelector(`#${type === 'signUp' ? 'register' : 'login'}Form button[type="submit"]`);
+    let formId = 'loginForm';
+    if(type === 'signUp') formId = 'registerForm';
+    else if(type === 'resetPwd') formId = 'forgotForm';
+    
+    const submitBtn = document.querySelector(`#${formId} button[type="submit"]`);
     submitBtn.disabled = true;
 
     try {
-        const response = await fetch('/posts', {
+        const response = await fetch('/post', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
         const result = await response.json();
+
+        if (response.status === 409) {
+            throw new Error("该用户名或邮箱已被注册，请直接登录");
+        }
 
         if (result.error) {
             throw new Error(result.error);
@@ -140,8 +269,15 @@ async function sendDataToBackend(data, type) {
             showMessage('登录成功！', false);
             return result;
         }
+        else if(type === 'resetPwd') {
+            showMessage('密码重置成功！请使用新密码登录...', false);
+            container.classList.remove("forgot-active");
+            // // 清空输入框
+            // document.getElementById('forgot-form').reset();
+            return result;
+        }
     } catch (error) {
-        showMessage(`${type === 'signUp' ? '注册' : '登录'}失败：${error.message}`, true);
+        showMessage(`${type === 'signUp' ? '注册' : (type === 'signIn' ? '登录' : '修改')}失败：${error.message}`, true);
     } finally {
         submitBtn.disabled = false;
     }
@@ -154,12 +290,13 @@ registerForm.addEventListener('submit', function(e) {
     const email = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
     const passwordAgain = document.getElementById('reg-password-again').value;
+    const code = document.getElementById('reg-code').value;
 
     // 正则解释：支持字母、数字、下划线，长度6-16位
     const usernameRegex = /^[a-zA-Z0-9_]{6,16}$/;
     
     if (!usernameRegex.test(username)) {
-        showMessage('用户名格式不正确！\n请使用6-16位的中英文、数字或下划线', true);
+        showMessage('用户名格式不正确！\n请使用6-16位的英文、数字或下划线', true);
         return; // 验证失败，停止执行
     }
 
@@ -172,8 +309,14 @@ registerForm.addEventListener('submit', function(e) {
         return; // 验证失败，停止执行
     }
 
-    if (password.length < 6) {
-        showMessage('密码长度不能少于6位', true);
+    if (password.length < 6 || password.length > 20) {
+        showMessage('密码长度不能少于6位且不超过20位', true);
+        return;
+    }
+
+    if (code.length != 6)
+    {
+        showMessage('请输入6位验证码', true);
         return;
     }
 
@@ -181,6 +324,7 @@ registerForm.addEventListener('submit', function(e) {
         action: "register",
         username: username,
         email: email,
+        code: code,
         password: password
     };
 
@@ -202,8 +346,8 @@ loginForm.addEventListener('submit', function(e) {
         return; // 验证失败，停止执行
     }
 
-    if (password.length < 6) {
-        showMessage('密码长度不能少于6位', true);
+    if (password.length < 6 || password.length > 20) {
+        showMessage('密码长度不能少于6位且不超过20位', true);
         return;
     }
 
@@ -216,4 +360,44 @@ loginForm.addEventListener('submit', function(e) {
 
     // 发送请求
     sendDataToBackend(data, "signIn");
+});
+
+forgotForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('forgot-email').value;
+    const newPassword = document.getElementById('forgot-new-password').value;
+    const confirmPassword = document.getElementById('forgot-new-password-confirm').value;
+    const code = document.getElementById('forgot-code').value;
+
+    // 简单验证
+    if (newPassword !== confirmPassword) {
+        showMessage('两次输入的新密码不一致', true);
+        return;
+    }
+
+    if (newPassword.length < 6 || newPassword.length > 20) {
+        showMessage('密码长度不能少于6位且不超过20位', true);
+        return;
+    }
+
+    if (code.length != 6)
+    {
+        showMessage('请输入6位验证码', true);
+        return;
+    }
+
+    const data = {
+        action: "reset", // 告诉后端这是重置密码操作
+        email: email,
+        code: code,
+        new_password: newPassword
+    };
+
+    // 复用之前的发送函数，注意 type 传一个新的标识
+    sendDataToBackend(data, "resetPwd");
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    TimerManager.restore();
 });
