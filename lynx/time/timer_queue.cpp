@@ -64,18 +64,17 @@ void TimerQueue::cancellInLoop(TimerId timer_id)
 
 	auto timer = timer_id.timer();
 
+	if (timer_id.id() == 0)
+	{
+		LOG_WARN << "timer id invalid: cannot be zero(0)";
+		return;
+	}
+
 	if (!timer)
 	{
 		LOG_WARN << "timer is null";
 		return;
 	}
-
-	// if (timer->seq() != timer_id.seq_)
-	// {
-	// 	LOG_WARN << "sequence mismatch, timer "
-	// 				"might have been reset";
-	// 	return;
-	// }
 
 	timer->setOn(false);
 }
