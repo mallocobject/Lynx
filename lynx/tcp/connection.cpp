@@ -21,8 +21,8 @@ using namespace lynx::tcp;
 const size_t Connection::kMaxSendBytes = 16 * 1024; // 16 kB
 
 Connection::Connection(int fd, EventLoop* loop, const InetAddr& addr,
-					   uint64_t seq)
-	: loop_(loop), addr_(addr), seq_(seq), state_(State::kConnecting),
+					   uint64_t id)
+	: loop_(loop), addr_(addr), id_(id), state_(State::kConnecting),
 	  high_water_mark_(64 * 1024 * 1024)
 {
 	Socket::setKeepAlive(fd);

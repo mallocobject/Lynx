@@ -4,7 +4,7 @@ project(MyProject)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(Lynx_test json_test.cpp)
+add_executable(Lynx_test timer_queue_test.cpp)
 
 target_include_directories(Lynx_test PRIVATE 
     /usr/local/include

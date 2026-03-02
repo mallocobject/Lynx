@@ -13,73 +13,67 @@ const forgotSendBtn = document.getElementById('forgot-send-btn');
 
 const TimerManager = {
     // 存储的键名前缀
-    keyPrefix: 'lynx_timer_',
+    storageKey: 'lynx_timer_shared',
 
-    /**
-     * 启动倒计时
-     * @param {HTMLElement} btn - 按钮元素
-     * @param {string} type - 类型标识 (register 或 reset)
-     */
-    start: function(btn, type) {
+    buttons: [],
+
+    init: function() {
+        this.buttons = [];
+        if (regSendBtn) this.buttons.push(regSendBtn);
+        if (forgotSendBtn) this.buttons.push(forgotSendBtn);
+        
+        this.restore();
+    },
+
+    start: function() {
         // 1. 计算结束时间 (当前时间 + 60秒)
         const endTime = Date.now() + 60 * 1000;
         
         // 2. 存入本地存储
-        localStorage.setItem(this.keyPrefix + type, endTime);
+        localStorage.setItem(this.storageKey, endTime);
         
         // 3. 开始视觉倒计时
-        this.updateView(btn, endTime, type);
+        this.tick(endTime);
     },
 
-    /**
-     * 恢复倒计时 (页面刷新或重新打开时调用)
-     */
     restore: function() {
-        // 检查注册按钮
-        if(regSendBtn) this.checkAndResume(regSendBtn, 'register');
-        // 检查重置按钮
-        if(forgotSendBtn) this.checkAndResume(forgotSendBtn, 'reset');
-    },
-
-    /**
-     * 检查并恢复单个按钮的状态
-     */
-    checkAndResume: function(btn, type) {
-        const endTime = localStorage.getItem(this.keyPrefix + type);
+        const endTime = localStorage.getItem(this.storageKey);
         if (endTime && Date.now() < parseInt(endTime)) {
             // 时间还没到，继续倒计时
-            this.updateView(btn, parseInt(endTime), type);
+            this.tick(parseInt(endTime));
         } else {
-            // 时间已过或没有记录，确保按钮可用
-            localStorage.removeItem(this.keyPrefix + type);
-            btn.disabled = false;
-            btn.innerText = "获取验证码";
+            // 时间已过或没有记录，重置所有按钮
+            this.reset();
         }
     },
 
-    /**
-     * 更新按钮视图 (递归调用实现倒计时)
-     */
-    updateView: function(btn, endTime, type) {
+    tick: function(endTime) {
         const now = Date.now();
         const remaining = Math.ceil((endTime - now) / 1000);
 
         if (remaining > 0) {
-            // 倒计时进行中
-            btn.disabled = true;
-            btn.innerText = `${remaining}s后重试`;
+            // 更新所有按钮的状态
+            this.buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.innerText = `${remaining}s后重试`;
+            });
             
             // 1秒后再次更新
             setTimeout(() => {
-                // 递归调用前先检查按钮是否存在，防止报错
-                if(btn) this.updateView(btn, endTime, type);
+                this.tick(endTime);
             }, 1000);
         } else {
-            // 倒计时结束
+            this.reset();
+        }
+    },
+
+    reset: function() {
+        localStorage.removeItem(this.storageKey);
+        localStorage.removeItem('authToken');
+        this.buttons.forEach(btn => {
             btn.disabled = false;
             btn.innerText = "获取验证码";
-            localStorage.removeItem(this.keyPrefix + type);
-        }
+        });
     }
 };
 
@@ -188,9 +182,14 @@ async function handleSendCode(btnElement, emailInputId, type) {
             type: type // 'register' 或 'reset'
         };
 
+        let token = localStorage.getItem('authToken');
+
         const response = await fetch('/verify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json' ,
+                'Token': token ? `${token}` : ''
+            },
             body: JSON.stringify(data)
         });
         
@@ -198,6 +197,10 @@ async function handleSendCode(btnElement, emailInputId, type) {
 
         if (!response.ok || (result.status && result.status === 'fail')) {
             throw new Error(result.message || result.error || '发送失败');
+        }
+
+        if (result.token) {
+            localStorage.setItem('authToken', result.token);
         }
 
         showMessage('验证码已发送，请查收邮件', false);
@@ -261,15 +264,18 @@ async function sendDataToBackend(data, type) {
         
         // 如果是注册成功，自动跳转回登录页
         if(type === 'signUp') {
+
             container.classList.remove("right-panel-active");
             showMessage("注册成功！正在切换到登录页...", false);
             return result;
         }
         else if(type === 'signIn') {
+
             showMessage('登录成功！', false);
             return result;
         }
         else if(type === 'resetPwd') {
+
             showMessage('密码重置成功！请使用新密码登录...', false);
             container.classList.remove("forgot-active");
             // // 清空输入框
@@ -399,5 +405,5 @@ forgotForm.addEventListener('submit', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    TimerManager.restore();
+    TimerManager.init();
 });

@@ -16,8 +16,8 @@ class Timer : public base::noncopyable
 	TimeStamp expiration_;
 	double interval_;
 	bool repeating_;
-	static std::atomic<int64_t> seq_creator_;
-	int64_t seq_;
+	static std::atomic<uint64_t> id_creator_;
+	// int64_t id_;
 
 	bool on_;
 
@@ -32,9 +32,14 @@ class Timer : public base::noncopyable
 		return repeating_;
 	}
 
-	int64_t seq() const
+	// int64_t seq() const
+	// {
+	// 	return seq_;
+	// }
+
+	static uint64_t generateId()
 	{
-		return seq_;
+		return id_creator_.fetch_add(1, std::memory_order_acq_rel);
 	}
 
 	void setOn(bool on = false)

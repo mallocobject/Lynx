@@ -35,7 +35,7 @@ class Connection : public base::noncopyable,
 	EventLoop* loop_;
 	std::unique_ptr<Channel> ch_;
 	InetAddr addr_;
-	uint64_t seq_;
+	uint64_t id_;
 
 	size_t high_water_mark_;
 	std::unique_ptr<Buffer> inbuf_;
@@ -63,14 +63,14 @@ class Connection : public base::noncopyable,
 		high_water_mark_callback_;
 
   public:
-	Connection(int fd, EventLoop* loop, const InetAddr& addr, uint64_t seq);
+	Connection(int fd, EventLoop* loop, const InetAddr& addr, uint64_t id);
 	~Connection();
 
 	int fd() const;
 
-	uint64_t seq() const
+	uint64_t id() const
 	{
-		return seq_;
+		return id_;
 	}
 
 	bool connected() const

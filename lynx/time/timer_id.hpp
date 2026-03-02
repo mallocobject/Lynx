@@ -2,6 +2,7 @@
 #define LYNX_TIME_TIMER_ID_HPP
 
 #include <cstdint>
+#include <memory>
 namespace lynx
 {
 namespace time
@@ -9,22 +10,37 @@ namespace time
 class Timer;
 class TimerId
 {
-	friend class TimerQueue;
+	// friend class TimerQueue;
 
   private:
-	Timer* timer_;
-	int64_t seq_;
+	std::weak_ptr<Timer> timer_;
+	uint64_t id_;
 
   public:
-	TimerId() : timer_(nullptr), seq_(0)
+	TimerId() : id_(0)
 	{
 	}
 
-	TimerId(Timer* timer, int64_t seq) : timer_(timer), seq_(seq)
+	TimerId(std::weak_ptr<Timer> timer, uint64_t id) : timer_(timer), id_(id)
 	{
 	}
 
 	TimerId(const TimerId&) = default;
+
+	bool isAlive() const
+	{
+		return !timer_.expired();
+	}
+
+	std::shared_ptr<Timer> timer() const
+	{
+		return timer_.lock();
+	}
+
+	uint64_t id() const
+	{
+		return id_;
+	}
 };
 } // namespace time
 } // namespace lynx

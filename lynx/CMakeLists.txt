@@ -1,7 +1,7 @@
 set(LIB_SUB_DIRS ${LYNX_SUBDIRS})
 set(LIB_SOURCES)
 
-message("LIB_SUB_DIRS = ${LIB_SUB_DIRS}")
+message("-- LIB_SUB_DIRS = ${LIB_SUB_DIRS}")
 foreach(dir ${LIB_SUB_DIRS})
     file(GLOB dir_sources CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cpp")
     list(APPEND LIB_SOURCES ${dir_sources})

@@ -1,12 +1,17 @@
 #include "email.hpp"
 #include "lynx/logger/logger.hpp"
 #include "lynx/time/time_stamp.hpp"
+#include "lynx/time/timer_id.hpp"
+#include "utils.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <format>
 #include <lynx/lynx.hpp>
+#include <map>
 #include <memory>
 #include <string>
+#include <sys/types.h>
 
 using namespace lynx;
 using entry_type = base::Entry<tcp::Connection>;
@@ -111,48 +116,108 @@ int main(int argc, char* argv[])
 
 	router.addRoute(
 		"POST", "/verify",
-		[&connection_pool](const auto& req, auto* res, const auto& conn)
+		[&connection_pool, &loop](const auto& req, auto* res, const auto& conn)
 		{
 			try
 			{
-				json::Tokenizer tokenizer(req.body);
-				json::Ref root = json::Parser(&tokenizer).parse();
-
-				std::string target_email = root["email"].asStr();
-
-				auto sess = connection_pool.connection();
-				lynx::sql::Schema db = sess->schema("lynx");
-
-				lynx::sql::Table verification_codes_table =
-					db.table("verification_codes");
-				std::string verify_code = generateVerificationCode();
-
-				CURLcode mail_ok = mail(target_email, verify_code);
-
-				if (mail_ok != CURLE_OK)
+				static auto f =
+					[&connection_pool](const auto& req, auto* res,
+									   const std::string& token = "")
 				{
-					LOG_ERROR << "curl_easy_perform() failed: "
-							  << curl_easy_strerror(mail_ok);
-					res->setStatusCode(503);
-					res->setBody(
-						R"({"status":"fail","message":"验证码发送失败"})");
-				}
-				else
-				{
-					auto now_time_stamp = time::TimeStamp::now();
+					json::Tokenizer tokenizer(req.body);
+					json::Ref root = json::Parser(&tokenizer).parse();
 
-					verification_codes_table
-						.insert("email", "code", "expires_at", "created_at",
-								"used")
-						.values(target_email, verify_code,
+					std::string target_email = root["email"].asStr();
+
+					auto sess = connection_pool.connection();
+					lynx::sql::Schema db = sess->schema("lynx");
+
+					lynx::sql::Table verification_codes_table =
+						db.table("verification_codes");
+					std::string verify_code = generateVerificationCode();
+
+					CURLcode mail_ok = mail(target_email, verify_code);
+
+					if (mail_ok != CURLE_OK)
+					{
+						LOG_ERROR << "curl_easy_perform() failed: "
+								  << curl_easy_strerror(mail_ok);
+						res->setStatusCode(503);
+						res->setBody(
+							R"({"status":"fail","message":"验证码发送失败"})");
+					}
+					else
+					{
+						auto now_time_stamp = time::TimeStamp::now();
+
+						verification_codes_table
+							.insert("email", "code", "expires_at", "created_at",
+									"used")
+							.values(
+								target_email, verify_code,
 								time::TimeStamp::addTime(now_time_stamp, 5 * 60)
 									.microseconds(),
 								now_time_stamp.microseconds(), 0)
-						.execute();
+							.execute();
 
-					res->setStatusCode(200);
-					res->setBody(
-						R"({"status":"success","message":"验证码已发送"})");
+						res->setStatusCode(200);
+						res->setBody(
+							std::format("{{\"status\":\"success\",\"message\":"
+										"\"验证码已发送\",\"token\":\"{}\"}}",
+										token));
+					}
+				};
+
+				static std::map<std::string, time::TimerId> conn_timers;
+				loop.runEvery(60,
+							  []
+							  {
+								  std::erase_if(conn_timers,
+												[](const auto& it) {
+													return !it.second.isAlive();
+												});
+								  //   for (auto it = conn_timers.begin();
+								  // 	   it != conn_timers.end();)
+								  //   {
+								  // 	  if (!it->second.isAlive())
+								  // 	  {
+								  // 		  it = conn_timers.erase(it);
+								  // 	  }
+								  // 	  else
+								  // 	  {
+								  // 		  it++;
+								  // 	  }
+								  //   }
+							  });
+
+				std::string token = req.header("token");
+				if (token.empty())
+				{
+					token = generate_base64_token<24>();
+					time::TimerId timer_id = loop.runAfter(60, [] {});
+					conn_timers[token] = timer_id;
+					f(req, res, token);
+				}
+				else if (auto iter = conn_timers.find(token);
+						 iter != conn_timers.end())
+				{
+					time::TimerId timer_id = iter->second;
+					if (timer_id.isAlive())
+					{
+						res->setStatusCode(503);
+						res->setBody(
+							R"({"status":"fail","message":"验证码请求频繁"})");
+					}
+					else
+					{
+						conn_timers.erase(iter);
+						f(req, res);
+					}
+				}
+				else
+				{
+					res->setStatusCode(400);
+					res->setBody(R"({"status":"fail","message":"Token 错误"})");
 				}
 
 				res->setContentType("application/json");

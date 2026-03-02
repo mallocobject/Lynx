@@ -8,6 +8,5 @@
 extern std::string password;
 
 CURLcode mail(const std::string& target_email, const std::string& verify_code);
-std::string generateVerificationCode();
 
 #endif

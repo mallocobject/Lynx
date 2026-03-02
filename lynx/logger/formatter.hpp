@@ -31,22 +31,6 @@ class Formatter
 		std::string formatted_log;
 		auto out = std::back_inserter(formatted_log);
 
-		// if (flags_ & (Flags::kDate | Flags::kTime))
-		// {
-		// 	std::format_to(out, "{}",
-		// 				   ctx.time_stamp.toFormattedString(true, true));
-		// }
-		// else if (flags_ & Flags::kDate)
-		// {
-		// 	std::format_to(out, "{}",
-		// 				   ctx.time_stamp.toFormattedString(true, false));
-		// }
-		// else if (flags_ & (Flags::kDate | Flags::kTime))
-		// {
-		// 	std::format_to(out, "{}",
-		// 				   ctx.time_stamp.toFormattedString(false, true));
-		// }
-
 		std::format_to(out, "{}",
 					   ctx.time_stamp.toFormattedString(
 						   static_cast<bool>(flags_ & Flags::kDate),

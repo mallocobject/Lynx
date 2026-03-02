@@ -28,22 +28,20 @@ TimerQueue::~TimerQueue()
 {
 	ch_->disableAll();
 	ch_->remove();
-	for (auto& entry : timers_)
-	{
-		delete entry.second;
-	}
+
+	timers_.clear();
 }
 
 TimerId TimerQueue::addTimer(TimeStamp time_stamp,
 							 const std::function<void()>& cb, double interval)
 {
-	Timer* timer = new Timer(time_stamp, cb, interval);
+	auto timer = std::make_shared<Timer>(time_stamp, cb, interval);
 	loop_->runInLoop(std::bind(&TimerQueue::addTimerInLoop, this, timer));
 
-	return TimerId(timer, timer->seq());
+	return TimerId(timer, Timer::generateId());
 }
 
-void TimerQueue::addTimerInLoop(Timer* timer)
+void TimerQueue::addTimerInLoop(std::shared_ptr<Timer> timer)
 {
 	loop_->assertInLoopThread();
 
@@ -64,7 +62,7 @@ void TimerQueue::cancellInLoop(TimerId timer_id)
 {
 	loop_->assertInLoopThread();
 
-	Timer* timer = timer_id.timer_;
+	auto timer = timer_id.timer();
 
 	if (!timer)
 	{
@@ -72,12 +70,12 @@ void TimerQueue::cancellInLoop(TimerId timer_id)
 		return;
 	}
 
-	if (timer->seq() != timer_id.seq_)
-	{
-		LOG_WARN << "sequence mismatch, timer "
-					"might have been reset";
-		return;
-	}
+	// if (timer->seq() != timer_id.seq_)
+	// {
+	// 	LOG_WARN << "sequence mismatch, timer "
+	// 				"might have been reset";
+	// 	return;
+	// }
 
 	timer->setOn(false);
 }
@@ -97,16 +95,16 @@ void TimerQueue::handleRead()
 	loop_->assertInLoopThread();
 
 	readTimerFd();
-	active_timers_.clear();
 
-	auto end = timers_.upper_bound(
-		Entry(TimeStamp::now(), reinterpret_cast<Timer*>(UINTPTR_MAX)));
+	auto max_shared_ptr = std::shared_ptr<Timer>(
+		reinterpret_cast<Timer*>(UINTPTR_MAX), [](Timer*) {});
+	auto end = timers_.upper_bound(Entry(TimeStamp::now(), max_shared_ptr));
 	active_timers_.insert(active_timers_.end(), timers_.begin(), end);
 
 	timers_.erase(timers_.begin(), end);
 	for (auto& entry : active_timers_)
 	{
-		Timer* timer = entry.second;
+		auto timer = entry.second;
 
 		if (timer->on())
 		{
@@ -120,26 +118,16 @@ void TimerQueue::resetTimer()
 {
 	for (auto& entry : active_timers_)
 	{
-		Timer* timer = entry.second;
+		auto timer = entry.second;
 
-		if (!timer->on())
-		{
-			delete timer;
-			timer = nullptr;
-			continue;
-		}
-
-		if (timer->repeating())
+		if (timer->on() && timer->repeating())
 		{
 			timer->repeat();
 			insert(timer);
 		}
-		else
-		{
-			delete timer;
-			timer = nullptr;
-		}
 	}
+
+	active_timers_.clear();
 
 	if (!timers_.empty())
 	{
@@ -147,7 +135,7 @@ void TimerQueue::resetTimer()
 	}
 }
 
-void TimerQueue::resetTimerFd(Timer* timer)
+void TimerQueue::resetTimerFd(std::shared_ptr<Timer> timer)
 {
 	itimerspec value;
 	::bzero(&value, sizeof(value));
@@ -174,7 +162,7 @@ void TimerQueue::resetTimerFd(Timer* timer)
 	}
 }
 
-bool TimerQueue::insert(Timer* timer)
+bool TimerQueue::insert(std::shared_ptr<Timer> timer)
 {
 	bool reset_instantly = false;
 

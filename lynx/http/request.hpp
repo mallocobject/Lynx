@@ -29,6 +29,12 @@ struct Request : public base::noncopyable
 		return (it != headers.end()) ? it->second : "";
 	}
 
+	std::string query(const std::string& key) const
+	{
+		auto it = query_params.find(key);
+		return (it != query_params.end()) ? it->second : "";
+	}
+
 	void clear()
 	{
 		method.clear();

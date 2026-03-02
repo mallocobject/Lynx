@@ -1,7 +1,6 @@
 #include "email.hpp"
 #include <cstring>
 #include <format>
-#include <random>
 #include <string>
 
 // 邮件内容回调函数：libcurl 会反复调用此函数来获取要发送的数据
@@ -120,14 +119,4 @@ CURLcode mail(const std::string& target_email, const std::string& verify_code)
 
 	curl_global_cleanup();
 	return res;
-}
-
-std::string generateVerificationCode()
-{
-	thread_local static std::random_device rd;
-	thread_local static std::mt19937 gen(rd());
-	thread_local static std::uniform_int_distribution<int> dist(0, 999999);
-
-	int code = dist(gen);
-	return std::format("{:06}", code);
 }

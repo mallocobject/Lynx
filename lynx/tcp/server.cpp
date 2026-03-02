@@ -107,7 +107,7 @@ void Server::handleCloseInLoop(const std::shared_ptr<Connection>& conn)
 {
 	main_reactor_->assertInLoopThread();
 
-	decltype(conn_map_)::iterator iter = conn_map_.find(conn->seq());
+	decltype(conn_map_)::iterator iter = conn_map_.find(conn->id());
 	assert(iter != conn_map_.end());
 	conn_map_.erase(iter);
 

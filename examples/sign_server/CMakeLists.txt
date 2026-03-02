@@ -4,7 +4,7 @@ project(MyProject)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(Lynx_SignServer main.cpp email.cpp)
+add_executable(Lynx_SignServer main.cpp email.cpp utils.cpp)
 
 find_library(MYSQL_CONNECTOR_CPP NAMES mysqlcppconn)
 

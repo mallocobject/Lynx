@@ -22,7 +22,7 @@ inline std::string& str()
 	thread_local std::string str;
 	static bool initialed = []()
 	{
-		str.clear();
+		str.reserve(128);
 		return true;
 	}();
 

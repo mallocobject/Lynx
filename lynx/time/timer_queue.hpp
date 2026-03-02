@@ -24,7 +24,7 @@ class Timer;
 class TimerQueue : public base::noncopyable
 {
   private:
-	using Entry = std::pair<TimeStamp, Timer*>;
+	using Entry = std::pair<TimeStamp, std::shared_ptr<Timer>>;
 
 	tcp::EventLoop* loop_;
 	std::unique_ptr<tcp::Channel> ch_;
@@ -51,12 +51,12 @@ class TimerQueue : public base::noncopyable
 	void readTimerFd();
 	void handleRead();
 	void resetTimer();
-	void resetTimerFd(Timer* timer);
+	void resetTimerFd(std::shared_ptr<Timer> timer);
 
-	bool insert(Timer* timer);
-	bool remove(Timer* timer);
+	bool insert(std::shared_ptr<Timer> timer);
+	bool remove(std::shared_ptr<Timer> timer);
 
-	void addTimerInLoop(Timer* timer);
+	void addTimerInLoop(std::shared_ptr<Timer> timer);
 	void cancellInLoop(TimerId timer_id);
 };
 } // namespace time
