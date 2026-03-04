@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 			lynx::sql::Table verification_codes_table =
 				db.table("verification_codes");
 			verification_codes_table.remove()
-				.where(std::format("used = 1 OR expires_at < {}",
+				.where(std::format("used = 1 OR expires_at < '{}'",
 								   time::TimeStamp::now().toFormattedString()))
 				.execute();
 		});
@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
 				};
 
 				static std::map<std::string, time::TimerId> conn_timers;
-				loop.runEvery(60,
+				loop.runEvery(60 * 60,
 							  []
 							  {
 								  std::erase_if(conn_timers,
