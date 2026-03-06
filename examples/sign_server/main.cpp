@@ -80,8 +80,8 @@ int main(int argc, char* argv[])
 			lynx::sql::Table verification_codes_table =
 				db.table("verification_codes");
 			verification_codes_table.remove()
-				.where(std::format("used = 1 OR expires_at < '{}'",
-								   time::TimeStamp::now().toFormattedString()))
+				.where(std::format("used = 1 OR expires_at < {}",
+								   time::TimeStamp::now().microseconds()))
 				.execute();
 		});
 
