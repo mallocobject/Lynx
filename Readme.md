@@ -1,6 +1,19 @@
 # Lynx 🐱
 
-**Lynx** 是一个轻量级 C++ 基础库，提供了包括 HTTP、JSON、日志、SQL、TCP、时间等常用模块。本库基于 **C++20 标准**开发，旨在为服务器端应用提供便捷的工具集合。
+<p align="center"> <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++20"> <img src="https://img.shields.io/badge/platform-Linux-red.svg" alt="Platform"> <img src="https://img.shields.io/badge/build-CMake-blueviolet.svg" alt="CMake"> <img src="https://img.shields.io/badge/version-1.0.0-orange.svg" alt="Version"> </p><p align="center"> <b>Swift as the Lynx, Steady as the Rock</b><br> 一个基于 C++20 的高性能轻量级基础库，专为服务端应用打造。 </p>
+
+## ✨ 特性一览
+- ⚡ **高性能网络模块**：基于 epoll 的多线程 TCP 服务器，支持非阻塞 I/O 和零拷贝（sendfile）。
+
+- 🌐 **HTTP 服务器**：内置轻量级 HTTP 解析器与路由器，轻松构建 REST API 或静态文件服务。
+
+- 📝 **异步日志系统**：两级日志过滤（编译期 + 运行时），高效异步写入，支持滚动文件。
+
+- 🔢 **JSON 解析器**：简洁的 DOM 风格 JSON 库，快速解析与生成。
+
+- 🗄️ **SQL 模块**：基于 MySQL Connector/C++ 的封装（可选），简化数据库操作。
+
+- ⏱️ **时间与工具**：日期时间、内存池、缓冲区等常用组件开箱即用。
 
 ## 🚀 快速开始
 
@@ -16,33 +29,24 @@ sudo apt install libmysqlcppconn-dev
 
 ### 编译库
 
-#### 1. 克隆仓库
 ```bash
+# 1. 克隆仓库
 git clone https://github.com/mallocobject/Lynx.git
 cd Lynx
-```
 
-#### 2. 配置并编译（Debug 版本）
-```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Debug
+# 2. 配置 Debug 版本
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DLOG_LEVEL=INFO
+
+# 3. 编译
 cmake --build build
-```
-> 注意：如果使用 SQL 模块，请确保已安装 libmysqlcppconn-dev，否则编译会报错。
 
-#### 3. 安装库文件和头文件
-```bash
+# 4. 安装（默认安装到 /usr/local）
 sudo cmake --install build
 ```
 
 **安装位置：**
 - 静态库: `/usr/local/lib/liblynx_lib_d.a`
-- 公开头文件: `/usr/local/include/lynx/`
-
-#### 4. 验证安装
-```bash
-ls /usr/local/lib/liblynx_lib_d.a
-ls /usr/local/include/lynx/
-```
+- 头文件: `/usr/local/include/lynx/`
 
 ---
 
@@ -50,36 +54,25 @@ ls /usr/local/include/lynx/
 
 Lynx 提供高性能的异步日志系统，支持两层配置：
 
-### 1️⃣ 编译期级别过滤（CMakeLists.txt）
+### 1️⃣ 编译期级别过滤（CMake）
 
-编译库时设置最小日志级别，低于此级别的日志代码会被编译器优化掉：
+在项目根目录执行 CMake 配置时，通过 `-DLOG_LEVEL=<级别>` 指定
 
-```cmake
-# 设置日志过滤级别
-# 可选值: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
-
-set(LOG_LEVEL "INFO" CACHE STRING "Logger level")
-
-# 默认示例（生产推荐）
-set(LOG_LEVEL "INFO")
-
-# 开发调试
-# set(LOG_LEVEL "DEBUG")
-
-# 性能测试（极致性能）
-# set(LOG_LEVEL "OFF")
-```
-
-**编译命令：**
 ```bash
-# 默认 INFO 级别
+# 默认 INFO 级别（生产环境）
 cmake -B build
 
-# 或指定 DEBUG 级别
+# 开发调试使用 DEBUG
 cmake -B build -DLOG_LEVEL=DEBUG
 
-# 性能测试
+# 性能压测关闭日志
 cmake -B build -DLOG_LEVEL=OFF
+```
+
+也可以在 `CMakeLists.txt` 中直接修改默认值（不推荐，除非项目有固定需求）：
+
+```cmake
+set(LOG_LEVEL "INFO" CACHE STRING "Logger level" FORCE)
 ```
 
 ### 2️⃣ 运行时日志初始化（main.cpp）
@@ -90,22 +83,19 @@ cmake -B build -DLOG_LEVEL=OFF
 #include "lynx/logger.hpp"
 
 int main() {
-    // 1. 初始化异步日志系统
+    // 初始化异步日志
     lynx::Logger::initAsyncLogging(
-        "logs/",             // 日志文件存放目录（需提前创建）
-        "my_server",         // 日志文件名前缀
-        100 * 1024 * 1024,   // 单个日志文件滚动大小 (100MB)
-        3                    // 后端定期刷盘间隔 (3秒)
+        "logs/",             // 日志目录
+        "my_server",         // 文件名前缀
+        100 * 1024 * 1024,   // 单个文件滚动大小（100MB）
+        3                    // 刷盘间隔（秒）
     );
 
-    LOG_INFO("Lynx Server Started");
+    LOG_INFO("Lynx server started");
 
-    // 业务逻辑代码
-    // ...
+    // ... 业务代码 ...
 
-    // 2. 程序退出前关闭日志系统
     lynx::Logger::shutdownAsyncLogging();
-    
     return 0;
 }
 ```
@@ -114,9 +104,7 @@ int main() {
 
 ### 示例 1: Echo 服务器
 
-简单的 Echo 服务器，接收客户端消息并原样返回。
-
-**文件：** `examples/echo_server/main.cpp`
+一个简单的 TCP Echo 服务器，接收客户端消息并原样返回。
 
 ```cpp
 #include <lynx/lynx.hpp>
@@ -167,7 +155,7 @@ int main(int argc, char* argv[])
 }
 ```
 
-**编译和运行：**
+**编译运行**：
 ```bash
 cd examples/echo_server
 cmake -B build
@@ -175,20 +163,13 @@ cmake --build build
 ./build/Lynx_EchoServer
 ```
 
-**测试：**
-```bash
-# 另一个终端
-nc 127.0.0.1 9999
-# 输入任意内容，会被原样返回
-```
+测试：nc 127.0.0.1 9999
 
 ---
 
 ### 示例 2: HTTP Web 服务器
 
-完整的 HTTP 服务器，支持路由、静态文件和动态内容。
-
-**文件：** `examples/http_server/main.cpp`
+一个完整的 HTTP 服务器，支持路由、静态文件和 JSON API
 
 ```cpp
 #include <lynx/lynx.hpp>
@@ -366,7 +347,7 @@ cmake --build build
 http://127.0.0.1:8080/
 ```
 
-直接在浏览器地址栏输入上述 URL，即可访问服务器主页
+访问 http://127.0.0.1:8080/ 即可看到主页。
 
 ---
 
@@ -389,15 +370,10 @@ mkdir -p /var/log/lynx
 sudo chown $USER:$USER /var/log/lynx
 ```
 
-然后在 `main.cpp` 中：
+然后在代码中：
 ```cpp
 Logger::initAsyncLogging("/var/log/lynx/", "my_app");
 ```
 
----
-
-## ✨ *Powered by Lynx — Swift as the Lynx, Steady as the Rock* ✨
-
-───────────────────────────────────────────────
-
-> 本项目旨在深入学习 **C++ 服务端开发**，实现高性能网络编程最佳实践
+## 🌟 致谢
+- [muduo](https://github.com/chenshuo/muduo)
