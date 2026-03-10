@@ -1,6 +1,22 @@
-# Lynx 🐱
+<div align="center">
+  <pre>
+██╗     ██╗   ██╗███╗   ██╗██╗  ██╗
+██║     ╚██╗ ██╔╝████╗  ██║╚██╗██╔╝
+██║      ╚████╔╝ ██╔██╗ ██║ ╚███╔╝ 
+██║       ╚██╔╝  ██║╚██╗██║ ██╔██╗ 
+███████╗   ██║   ██║ ╚████║██╔╝ ██╗
+╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝  
+  </pre>
 
-<p align="center"> <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++20"> <img src="https://img.shields.io/badge/platform-Linux-red.svg" alt="Platform"> <img src="https://img.shields.io/badge/build-CMake-blueviolet.svg" alt="CMake"> <img src="https://img.shields.io/badge/version-1.0.0-orange.svg" alt="Version"> </p><p align="center"> <b>Swift as the Lynx, Steady as the Rock</b><br> 一个基于 C++20 的高性能轻量级基础库，专为服务端应用打造。 </p>
+<p align="center">
+  <img src="https://img.shields.io/badge/C%2B%2B-20-blue.svg" alt="C++20">
+  <img src="https://img.shields.io/badge/platform-Linux-red.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/build-CMake-blueviolet.svg" alt="CMake">
+  <img src="https://img.shields.io/badge/version-1.0.0-orange.svg" alt="Version">
+</p>
+
+<p align="center"> <b>Swift as the Lynx, Steady as the Rock</b><br> 一个基于 C++20 的高性能轻量级基础库，专为服务端应用打造。 </p>
+</div>
 
 ## ✨ 特性一览
 - ⚡ **高性能网络模块**：基于 epoll 的多线程 TCP 服务器，支持非阻塞 I/O 和零拷贝（sendfile）。
@@ -11,7 +27,7 @@
 
 - 🔢 **JSON 解析器**：简洁的 DOM 风格 JSON 库，快速解析与生成。
 
-- 🗄️ **SQL 模块**：基于 MySQL Connector/C++ 的封装（可选），简化数据库操作。
+- 🗄️ **SQL 模块**：基于 MySQL Connector/C++ 的封装（可选），提供连接池，简化数据库操作。
 
 - ⏱️ **时间与工具**：日期时间、内存池、缓冲区等常用组件开箱即用。
 
@@ -339,12 +355,6 @@ cd examples/http_server
 cmake -B build
 cmake --build build
 ./build/Lynx_WebServer
-```
-
-**测试：**
-
-```
-http://127.0.0.1:8080/
 ```
 
 访问 http://127.0.0.1:8080/ 即可看到主页。
